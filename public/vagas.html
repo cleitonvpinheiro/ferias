@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Abertura de Vaga</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+ 
+  <main class="container">
+    <div style="margin-bottom: 20px;">
+        <a href="/" style="color: #64748b; text-decoration: none; font-size: 0.9rem;">&larr; Voltar ao Menu</a>
+    </div>
+     
+   <div class="brand-inner">
+      <img class="brand-logo" src="/assets/logo.png" alt="Logo Família Madalosso">
+      <div class="brand-title">Formulário Abertura de Vaga</div>
+    </div>
+    
+    <form id="formVagas" novalidate>
+      <h2 class="section-title">Dados Gerais</h2>
+      <div class="grid-2">
+          <label>
+            Cargo
+            <input type="text" id="cargo" required>
+          </label>
+          <label>
+            Número de Vagas
+            <input type="number" id="numero_vagas" required min="1" value="1">
+          </label>
+      </div>
+      <div class="grid-2">
+          <label>
+            Setor
+            <input type="text" id="setor" required>
+          </label>
+          <label>
+            Data de Abertura
+            <input type="date" id="data_abertura" required>
+          </label>
+      </div>
+
+      <label>
+        Email do Gestor (para notificações)
+        <input type="email" id="email_gestor" required placeholder="gestor@familiamadalosso.com.br">
+      </label>
+
+      <h2 class="section-title">Motivo da Contratação</h2>
+      <div class="radio-group-box">
+          <label class="radio-card">
+            <input type="radio" name="motivo" value="substituicao" checked>
+            <span>Substituição</span>
+          </label>
+          <label class="radio-card">
+            <input type="radio" name="motivo" value="aumento_quadro">
+            <span>Aumento de Quadro</span>
+          </label>
+      </div>
+      
+      <div id="substituicaoArea">
+          <label>
+            Substituição a (Nome)
+            <input type="text" id="substituicao_nome">
+          </label>
+          
+          <label>Será desligado?</label>
+          <div class="radio-group-inline">
+              <label><input type="radio" name="sera_desligado" value="sim"> Sim</label>
+              <label><input type="radio" name="sera_desligado" value="nao" checked> Não</label>
+          </div>
+      </div>
+
+      <label>
+        Reportará a quem?
+        <input type="text" id="reportara_a" required>
+      </label>
+
+      <h2 class="section-title">Contratação</h2>
+      <label>
+        Escala / Horário de Trabalho
+        <input type="text" id="escala_horario" placeholder="Ex: 6x1, 08:00 às 16:20" required>
+      </label>
+      
+      <label>Tipo de Contratação</label>
+      <div class="radio-group-inline">
+          <label><input type="radio" name="tipo_contratacao" value="mensalista" checked> Mensalista</label>
+          <label><input type="radio" name="tipo_contratacao" value="horista"> Horista</label>
+      </div>
+
+      <h2 class="section-title">Perfil da Vaga</h2>
+      <label>
+        Salário e Benefícios
+        <input type="text" id="salario_beneficios" required>
+      </label>
+
+      <div class="grid-2">
+          <label>
+            Faixa Etária
+            <input type="text" id="faixa_etaria">
+          </label>
+          <label>
+            Sexo
+            <select id="sexo">
+                <option value="indiferente">Indiferente</option>
+                <option value="masculino">Masculino</option>
+                <option value="feminino">Feminino</option>
+            </select>
+          </label>
+      </div>
+
+      <label>
+        Detalhamento do Perfil / Atividades
+        <textarea id="detalhamento_atividades" rows="4" placeholder="Descreva as atividades e responsabilidades..."></textarea>
+      </label>
+
+      <div class="grid-2">
+          <label>
+            Experiência
+            <textarea id="experiencia" rows="3"></textarea>
+          </label>
+          <label>
+            Formação
+            <textarea id="formacao" rows="3"></textarea>
+          </label>
+      </div>
+
+      <div class="grid-2">
+          <label>
+            Requisitos
+            <textarea id="requisitos" rows="3"></textarea>
+          </label>
+          <label>
+            Observação
+            <textarea id="observacao" rows="3"></textarea>
+          </label>
+      </div>
+
+      <h2 class="section-title">Dados do Solicitante</h2>
+      <label>
+        E-mail do Gestor/Solicitante
+        <input type="email" id="email_gestor" placeholder="seu.email@familiamadalosso.com.br" required>
+      </label>
+
+      <h2 class="section-title">Assinatura do Responsável</h2>
+      <div class="signature-wrapper">
+        <div class="signature">
+          <div class="signature-header">
+            Assinatura manuscrita
+            <button type="button" id="limpar">Limpar</button>
+          </div>
+          <canvas id="assinatura" aria-label="Área de assinatura"></canvas>
+        </div>
+      </div>
+
+      <button class="enviar" type="submit" id="btnSubmit">Enviar Solicitação</button>
+    </form>
+    <div id="feedback" class="feedback" role="alert" hidden></div>
+  </main>
+
+  <footer class="app-footer">
+    <div class="footer-content">
+      <img src="/assets/logo.png" alt="Logo" class="footer-logo">
+      <p>&copy; 2025 Família Madalosso. Todos os direitos reservados.</p>
+      <div style="display: flex; gap: 12px; align-items: center;">
+          <a href="/dashboard-vagas.html" style="font-size: 0.75rem; color: #94a3b8; text-decoration: none;">Acesso RH</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/script-vagas.js"></script>
+</body>
+</html>

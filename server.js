@@ -24,7 +24,7 @@ app.use(helmet({
 // --- Rate Limiting ---
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 100,
+    max: 1000,
     message: 'Muitas requisições, tente novamente mais tarde.'
 });
 app.use(limiter);
@@ -41,6 +41,11 @@ const rhAuth = basicAuth({
 // Rota protegida para servir o dashboard do RH
 app.get('/dashboard-rh.html', rhAuth, (req, res) => {
     res.sendFile(path.join(__dirname, 'protected', 'dashboard-rh.html'));
+});
+
+// Rota protegida para servir o dashboard de Vagas
+app.get('/dashboard-vagas.html', rhAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, 'protected', 'dashboard-vagas.html'));
 });
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -65,6 +70,27 @@ function writeDB(data) {
         fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
     } catch (e) {
         console.error('Erro ao salvar DB:', e);
+    }
+}
+
+const VAGAS_DB_PATH = path.join(__dirname, 'data', 'vagas.json');
+
+function readVagasDB() {
+    if (!fs.existsSync(VAGAS_DB_PATH)) return [];
+    try {
+        const data = fs.readFileSync(VAGAS_DB_PATH, 'utf8');
+        return JSON.parse(data);
+    } catch (e) {
+        console.error('Erro ao ler DB Vagas:', e);
+        return [];
+    }
+}
+
+function writeVagasDB(data) {
+    try {
+        fs.writeFileSync(VAGAS_DB_PATH, JSON.stringify(data, null, 2));
+    } catch (e) {
+        console.error('Erro ao salvar DB Vagas:', e);
     }
 }
 
@@ -186,6 +212,179 @@ function pdfBufferFromData(payload) {
   });
 }
 
+function pdfBufferFromVagaData(payload) {
+  const doc = new PDFDocument({ size: 'A4', margin: 40 });
+  const chunks = [];
+  doc.on('data', c => chunks.push(c));
+  return new Promise(resolve => {
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+    const titulo = 'FORMULÁRIO ABERTURA DE VAGA DE TRABALHO';
+    
+    // Header Box
+    doc.rect(40, 40, doc.page.width - 80, 50).fillAndStroke('#333333', '#000000');
+    doc.fillColor('#FFFFFF').fontSize(16).text(titulo, 40, 58, { width: doc.page.width - 80, align: 'center' });
+    
+    // Reset colors for body
+    doc.fillColor('#000000').fontSize(10);
+    let y = 100;
+
+    // Helper to draw labeled box
+    const drawBox = (label, value, x, y, w, h) => {
+        doc.rect(x, y, w, h).stroke();
+        doc.font('Helvetica-Bold').text(label, x + 5, y + 5);
+        doc.font('Helvetica').text(value || '', x + 5, y + 20);
+    };
+
+    // Dados Gerais Header
+    doc.rect(40, y, doc.page.width - 80, 20).fill('#555555');
+    doc.fillColor('#FFFFFF').font('Helvetica-Bold').text('DADOS GERAIS', 40, y + 5, { width: doc.page.width - 80, align: 'center' });
+    y += 20;
+
+    doc.fillColor('#000000');
+    // Cargo | Num Vagas
+    drawBox('CARGO:', payload.cargo, 40, y, (doc.page.width - 80) * 0.7, 40);
+    drawBox('NÚMERO DE VAGAS:', payload.numero_vagas, 40 + (doc.page.width - 80) * 0.7, y, (doc.page.width - 80) * 0.3, 40);
+    y += 40;
+    // Setor | Data
+    drawBox('SETOR:', payload.setor, 40, y, (doc.page.width - 80) * 0.7, 40);
+    drawBox('DATA:', new Date(payload.data_abertura).toLocaleDateString('pt-BR'), 40 + (doc.page.width - 80) * 0.7, y, (doc.page.width - 80) * 0.3, 40);
+    y += 40;
+
+    // Motivo Header
+    doc.rect(40, y, doc.page.width - 80, 20).fill('#555555');
+    doc.fillColor('#FFFFFF').font('Helvetica-Bold').text('MOTIVO DA CONTRATAÇÃO', 40, y + 5, { width: doc.page.width - 80, align: 'center' });
+    y += 20;
+
+    doc.fillColor('#000000');
+    // Left side: Substituicao details
+    const leftW = (doc.page.width - 80) * 0.65;
+    const rightW = (doc.page.width - 80) * 0.35;
+    
+    doc.rect(40, y, leftW, 80).stroke();
+    doc.font('Helvetica-Bold').text('SUBSTITUIÇÃO (nome):', 45, y + 10);
+    doc.font('Helvetica').text(payload.substituicao_nome || '__________________________', 160, y + 10);
+    
+    doc.font('Helvetica-Bold').text('SERÁ DESLIGADO:', 45, y + 35);
+    const simCheck = payload.sera_desligado === 'sim' ? '( X )' : '(   )';
+    const naoCheck = payload.sera_desligado === 'nao' ? '( X )' : '(   )';
+    doc.font('Helvetica').text(`${simCheck} SIM   ${naoCheck} NÃO`, 150, y + 35);
+
+    doc.font('Helvetica-Bold').text('REPORTARÁ A QUEM:', 45, y + 60);
+    doc.font('Helvetica').text(payload.reportara_a || '__________________________', 170, y + 60);
+
+    // Right side: Checkboxes
+    doc.rect(40 + leftW, y, rightW, 80).stroke();
+    const substCheck = payload.motivo === 'substituicao' ? '( X )' : '(   )';
+    const aumCheck = payload.motivo === 'aumento_quadro' ? '( X )' : '(   )';
+    
+    doc.font('Helvetica-Bold').text(`SUBSTITUIÇÃO ${substCheck}`, 40 + leftW + 10, y + 25);
+    doc.font('Helvetica-Bold').text(`AUMENTO DE QUADRO ${aumCheck}`, 40 + leftW + 10, y + 55);
+    y += 80;
+
+    // Escala / Tipo
+    doc.rect(40, y, leftW, 20).fill('#555555');
+    doc.fillColor('#FFFFFF').text('ESCALA / HORÁRIO DE TRABALHO', 40, y + 5, { width: leftW, align: 'center' });
+    
+    doc.rect(40 + leftW, y, rightW, 20).fill('#555555');
+    doc.text('TIPO DE CONTRATAÇÃO', 40 + leftW, y + 5, { width: rightW, align: 'center' });
+    y += 20;
+
+    doc.fillColor('#000000');
+    // Escala content
+    doc.rect(40, y, leftW, 50).stroke();
+    doc.font('Helvetica').text(payload.escala_horario || '', 45, y + 15, { width: leftW - 10 });
+
+    // Tipo content
+    doc.rect(40 + leftW, y, rightW, 50).stroke();
+    const menCheck = payload.tipo_contratacao === 'mensalista' ? '( X )' : '(   )';
+    const horCheck = payload.tipo_contratacao === 'horista' ? '( X )' : '(   )';
+    doc.font('Helvetica-Bold').text(`MENSALISTA ${menCheck}`, 40 + leftW + 10, y + 15);
+    doc.font('Helvetica-Bold').text(`HORISTA       ${horCheck}`, 40 + leftW + 10, y + 35);
+    y += 50;
+
+    // Salario Header
+    doc.rect(40, y, doc.page.width - 80, 20).fill('#555555');
+    doc.fillColor('#FFFFFF').text('SALÁRIO E BENEFÍCIOS:', 40, y + 5, { width: doc.page.width - 80, align: 'center' });
+    y += 20;
+
+    doc.fillColor('#000000');
+    doc.rect(40, y, doc.page.width - 80, 40).stroke();
+    doc.font('Helvetica').text(payload.salario_beneficios || '', 45, y + 10);
+    y += 40;
+
+    // Faixa Etaria | Sexo
+    doc.rect(40, y, leftW, 20).fill('#555555');
+    doc.fillColor('#FFFFFF').text('FAIXA ETÁRIA | IDADE', 40, y + 5, { width: leftW, align: 'center' });
+    
+    doc.rect(40 + leftW, y, rightW, 20).fill('#555555');
+    doc.text('SEXO', 40 + leftW, y + 5, { width: rightW, align: 'center' });
+    y += 20;
+
+    doc.fillColor('#000000');
+    doc.rect(40, y, leftW, 30).stroke();
+    doc.font('Helvetica').text(payload.faixa_etaria || '', 45, y + 10);
+
+    doc.rect(40 + leftW, y, rightW, 30).stroke();
+    doc.font('Helvetica').text(payload.sexo || '', 40 + leftW + 10, y + 10);
+    y += 30;
+
+    // Detalhamento Header
+    doc.rect(40, y, doc.page.width - 80, 35).fill('#555555');
+    doc.fillColor('#FFFFFF').font('Helvetica-Bold').text('DETALHAMENTO DO PERFIL / DESCRIÇÃO DE ATIVIDADES', 40, y + 5, { width: doc.page.width - 80, align: 'center' });
+    doc.font('Helvetica').fontSize(8).text('Obs.: Nesse campo o solicitante deve preencher as atividades/responsabilidades do cargo e também detalhar o perfil desejado para que o recrutador atenda a solicitação de forma assertiva.', 45, y + 20, { width: doc.page.width - 90, align: 'center' });
+    y += 35;
+
+    doc.fillColor('#000000').fontSize(10);
+    doc.rect(40, y, doc.page.width - 80, 80).stroke();
+    doc.text(payload.detalhamento_atividades || '', 45, y + 5, { width: doc.page.width - 90 });
+    y += 80;
+
+    // Experiencia | Formacao
+    const halfW = (doc.page.width - 80) / 2;
+    doc.rect(40, y, halfW, 20).fill('#555555');
+    doc.fillColor('#FFFFFF').font('Helvetica-Bold').text('EXPERIÊNCIA', 40, y + 5, { width: halfW, align: 'center' });
+    doc.rect(40 + halfW, y, halfW, 20).fill('#555555');
+    doc.text('FORMAÇÃO', 40 + halfW, y + 5, { width: halfW, align: 'center' });
+    y += 20;
+
+    doc.fillColor('#000000');
+    doc.rect(40, y, halfW, 60).stroke();
+    doc.text(payload.experiencia || '', 45, y + 5, { width: halfW - 10 });
+    doc.rect(40 + halfW, y, halfW, 60).stroke();
+    doc.text(payload.formacao || '', 40 + halfW + 5, y + 5, { width: halfW - 10 });
+    y += 60;
+
+    // Requisitos | Observacao
+    doc.rect(40, y, halfW, 20).fill('#555555');
+    doc.fillColor('#FFFFFF').font('Helvetica-Bold').text('REQUISITOS', 40, y + 5, { width: halfW, align: 'center' });
+    doc.rect(40 + halfW, y, halfW, 20).fill('#555555');
+    doc.text('OBSERVAÇÃO', 40 + halfW, y + 5, { width: halfW, align: 'center' });
+    y += 20;
+
+    doc.fillColor('#000000');
+    doc.rect(40, y, halfW, 60).stroke();
+    doc.text(payload.requisitos || '', 45, y + 5, { width: halfW - 10 });
+    doc.rect(40 + halfW, y, halfW, 60).stroke();
+    doc.text(payload.observacao || '', 40 + halfW + 5, y + 5, { width: halfW - 10 });
+    y += 80; // Extra space
+
+    // Footer Signature
+    doc.font('Helvetica').text('Data: _____/_____/_______', 40, y);
+    doc.moveTo(300, y).lineTo(550, y).stroke();
+    doc.text('Assinatura do responsável', 300, y + 5);
+
+    if (payload.assinatura) {
+        try {
+            const sigBuf = Buffer.from(payload.assinatura.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+            doc.image(sigBuf, 320, y - 50, { fit: [200, 50] });
+        } catch(e) { console.error('Erro img assinatura vaga', e); }
+    }
+
+    doc.end();
+  });
+}
+
 async function enviarEmailComPDF(buffer, filename, payload) {
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT || 587);
@@ -243,10 +442,16 @@ async function notificarGestor(payload, protocol) {
     let linkEdicao = '';
     if (payload.id && protocol) {
         const baseUrl = `${protocol}://${process.env.BASE_URL || 'localhost:8080'}`;
-        linkEdicao = `\n\nPara ajustar a solicitação e reenviar, clique aqui: ${baseUrl}/?id=${payload.id}`;
+        linkEdicao = `\n\nPara ajustar a solicitação e reenviar, clique aqui: ${baseUrl}/ferias.html?id=${payload.id}`;
     }
 
-    text = `Olá,\n\nA solicitação de férias para ${payload.nome} foi REPROVADA pelo RH.\n\nSugestão de nova data: ${sug}.\n\nFavor realizar as alterações necessárias.${linkEdicao}`;
+    text = `Olá,\n\nA solicitação de férias para ${payload.nome} foi REPROVADA pelo RH.\n\nSugestão de nova data: ${sug}.`;
+    
+    if (payload.justificativa) {
+        text += `\n\nJustificativa: ${payload.justificativa}`;
+    }
+
+    text += `\n\nFavor realizar as alterações necessárias.${linkEdicao}`;
   }
 
   if (!host || !port || !user || !pass || !to) {
@@ -326,7 +531,7 @@ async function enviarLinkRH(payload, protocol, id) {
     params.append('id', id);
 
     const baseUrl = `${protocol}://${process.env.BASE_URL || 'localhost:8080'}`;
-    const link = `${baseUrl}/?${params.toString()}`;
+    const link = `${baseUrl}/ferias.html?${params.toString()}`;
 
     const subject = `Nova Solicitação de Férias – ${payload.nome}`;
     const text = `Recebida nova solicitação de férias para ${payload.nome} (${payload.setor}).\n\nClique no link abaixo para validar:\n\n${link}`;
@@ -406,12 +611,21 @@ app.post('/api/encaminhar', async (req, res) => {
             const idx = db.findIndex(i => i.id === id);
             if (idx !== -1) {
                 // Atualiza existente
+                const historicoItem = {
+                    data: new Date().toISOString(),
+                    acao: 'reenvio',
+                    ator: 'Solicitante'
+                };
+                const historico = db[idx].historico || [];
+                historico.push(historicoItem);
+
                 db[idx] = {
                     ...db[idx],
                     ...req.body,
                     status: 'pendente_rh', // Reseta status
                     statusRH: undefined,   // Limpa aprovação anterior
                     sugestaoData: undefined,
+                    historico,
                     updatedAt: new Date().toISOString()
                 };
                 isUpdate = true;
@@ -428,7 +642,12 @@ app.post('/api/encaminhar', async (req, res) => {
                 id,
                 ...req.body,
                 status: 'pendente_rh',
-                createdAt: new Date().toISOString()
+                createdAt: new Date().toISOString(),
+                historico: [{
+                    data: new Date().toISOString(),
+                    acao: 'pendente_rh',
+                    ator: 'Solicitante'
+                }]
             };
             db.push(novaSolicitacao);
         }
@@ -477,10 +696,20 @@ app.post('/api/solicitacao', async (req, res) => {
                 currentStatus = 'concluido';
             }
 
+            const historicoItem = {
+                data: new Date().toISOString(),
+                acao: req.body.statusRH || 'alteracao',
+                justificativa: req.body.justificativa,
+                ator: 'RH'
+            };
+            const historico = db[idx].historico || [];
+            historico.push(historicoItem);
+
             db[idx] = { 
                 ...db[idx], 
                 ...req.body, 
                 status: currentStatus,
+                historico,
                 updatedAt: new Date().toISOString() 
             };
             writeDB(db);
@@ -519,5 +748,143 @@ app.post('/api/solicitacao', async (req, res) => {
   }
 });
 
-const port = Number(process.env.PORT || 3000);
-app.listen(port, () => {});
+app.get('/api/rh/vagas', rhAuth, (req, res) => {
+    try {
+        const db = readVagasDB();
+        const lista = db.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        res.json(lista);
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao listar vagas' });
+    }
+});
+
+async function notificarGestorVaga(vaga, status, justificativa) {
+    // Configurações de email (mesmas do resto do sistema)
+    const host = process.env.SMTP_HOST;
+    const port = process.env.SMTP_PORT;
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+    const from = process.env.SMTP_FROM || '"RH Madalosso" <rh@familiamadalosso.com.br>';
+
+    const to = vaga.email_gestor;
+    if (!to) {
+        console.log('Sem email de gestor para notificar na vaga', vaga.id);
+        return { ok: false, erro: 'Email não informado' };
+    }
+
+    const isAprovado = status === 'aprovada';
+    const subject = isAprovado 
+        ? `Vaga Aprovada – ${vaga.cargo}` 
+        : `Vaga Rejeitada – ${vaga.cargo}`;
+        
+    let text = `Olá,\n\nA solicitação de vaga para o cargo de ${vaga.cargo} foi analisada pelo RH.\n\n`;
+    text += `Status: ${status.toUpperCase()}\n`;
+    
+    if (justificativa) {
+        text += `Justificativa/Observação: ${justificativa}\n`;
+    }
+
+    if (isAprovado) {
+        text += `\nPróximos passos serão alinhados em breve.`;
+    }
+
+    if (!host || !port || !user || !pass) {
+        console.log('--- EMAIL MOCK (Vagas) ---');
+        console.log(`To: ${to}`);
+        console.log(`Subject: ${subject}`);
+        console.log(`Text: ${text}`);
+        return { ok: true, mock: true };
+    }
+
+    try {
+        const transporter = nodemailer.createTransport({ host, port, secure: false, auth: { user, pass } });
+        await transporter.sendMail({ from, to, subject, text });
+        return { ok: true };
+    } catch (e) {
+        console.error('Erro ao enviar email vaga:', e);
+        return { ok: false, erro: e.message };
+    }
+}
+
+app.post('/api/vagas/avaliar', rhAuth, async (req, res) => {
+    try {
+        const { id, status, justificativa } = req.body;
+        if (!id || !status) {
+            return res.status(400).json({ ok: false, erro: 'ID e Status obrigatórios' });
+        }
+
+        const db = readVagasDB();
+        const idx = db.findIndex(i => i.id === id);
+        if (idx === -1) {
+            return res.status(404).json({ ok: false, erro: 'Vaga não encontrada' });
+        }
+
+        db[idx].status = status; // aprovada, rejeitada
+        db[idx].justificativa_rh = justificativa;
+        db[idx].updatedAt = new Date().toISOString();
+        
+        writeVagasDB(db);
+
+        // Enviar email se rejeitada (ou aprovada também, por boa prática)
+        // O usuário pediu especificamente "se rejeitada... deve voltar email"
+        if (status === 'rejeitada' || status === 'reprovada') {
+             await notificarGestorVaga(db[idx], status, justificativa);
+        }
+
+        res.json({ ok: true });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao avaliar vaga' });
+    }
+});
+
+app.post('/api/vagas', async (req, res) => {
+    try {
+        const payload = req.body;
+        if (!payload.cargo || !payload.setor) {
+            return res.status(400).json({ ok: false, erro: 'Campos obrigatórios ausentes' });
+        }
+
+        const db = readVagasDB();
+        const id = crypto.randomUUID();
+        const novaVaga = {
+            id,
+            ...payload,
+            status: 'pendente',
+            createdAt: new Date().toISOString()
+        };
+        db.push(novaVaga);
+        writeVagasDB(db);
+
+        // Opcional: Notificar RH por email sobre nova vaga
+        
+        return res.json({ ok: true, id });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao salvar vaga' });
+    }
+});
+
+app.get('/api/vagas/pdf/:id', async (req, res) => {
+    try {
+        const db = readVagasDB();
+        const item = db.find(i => i.id === req.params.id);
+        if (!item) return res.status(404).send('Vaga não encontrada');
+        
+        const buffer = await pdfBufferFromVagaData(item);
+        
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=Vaga_${item.cargo.replace(/\s+/g, '_')}.pdf`);
+        res.send(buffer);
+    } catch (e) {
+        console.error(e);
+        res.status(500).send('Erro ao gerar PDF');
+    }
+});
+
+// Final do arquivo
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
+});

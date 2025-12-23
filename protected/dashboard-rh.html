@@ -268,11 +268,11 @@
                 switch(item.status) {
                     case 'pendente_rh':
                         statusBadge = '<span class="status-badge" style="background-color: #fff7ed; color: #c2410c; border-color: #ffedd5;">Pendente RH</span>';
-                        actionBtn = `<a href="/?id=${item.id}&mode=rh" class="btn-action">Avaliar</a>`;
+                        actionBtn = `<a href="/ferias.html?id=${item.id}&mode=rh" class="btn-action">Avaliar</a>`;
                         break;
                     case 'aguardando_assinatura':
                         statusBadge = '<span class="status-badge" style="background-color: #eff6ff; color: #1d4ed8; border-color: #dbeafe;">Aguardando Assinatura</span>';
-                        actionBtn = `<a href="/?id=${item.id}&mode=rh" class="btn-action" style="background-color: #64748b;">Visualizar</a>`;
+                        actionBtn = `<a href="/ferias.html?id=${item.id}&mode=rh" class="btn-action" style="background-color: #64748b;">Visualizar</a>`;
                         break;
                     case 'concluido':
                         statusBadge = '<span class="status-badge" style="background-color: #f0fdf4; color: #15803d; border-color: #dcfce7;">Concluído</span>';

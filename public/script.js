@@ -9,12 +9,23 @@ const areaSugestao = document.getElementById('areaSugestao');
 const inicio2El = document.getElementById('inicio2');
 const sugestaoDataEl = document.getElementById('sugestaoData');
 const gestorEmailEl = document.getElementById('gestorEmail');
+const justificativaRHEl = document.getElementById('justificativaRH');
+const historicoContainer = document.getElementById('historicoContainer');
+const historicoLista = document.getElementById('historicoLista');
 const radiosStatus = document.querySelectorAll('input[name="statusRH"]');
 const btnSubmit = document.getElementById('btnSubmit');
 
 const urlParams = new URLSearchParams(window.location.search);
 const modeRH = urlParams.get('mode') === 'rh';
 const requestId = urlParams.get('id');
+
+if (modeRH) {
+    const backLink = document.querySelector('a[href="/"]');
+    if (backLink) {
+        backLink.href = '/dashboard-rh.html';
+        backLink.innerHTML = '&larr; Voltar ao Painel RH';
+    }
+}
 
 // Canvas RH REMOVED (Autentique)
 
@@ -75,6 +86,43 @@ function setupCanvas(cvs, ctxVar, isDrawingVar, isSignedVar, limparBtn) {
 
 // RH Canvas Setup REMOVED (Autentique)
 
+function renderHistorico(historico) {
+    if (!historico || !historico.length) {
+        if (historicoContainer) historicoContainer.hidden = true;
+        return;
+    }
+    if (historicoContainer) historicoContainer.hidden = false;
+    if (historicoLista) {
+        historicoLista.innerHTML = '';
+        historico.slice().reverse().forEach(item => { // Show newest first
+            const li = document.createElement('li');
+            li.style.cssText = 'padding: 12px; background: white; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);';
+            
+            const date = new Date(item.data).toLocaleString('pt-BR');
+            const ator = item.ator === 'RH' ? '🔴 RH' : '🔵 Solicitante';
+            const acaoMap = {
+                'reprovado': 'Reprovou / Solicitou Ajuste',
+                'aprovado': 'Aprovou',
+                'reenvio': 'Reenviou solicitação',
+                'pendente_rh': 'Criou solicitação'
+            };
+            const acao = acaoMap[item.acao] || item.acao;
+            
+            let html = `<div style="display:flex; justify-content:space-between; margin-bottom:6px; font-weight:600; align-items:center;">
+                <span style="display:flex; align-items:center; gap:6px;">${ator} <span style="font-weight:400; color:#94a3b8;">&bull;</span> ${acao}</span>
+                <span style="color:#64748b; font-size:0.75rem;">${date}</span>
+            </div>`;
+            
+            if (item.justificativa) {
+                html += `<div style="padding: 8px; background: #f1f5f9; border-radius: 4px; color: #334155; line-height: 1.5;">${item.justificativa}</div>`;
+            }
+            
+            li.innerHTML = html;
+            historicoLista.appendChild(li);
+        });
+    }
+}
+
 const populateInputs = (data) => {
     document.getElementById('nome').value = data.nome || '';
     document.getElementById('setor').value = data.setor || '';
@@ -89,6 +137,8 @@ const populateInputs = (data) => {
     }
     
     // Load Gestor Signature if exists - REMOVED (Autentique)
+    
+    renderHistorico(data.historico);
 
     tipoGozoEl.dispatchEvent(new Event('change'));
 };
@@ -335,6 +385,7 @@ form.addEventListener('submit', async e => {
     if (modeRH) {
        body.statusRH = statusRH;
        body.sugestaoData = statusRH === 'reprovado' ? sugestaoData : undefined;
+       body.justificativa = (statusRH === 'reprovado' && justificativaRHEl) ? justificativaRHEl.value : undefined;
        body.assinatura = dataURL;
        // body.assinaturaRH REMOVED (Autentique)
     }
@@ -354,6 +405,11 @@ form.addEventListener('submit', async e => {
         const link = j.autentique && j.autentique.link ? ` Link: ${j.autentique.link}` : '';
         showFeedback(`Validação concluída com sucesso.${link}`);
         
+        // Aguarda 2 segundos e redireciona para o painel RH
+        setTimeout(() => {
+            window.location.href = '/dashboard-rh.html';
+        }, 2000);
+
         // Atualiza a interface para habilitar assinatura se necessário
         if (requestId) {
             fetch(`/api/solicitacao/${requestId}`)

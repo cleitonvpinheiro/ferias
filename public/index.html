@@ -3,138 +3,70 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Solicitação de Férias</title>
+  <title>Portal de Formulários - Família Madalosso</title>
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="stylesheet" href="./styles.css">
+  <style>
+      .hero {
+          text-align: center;
+          margin-bottom: 40px;
+      }
+      .rh-links {
+          margin-top: 60px;
+          text-align: center;
+          border-top: 1px solid var(--border);
+          padding-top: 32px;
+      }
+      .rh-links a {
+          color: #64748b;
+          text-decoration: none;
+          font-size: 0.875rem;
+          margin: 0 12px;
+          transition: color 0.2s;
+      }
+      .rh-links a:hover {
+          color: var(--accent);
+      }
+  </style>
 </head>
 <body>
- 
+
   <main class="container">
      
    <div class="brand-inner">
       <img class="brand-logo" src="/assets/logo.png" alt="Logo Família Madalosso">
-      <div class="brand-title">Solicitação de Férias</div>
+      <div class="brand-title">Portal de Formulários</div>
     </div>
     
-    <form id="formFerias" novalidate>
-      <h2 class="section-title">Dados do Colaborador</h2>
-      <p class="form-note">Preenchimento realizado pelo gestor. A assinatura do colaborador será coletada no RH.</p>
-      <label>
-        Nome do colaborador
-        <input type="text" id="nome" required>
-      </label>
-      <label>
-        Setor
-        <input type="text" id="setor" required>
-      </label>
-      <h2 class="section-title">Solicitação</h2>
-      <label>
-        Início das férias
-        <input type="date" id="inicio" required>
-      </label>
-      <label>
-        Período de Férias
-        <select id="tipoGozo" required>
-          <option value="">Selecione</option>
-          <option value="30">30</option>
-          <option value="20+10">20 + 10 DIAS DE ABONO </option>
-          <option value="15+15">15 + 15</option>
-        </select>
-      </label>
-      <div id="periodoExtra" hidden>
-        <label>
-          Início do segundo período
-          <input type="date" id="inicio2">
-        </label>
-      </div>
-      <label>
-        Solicitação adiantamento 1ª parcela de 13º
-        <select id="decimo">
-          <option value="nao">Não</option>
-          <option value="sim">Sim</option>
-        </select>
-      </label>
-      
-      <label>
-        E-mail do gestor
-        <input type="email" id="gestorEmail" placeholder="gestor@empresa.com">
-      </label>
-      
-      <div id="gestorSignatureArea">
-          <label>
-            Nome do Gestor
-            <input type="text" id="nomeGestor" placeholder="Nome completo do gestor">
-          </label>
-          <p class="form-note" style="margin-top: 5px;">A assinatura do gestor será solicitada via Autentique (e-mail) após aprovação do RH.</p>
-      </div>
+    <div class="hero">
+        <p style="color: #64748b;">Selecione o formulário que deseja preencher:</p>
+    </div>
 
-      <h2 class="section-title">Assinatura do Colaborador</h2>
-      <div class="signature-wrapper">
-        <div class="signature">
-          <div class="signature-header">
-            Assinatura manuscrita (Colaborador)
-            <button type="button" id="limpar">Limpar</button>
-          </div>
-          <canvas id="assinatura" aria-label="Área de assinatura"></canvas>
-        </div>
-        <div id="signatureOverlay" class="signature-overlay">
-           <div class="overlay-content">
-             <span class="lock-icon">🔒</span>
-             <p>A assinatura será habilitada após aprovação do RH</p>
-           </div>
-        </div>
-      </div>
+    <div class="menu-grid">
+        <a href="/ferias.html" class="menu-card">
+            <div class="menu-icon">🏖️</div>
+            <div class="menu-title">Solicitação de Férias</div>
+            <div class="menu-desc">Formulário para solicitação e programação de férias dos colaboradores.</div>
+        </a>
 
-      <div id="rhApprovalArea" class="rh-approval-card" hidden>
-        <h3 class="rh-card-title">Validação do RH</h3>
-        
-        <div class="rh-options-grid">
-          <label class="rh-option option-approve">
-            <input type="radio" name="statusRH" value="aprovado" checked>
-            <div class="rh-option-content">
-              <span class="rh-icon">✅</span>
-              <span class="rh-label">Aprovar</span>
-            </div>
-          </label>
-          
-          <label class="rh-option option-reject">
-            <input type="radio" name="statusRH" value="reprovado">
-            <div class="rh-option-content">
-              <span class="rh-icon">❌</span>
-              <span class="rh-label">Reprovar</span>
-            </div>
-          </label>
-        </div>
+        <a href="/vagas.html" class="menu-card">
+            <div class="menu-icon">👔</div>
+            <div class="menu-title">Abertura de Vaga</div>
+            <div class="menu-desc">Formulário para requisição de abertura de novas vagas de trabalho.</div>
+        </a>
+    </div>
 
-        <div id="areaSugestao" class="rh-suggestion-box" hidden>
-            <label>
-              Sugestão de nova data
-              <input type="date" id="sugestaoData" class="rh-input-date">
-            </label>
-        </div>
+    <div class="rh-links">
+        <p style="margin-bottom: 16px; font-weight: 600; color: #333;">Acesso Administrativo</p>
+        <a href="/dashboard-rh.html">Painel RH - Férias</a>
+        <a href="/dashboard-vagas.html">Painel RH - Vagas</a>
+    </div>
 
-        <div id="rhSignatureSection" style="margin-top: 20px;">
-            <p class="form-note">A assinatura do RH será realizada via Autentique.</p>
-        </div>
-      </div>
-
-      <button class="enviar" type="submit" id="btnSubmit">Encaminhar para RH</button>
-    </form>
-    <div id="feedback" class="feedback" role="alert" hidden></div>
   </main>
 
-  <footer class="app-footer">
-    <div class="footer-content">
-      <img src="/assets/logo.png" alt="Logo" class="footer-logo">
-      <p>&copy; 2025 Família Madalosso. Todos os direitos reservados.</p>
-      <div style="display: flex; gap: 12px; align-items: center;">
-          <p style="font-size: 0.75rem; color: #94a3b8; margin: 0;">Sistema de Solicitação de Férias v1.0</p>
-          <span style="color: #cbd5e1;">|</span>
-          <a href="/dashboard-rh.html" style="font-size: 0.75rem; color: #94a3b8; text-decoration: none;">Acesso RH</a>
-      </div>
-    </div>
+  <footer style="text-align: center; padding: 40px 0; color: #94a3b8; font-size: 0.875rem;">
+    &copy; 2025 Família Madalosso. Todos os direitos reservados.
   </footer>
 
-  <script src="/script.js"></script>
-  </body>
-  </html>
+</body>
+</html>

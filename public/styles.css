@@ -92,7 +92,8 @@ label {
 }
 
 label input,
-label select {
+label select,
+label textarea {
   width: 100%;
   padding: 12px;
   margin-top: 6px;
@@ -100,13 +101,74 @@ label select {
   border-radius: 8px;
   font-size: 16px;
   min-height: 44px;
+  font-family: inherit;
 }
 
 label input:focus,
-label select:focus {
+label select:focus,
+label textarea:focus {
   outline: none;
   border-color: #93c5fd;
   box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.35);
+}
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+@media (max-width: 600px) {
+    .grid-2 { grid-template-columns: 1fr; }
+}
+
+.radio-group-box {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.radio-card {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    background: #fff;
+}
+
+.radio-card:has(input:checked) {
+    border-color: var(--accent);
+    background: #eff6ff;
+}
+
+.radio-card input {
+    width: auto;
+    margin: 0;
+    min-height: auto;
+}
+
+.radio-group-inline {
+    display: flex;
+    gap: 24px;
+    padding: 8px 0;
+}
+
+.radio-group-inline label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-weight: normal;
+}
+
+.radio-group-inline input {
+    width: auto;
+    margin: 0;
+    min-height: auto;
 }
 
 .signature-wrapper {
@@ -184,6 +246,7 @@ label select:focus {
   color: #fff;
   border: none;
   border-radius: 10px;
+  cursor: pointer;
 }
 
 .enviar:hover {
@@ -373,4 +436,49 @@ label select:focus {
   opacity: 0.7;
   filter: grayscale(1);
   margin-bottom: 8px;
+}
+
+/* Menu Card Styles */
+.menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    margin-top: 32px;
+}
+
+.menu-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 32px;
+    text-align: center;
+    border: 1px solid var(--border);
+    transition: transform 0.2s, box-shadow 0.2s;
+    text-decoration: none;
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.menu-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.06);
+    border-color: var(--accent);
+}
+
+.menu-icon {
+    font-size: 48px;
+    margin-bottom: 8px;
+}
+
+.menu-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.menu-desc {
+    color: #64748b;
+    font-size: 0.875rem;
 }

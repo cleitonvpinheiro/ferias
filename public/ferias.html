@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solicitação de Férias</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+ 
+  <main class="container">
+    <div style="margin-bottom: 20px;">
+        <a href="/" style="color: #64748b; text-decoration: none; font-size: 0.9rem;">&larr; Voltar ao Menu</a>
+    </div>
+     
+   <div class="brand-inner">
+      <img class="brand-logo" src="/assets/logo.png" alt="Logo Família Madalosso">
+      <div class="brand-title">Solicitação de Férias</div>
+    </div>
+    
+    <form id="formFerias" novalidate>
+      <h2 class="section-title">Dados do Colaborador</h2>
+      
+      <div id="historicoContainer" style="margin-bottom: 24px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;" hidden>
+        <h3 style="margin: 0 0 12px 0; font-size: 1rem; color: #334155; display: flex; align-items: center; gap: 8px;">
+            <span>📜</span> Histórico de Alterações
+        </h3>
+        <ul id="historicoLista" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px;">
+            <!-- Items inserted via JS -->
+        </ul>
+      </div>
+
+      <p class="form-note">Preenchimento realizado pelo gestor. A assinatura do colaborador será coletada no RH.</p>
+      <label>
+        Nome do colaborador
+        <input type="text" id="nome" required>
+      </label>
+      <label>
+        Setor
+        <input type="text" id="setor" required>
+      </label>
+      <h2 class="section-title">Solicitação</h2>
+      <label>
+        Início das férias
+        <input type="date" id="inicio" required>
+      </label>
+      <label>
+        Período de Férias
+        <select id="tipoGozo" required>
+          <option value="">Selecione</option>
+          <option value="30">30</option>
+          <option value="20+10">20 + 10 DIAS DE ABONO </option>
+          <option value="15+15">15 + 15</option>
+        </select>
+      </label>
+      <div id="periodoExtra" hidden>
+        <label>
+          Início do segundo período
+          <input type="date" id="inicio2">
+        </label>
+      </div>
+      <label>
+        Solicitação adiantamento 1ª parcela de 13º
+        <select id="decimo">
+          <option value="nao">Não</option>
+          <option value="sim">Sim</option>
+        </select>
+      </label>
+      
+      <label>
+        E-mail do gestor
+        <input type="email" id="gestorEmail" placeholder="gestor@empresa.com">
+      </label>
+      
+      <div id="gestorSignatureArea">
+          <label>
+            Nome do Gestor
+            <input type="text" id="nomeGestor" placeholder="Nome completo do gestor">
+          </label>
+          <p class="form-note" style="margin-top: 5px;">A assinatura do gestor será solicitada via Autentique (e-mail) após aprovação do RH.</p>
+      </div>
+
+      <h2 class="section-title">Assinatura do Colaborador</h2>
+      <div class="signature-wrapper">
+        <div class="signature">
+          <div class="signature-header">
+            Assinatura manuscrita (Colaborador)
+            <button type="button" id="limpar">Limpar</button>
+          </div>
+          <canvas id="assinatura" aria-label="Área de assinatura"></canvas>
+        </div>
+        <div id="signatureOverlay" class="signature-overlay">
+           <div class="overlay-content">
+             <span class="lock-icon">🔒</span>
+             <p>A assinatura será habilitada após aprovação do RH</p>
+           </div>
+        </div>
+      </div>
+
+      <div id="rhApprovalArea" class="rh-approval-card" hidden>
+        <h3 class="rh-card-title">Validação do RH</h3>
+        
+        <div class="rh-options-grid">
+          <label class="rh-option option-approve">
+            <input type="radio" name="statusRH" value="aprovado" checked>
+            <div class="rh-option-content">
+              <span class="rh-icon">✅</span>
+              <span class="rh-label">Aprovar</span>
+            </div>
+          </label>
+          
+          <label class="rh-option option-reject">
+            <input type="radio" name="statusRH" value="reprovado">
+            <div class="rh-option-content">
+              <span class="rh-icon">❌</span>
+              <span class="rh-label">Reprovar</span>
+            </div>
+          </label>
+        </div>
+
+        <div id="areaSugestao" class="rh-suggestion-box" hidden>
+            <label>
+              Sugestão de nova data
+              <input type="date" id="sugestaoData" class="rh-input-date">
+            </label>
+        </div>
+
+        <div id="rhSignatureSection" style="margin-top: 20px;">
+            <p class="form-note">A assinatura do RH será realizada via Autentique.</p>
+        </div>
+      </div>
+
+      <button class="enviar" type="submit" id="btnSubmit">Encaminhar para RH</button>
+    </form>
+    <div id="feedback" class="feedback" role="alert" hidden></div>
+  </main>
+
+  <footer class="app-footer">
+    <div class="footer-content">
+      <img src="/assets/logo.png" alt="Logo" class="footer-logo">
+      <p>&copy; 2025 Família Madalosso. Todos os direitos reservados.</p>
+      <div style="display: flex; gap: 12px; align-items: center;">
+          <p style="font-size: 0.75rem; color: #94a3b8; margin: 0;">Sistema de Solicitação de Férias v1.0</p>
+          <span style="color: #cbd5e1;">|</span>
+          <a href="/dashboard-rh.html" style="font-size: 0.75rem; color: #94a3b8; text-decoration: none;">Acesso RH</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/script.js"></script>
+  </body>
+  </html>
