@@ -52,13 +52,12 @@ body {
 .brand-title {
   font-weight: 700;
   letter-spacing: 0.5px;
-  font-size: 40px;
+  font-size: 24px;
   opacity: 0.95;
-
 }
 
 .brand-logo {
-  height: 150px;
+  height: 100px;
   width: auto;
   display: flex;
   filter: saturate(1.1) contrast(1.05);
@@ -330,10 +329,12 @@ label select:focus {
 
 @media (min-width: 480px) {
   .brand-title { font-size: 30px; }
-  .brand-logo { height: 250px; }
+  .brand-logo { height: 180px; }
 }
 
 @media (min-width: 768px) {
+  .brand-title { font-size: 40px; }
+  .brand-logo { height: 250px; }
   .container {
     padding: 24px;
   }
@@ -341,12 +342,9 @@ label select:focus {
 
 @media (min-width: 1024px) {
   .container { max-width: 880px; }
-  .brand-logo { height: 250px; }
 }
 
-@media (max-width: 360px) {
-  .brand-logo { height: 64px; }
-  .enviar { height: 50px; }
+@media (max-width: 600px) {
   .rh-options-grid { grid-template-columns: 1fr; }
 }
 

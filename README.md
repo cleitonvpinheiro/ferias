@@ -6,10 +6,19 @@ Este projeto é uma aplicação web para gerenciamento do fluxo de solicitação
 
 - **Formulário de Solicitação:** Preenchimento de dados do colaborador, períodos de férias e solicitação de 13º salário.
 - **Assinatura do Colaborador:** Assinatura manual feita diretamente na interface web (canvas).
+- **Painel do RH:**
+  - Dashboard protegido por senha para gestão das solicitações.
+  - Visualização de status (Pendente, Aprovado, Reprovado).
+  - Exportação de dados para Excel e PDF.
+  - Estatísticas de solicitações.
 - **Fluxo de Aprovação:**
   1.  **Colaborador:** Envia a solicitação.
   2.  **Gestor:** Recebe notificação por e-mail para aprovar ou reprovar. Assinatura realizada via **Autentique**.
   3.  **RH:** Após aprovação do gestor, recebe notificação para validação. Assinatura realizada via **Autentique**.
+- **Segurança:**
+  - Autenticação Basic Auth para acesso ao painel do RH.
+  - Rate Limiting para proteção contra abusos.
+  - Headers de segurança (Helmet).
 - **Geração de PDF:** Geração automática do formulário em PDF contendo todas as informações e assinaturas.
 - **Notificações por E-mail:** Atualizações de status enviadas via SMTP.
 
@@ -17,7 +26,9 @@ Este projeto é uma aplicação web para gerenciamento do fluxo de solicitação
 
 - **Backend:** Node.js, Express
 - **Frontend:** HTML5, CSS3, JavaScript (Vanilla)
-- **PDF:** PDFKit
+- **Segurança:** Helmet, Rate Limit, Basic Auth
+- **PDF:** PDFKit, jsPDF
+- **Excel:** SheetJS (xlsx)
 - **E-mail:** Nodemailer
 - **Assinaturas Digitais:** Integração com API Autentique (GraphQL)
 - **Armazenamento:** Arquivos JSON (local)
@@ -41,12 +52,12 @@ Este projeto é uma aplicação web para gerenciamento do fluxo de solicitação
     ```
 
 3.  Configure as variáveis de ambiente:
-    Crie um arquivo `.env` na raiz do projeto e configure as seguintes chaves:
+    Crie um arquivo `.env` na raiz do projeto (use `.env.example` como base) e configure as chaves:
 
     ```env
     # Servidor
-    PORT=3000
-    BASE_URL=http://localhost:3000
+    PORT=8080
+    BASE_URL=http://localhost:8080
 
     # Configurações de E-mail (SMTP)
     SMTP_HOST=smtp.exemplo.com.br
@@ -58,10 +69,14 @@ Este projeto é uma aplicação web para gerenciamento do fluxo de solicitação
     # Configurações Autentique
     AUTENTIQUE_URL=https://api.autentique.com.br/v2
     AUTENTIQUE_TOKEN=seu_token_autentique
-    AUTENTIQUE_MODE=dev # ou 'prod' para produção (dev usa e-mails de sandbox/log)
-    
+    AUTENTIQUE_MODE=dev # ou 'prod'
+
     # E-mail do RH (para assinatura)
     DP_EMAIL=rh@exemplo.com.br
+
+    # Credenciais de Acesso ao Painel RH
+    RH_USER=rh
+    RH_PASS=sua_senha_segura
     ```
 
 ## ▶️ Como Executar
@@ -72,7 +87,10 @@ Para iniciar o servidor:
 npm start
 ```
 
-A aplicação estará disponível em `http://localhost:3000` (ou na porta definida no `.env`).
+A aplicação estará disponível em `http://localhost:8080`.
+
+- **Formulário:** `/`
+- **Painel RH:** `/dashboard-rh.html` (Requer autenticação)
 
 ## 📂 Estrutura do Projeto
 

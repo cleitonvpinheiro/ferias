@@ -1,6 +1,9 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const basicAuth = require('express-basic-auth');
 const PDFDocument = require('pdfkit');
 const nodemailer = require('nodemailer');
 const axios = require('axios');
@@ -12,7 +15,33 @@ const crypto = require('crypto');
 dotenv.config();
 
 const app = express();
+
+// --- Segurança Básica (Helmet) ---
+app.use(helmet({
+    contentSecurityPolicy: false,
+}));
+
+// --- Rate Limiting ---
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: 'Muitas requisições, tente novamente mais tarde.'
+});
+app.use(limiter);
+
 app.use(cors());
+
+// --- Middleware de Autenticação RH ---
+const rhAuth = basicAuth({
+    users: { [process.env.RH_USER || 'admin']: process.env.RH_PASS || 'admin123' },
+    challenge: true,
+    realm: 'Painel RH'
+});
+
+// Rota protegida para servir o dashboard do RH
+app.get('/dashboard-rh.html', rhAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, 'protected', 'dashboard-rh.html'));
+});
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
@@ -320,6 +349,29 @@ app.get('/api/solicitacao/:id', (req, res) => {
     const item = db.find(i => i.id === req.params.id);
     if (!item) return res.status(404).json({ ok: false, erro: 'Solicitação não encontrada' });
     res.json(item);
+});
+
+app.get('/api/rh/solicitacoes', rhAuth, (req, res) => {
+    console.log('DEBUG: GET /api/rh/solicitacoes');
+    try {
+        const db = readDB();
+        // Retorna todas as solicitações relevantes para o RH
+        // Ordena: pendentes primeiro, depois por data de criação (mais recentes primeiro para histórico)
+        const lista = db
+            .filter(i => ['pendente_rh', 'aguardando_assinatura', 'concluido', 'reprovado'].includes(i.status))
+            .sort((a, b) => {
+                // Prioridade para pendente_rh
+                if (a.status === 'pendente_rh' && b.status !== 'pendente_rh') return -1;
+                if (a.status !== 'pendente_rh' && b.status === 'pendente_rh') return 1;
+                // Depois por data (mais recentes primeiro)
+                return new Date(b.createdAt) - new Date(a.createdAt);
+            });
+        
+        res.json(lista);
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao listar solicitações' });
+    }
 });
 
 app.get('/api/pdf/:id', async (req, res) => {
