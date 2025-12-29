@@ -47,6 +47,11 @@ app.get('/dashboard-rh.html', rhAuth, (req, res) => {
 app.get('/dashboard-vagas.html', rhAuth, (req, res) => {
     res.sendFile(path.join(__dirname, 'protected', 'dashboard-vagas.html'));
 });
+
+// Rota protegida para servir o dashboard de Taxas
+app.get('/dashboard-taxas.html', rhAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, 'protected', 'dashboard-taxas.html'));
+});
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
@@ -74,6 +79,7 @@ function writeDB(data) {
 }
 
 const VAGAS_DB_PATH = path.join(__dirname, 'data', 'vagas.json');
+const TAXAS_DB_PATH = path.join(__dirname, 'data', 'taxas.json');
 
 function readVagasDB() {
     if (!fs.existsSync(VAGAS_DB_PATH)) return [];
@@ -91,6 +97,25 @@ function writeVagasDB(data) {
         fs.writeFileSync(VAGAS_DB_PATH, JSON.stringify(data, null, 2));
     } catch (e) {
         console.error('Erro ao salvar DB Vagas:', e);
+    }
+}
+
+function readTaxasDB() {
+    if (!fs.existsSync(TAXAS_DB_PATH)) return [];
+    try {
+        const data = fs.readFileSync(TAXAS_DB_PATH, 'utf8');
+        return JSON.parse(data);
+    } catch (e) {
+        console.error('Erro ao ler DB Taxas:', e);
+        return [];
+    }
+}
+
+function writeTaxasDB(data) {
+    try {
+        fs.writeFileSync(TAXAS_DB_PATH, JSON.stringify(data, null, 2));
+    } catch (e) {
+        console.error('Erro ao salvar DB Taxas:', e);
     }
 }
 
@@ -207,6 +232,185 @@ function pdfBufferFromData(payload) {
     doc.fillColor('#111827').fontSize(11).text('Declaro que as informações acima são verdadeiras.');
     doc.moveDown();
     doc.text('Local e data:', { continued: true }).text(` ${dataHoje}`);
+
+    doc.end();
+  });
+}
+
+function pdfBufferFromTaxaData(payload) {
+  const doc = new PDFDocument({ size: 'A4', margin: 40 });
+  const chunks = [];
+  doc.on('data', c => chunks.push(c));
+  return new Promise(resolve => {
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+    const titulo = 'FORMULÁRIO DE PAGAMENTO DE TAXAS';
+    
+    // Header
+    doc.rect(40, 40, doc.page.width - 80, 50).fillAndStroke('#333333', '#000000');
+    doc.fillColor('#FFFFFF').fontSize(16).text(titulo, 40, 58, { width: doc.page.width - 80, align: 'center' });
+    
+    doc.fillColor('#000000').fontSize(10);
+    let y = 100;
+
+    const drawBox = (label, value, x, y, w, h) => {
+        doc.rect(x, y, w, h).stroke();
+        doc.font('Helvetica-Bold').text(label, x + 5, y + 5);
+        doc.font('Helvetica').text(value || '', x + 5, y + 20);
+    };
+
+    // Nome da Taxa
+    drawBox('NOME DA TAXA:', payload.nome_taxa, 40, y, doc.page.width - 80, 40);
+    y += 40;
+
+    // CPF
+    drawBox('CPF:', payload.cpf, 40, y, doc.page.width - 80, 40);
+    y += 40;
+
+    // Forma de Pagamento
+    const formaPagamentoText = payload.forma_pagamento === 'transferencia' ? 'TRANSFERÊNCIA BANCÁRIA' : 
+                               payload.forma_pagamento === 'pix' ? 'PIX' : '';
+    drawBox('FORMA DE PAGAMENTO:', formaPagamentoText, 40, y, doc.page.width - 80, 40);
+    y += 40;
+
+    // Banco | Agencia | Conta | Tipo
+    const w4 = (doc.page.width - 80) / 4;
+    drawBox('BANCO:', payload.banco, 40, y, w4, 40);
+    drawBox('AGÊNCIA:', payload.agencia, 40 + w4, y, w4, 40);
+    drawBox('CONTA:', payload.conta, 40 + w4 * 2, y, w4, 40);
+    
+    // Tipo de Conta Checkboxes
+    doc.rect(40 + w4 * 3, y, w4, 40).stroke();
+    doc.font('Helvetica-Bold').text('TIPO DE CONTA:', 40 + w4 * 3 + 5, y + 5);
+    const ccCheck = payload.tipo_conta === 'corrente' ? '(X)' : '( )';
+    const cpCheck = payload.tipo_conta === 'poupanca' ? '(X)' : '( )';
+    doc.font('Helvetica').fontSize(8).text(`Conta Corrente ${ccCheck}`, 40 + w4 * 3 + 5, y + 20);
+    doc.font('Helvetica').fontSize(8).text(`Conta Poupança ${cpCheck}`, 40 + w4 * 3 + 5, y + 30);
+    doc.fontSize(10);
+    y += 40;
+
+    // PIX
+    drawBox('PIX VINCULADO A CONTA:', payload.pix, 40, y, doc.page.width - 80, 40);
+    y += 40;
+
+    // Departamento | Funcao
+    const w2 = (doc.page.width - 80) / 2;
+    drawBox('DEPARTAMENTO:', payload.departamento, 40, y, w2, 40);
+    drawBox('FUNÇÃO:', payload.funcao, 40 + w2, y, w2, 40);
+    y += 40;
+
+    // Motivo
+    doc.rect(40, y, doc.page.width - 80, 30).stroke();
+    doc.font('Helvetica-Bold').text('MOTIVO:', 45, y + 10);
+    const motivos = payload.motivo || [];
+    const mDemanda = motivos.includes('aumento_demanda') ? '(X)' : '( )';
+    const mEvento = motivos.includes('evento') ? '(X)' : '( )';
+    const mVaga = motivos.includes('vaga_aberta') ? '(X)' : '( )';
+    
+    doc.font('Helvetica').text(`${mDemanda} AUMENTO DE DEMANDA   ${mEvento} EVENTO   ${mVaga} VAGA ABERTA (ANTECESSOR): ${payload.antecessor || '________________'}`, 100, y + 10);
+    y += 30;
+
+    // Table Header
+    doc.rect(40, y, doc.page.width - 80, 20).fill('#555555');
+    doc.fillColor('#FFFFFF').font('Helvetica-Bold');
+    doc.text('ITEM', 40, y + 5, { width: w4, align: 'center' });
+    doc.text('VALOR', 40 + w4, y + 5, { width: w4, align: 'center' });
+    doc.text('QUANTIDADE', 40 + w4 * 2, y + 5, { width: w4, align: 'center' });
+    doc.text('TOTAL', 40 + w4 * 3, y + 5, { width: w4, align: 'center' });
+    y += 20;
+
+    // Table Rows
+    const drawRow = (item, valor, qtd, total) => {
+        doc.fillColor('#000000').font('Helvetica');
+        doc.rect(40, y, w4, 20).stroke();
+        doc.text(item, 40, y + 5, { width: w4, align: 'center' });
+        
+        doc.rect(40 + w4, y, w4, 20).stroke();
+        doc.text(valor, 40 + w4, y + 5, { width: w4, align: 'center' });
+        
+        doc.rect(40 + w4 * 2, y, w4, 20).stroke();
+        doc.text(qtd, 40 + w4 * 2, y + 5, { width: w4, align: 'center' });
+        
+        doc.rect(40 + w4 * 3, y, w4, 20).stroke();
+        doc.text(total, 40 + w4 * 3, y + 5, { width: w4, align: 'center' });
+        y += 20;
+    };
+
+    drawRow('TAXA', payload.valores?.taxa?.valor || '', payload.valores?.taxa?.qtd || '', payload.valores?.taxa?.total || '');
+    drawRow('VT', payload.valores?.vt?.valor || '', payload.valores?.vt?.qtd || '', payload.valores?.vt?.total || '');
+    
+    // Total Geral
+    doc.fillColor('#000000').font('Helvetica-Bold');
+    doc.rect(40, y, w4, 20).stroke();
+    doc.text('TOTAL', 40, y + 5, { width: w4, align: 'center' });
+    doc.rect(40 + w4, y, w4 * 3, 20).stroke(); // Empty middle
+    doc.rect(40 + w4 * 3, y, w4, 20).stroke();
+    doc.text(payload.valores?.total_geral || '', 40 + w4 * 3, y + 5, { width: w4, align: 'center' });
+    y += 30;
+
+    // Dias Trabalhados
+    doc.font('Helvetica-Bold').text('Marque os dias o mês e o a semana em que foram realizados a taxa', 40, y);
+    y += 15;
+    
+    const dias = payload.dias_trabalhados || [];
+    // Print in rows of 2
+    for(let i=0; i<dias.length; i+=2) {
+        const d1 = dias[i];
+        const d2 = dias[i+1];
+        
+        let textLine = `Data: ${d1.data ? new Date(d1.data).toLocaleDateString('pt-BR') : '___/___/___'}   Dia da Semana: ${d1.dia || '_________'}`;
+        if (d2) {
+            textLine += `          Data: ${d2.data ? new Date(d2.data).toLocaleDateString('pt-BR') : '___/___/___'}   Dia da Semana: ${d2.dia || '_________'}`;
+        }
+        doc.font('Helvetica').text(textLine, 40, y);
+        doc.moveTo(40, y+12).lineTo(doc.page.width - 40, y+12).stroke(); // Underline look
+        y += 20;
+    }
+    if (dias.length === 0) {
+        // Empty lines if no dates
+         doc.font('Helvetica').text('Data: ___/___/___   Dia da Semana: _________          Data: ___/___/___   Dia da Semana: _________', 40, y);
+         y+=20;
+         doc.font('Helvetica').text('Data: ___/___/___   Dia da Semana: _________          Data: ___/___/___   Dia da Semana: _________', 40, y);
+         y+=20;
+    }
+    y += 10;
+
+    // Observacoes
+    doc.font('Helvetica-Bold').text('Observações de pagamento:', 40, y);
+    y += 15;
+    doc.font('Helvetica').fontSize(9);
+    doc.text('• Os formulários devem serem entregues na segunda feira até as 12:00 e serão pagas na terça feira e na quinta feita até as 12:00 que serão pagas na sexta feira.', 40, y);
+    y += 15;
+    doc.text('• Os formulários não entregues no prazo, ou em caso de falta de dados cadastrais, ou com letras ilegíveis, a taxa só será paga no prazo seguinte.', 40, y);
+    y += 30;
+
+    // Assinaturas
+    const sigW = (doc.page.width - 80) / 2 - 20;
+    
+    // Taxa
+    doc.moveTo(40, y).lineTo(40 + sigW, y).stroke();
+    doc.font('Helvetica').fontSize(10).text('Assinatura do Taxa', 40, y + 5, { width: sigW, align: 'center' });
+    if (payload.assinatura_taxa) {
+        try {
+            const sigBuf = Buffer.from(payload.assinatura_taxa.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+            doc.image(sigBuf, 40 + (sigW/2) - 50, y - 50, { fit: [100, 40] });
+        } catch(e) {}
+    }
+
+    // Gestor
+    doc.moveTo(doc.page.width - 40 - sigW, y).lineTo(doc.page.width - 40, y).stroke();
+    doc.text('Assinatura Líder/Gestor', doc.page.width - 40 - sigW, y + 5, { width: sigW, align: 'center' });
+    if (payload.assinatura_gestor) {
+        try {
+            const sigBuf = Buffer.from(payload.assinatura_gestor.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+            doc.image(sigBuf, doc.page.width - 40 - sigW + (sigW/2) - 50, y - 50, { fit: [100, 40] });
+        } catch(e) {}
+    }
+    
+    y += 40;
+    // Data RH
+    doc.moveTo(doc.page.width - 200, y).lineTo(doc.page.width - 40, y).stroke();
+    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}   RH/DP`, doc.page.width - 200, y + 5, { width: 160, align: 'right' });
 
     doc.end();
   });
@@ -549,6 +753,37 @@ async function enviarLinkRH(payload, protocol, id) {
   return { ok: true, link };
 }
 
+async function enviarEmailTaxasRH(payload) {
+    const host = process.env.SMTP_HOST;
+    const port = Number(process.env.SMTP_PORT || 587);
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+    const secure = String(process.env.SMTP_SECURE || 'false') === 'true';
+    const to = process.env.DP_EMAIL;
+    const from = process.env.MAIL_FROM || user;
+
+    const subject = `Nova Solicitação de Pagamento de Taxa – ${payload.nome_taxa}`;
+    const text = `Recebida nova solicitação de pagamento de taxa para ${payload.nome_taxa} (${payload.funcao}).\n\nDepartamento: ${payload.departamento}\nTotal: R$ ${payload.valores?.total_geral || '0.00'}\n\nAcesse o painel do RH para visualizar.`;
+
+    if (!host || !port || !user || !pass || !to) {
+        console.log('--- EMAIL MOCK (Taxas RH) ---');
+        console.log(`To: ${to}`);
+        console.log(`Subject: ${subject}`);
+        console.log(`Text: ${text}`);
+        return { ok: true, mock: true };
+    }
+    const transporter = nodemailer.createTransport({ host, port, secure, auth: { user, pass } });
+
+    try {
+        await transporter.sendMail({ from, to, subject, text });
+        return { ok: true };
+    } catch (e) {
+        console.error('Erro ao enviar email Taxas RH:', e);
+        return { ok: false, erro: e.message };
+    }
+}
+
+// --- Rotas API ---
 app.get('/api/solicitacao/:id', (req, res) => {
     const db = readDB();
     const item = db.find(i => i.id === req.params.id);
@@ -756,6 +991,114 @@ app.get('/api/rh/vagas', rhAuth, (req, res) => {
     } catch (e) {
         console.error(e);
         res.status(500).json({ ok: false, erro: 'Erro ao listar vagas' });
+    }
+});
+
+// --- Rotas Taxas ---
+
+app.post('/api/taxas', async (req, res) => {
+    try {
+        const payload = req.body;
+        // Basic validation
+        if (!payload.nome_taxa || !payload.cpf || !payload.valores) {
+            return res.status(400).json({ message: 'Dados incompletos.' });
+        }
+
+        const db = readTaxasDB();
+        const id = crypto.randomUUID();
+        
+        const novaSolicitacao = {
+            id,
+            ...payload,
+            status: 'pendente', // pendente, aprovado, reprovado
+            createdAt: new Date().toISOString()
+        };
+        
+        db.push(novaSolicitacao);
+        writeTaxasDB(db);
+
+        // Notificar RH
+        await enviarEmailTaxasRH(novaSolicitacao);
+
+        res.json({ message: 'Solicitação enviada com sucesso!', id });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ message: 'Erro interno no servidor.' });
+    }
+});
+
+app.get('/api/rh/taxas', rhAuth, (req, res) => {
+    const db = readTaxasDB();
+    res.json(db);
+});
+
+// Aprovar Taxa
+app.post('/api/rh/taxas/:id/aprovar', rhAuth, (req, res) => {
+    const db = readTaxasDB();
+    const idx = db.findIndex(i => i.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ message: 'Taxa não encontrada' });
+    
+    db[idx].status = 'aprovado';
+    db[idx].updatedAt = new Date().toISOString();
+    writeTaxasDB(db);
+    res.json({ message: 'Aprovado com sucesso' });
+});
+
+// Reprovar Taxa
+app.post('/api/rh/taxas/:id/reprovar', rhAuth, (req, res) => {
+    const db = readTaxasDB();
+    const idx = db.findIndex(i => i.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ message: 'Taxa não encontrada' });
+    
+    db[idx].status = 'reprovado';
+    db[idx].updatedAt = new Date().toISOString();
+    writeTaxasDB(db);
+    res.json({ message: 'Reprovado com sucesso' });
+});
+
+// Gerar Arquivo de Pagamento (Simples TXT/CSV para exemplo)
+app.get('/api/rh/taxas/arquivo-pagamento', rhAuth, (req, res) => {
+    const db = readTaxasDB();
+    const aprovadas = db.filter(i => i.status === 'aprovado');
+    
+    if (aprovadas.length === 0) return res.status(400).send('Nenhuma taxa aprovada para pagamento.');
+
+    // Formato CSV simples: Nome,CPF,Banco,Agencia,Conta,Valor,FormaPagamento,Pix
+    let csvContent = "Nome;CPF;Banco;Agencia;Conta;Valor;FormaPagamento;ChavePix;Departamento\n";
+    
+    aprovadas.forEach(item => {
+        const valor = item.valores?.total_geral || '0.00';
+        const forma = item.forma_pagamento || '';
+        const pix = item.pix || '';
+        const banco = item.banco || '';
+        const agencia = item.agencia || '';
+        const conta = item.conta || '';
+        
+        csvContent += `${item.nome_taxa};${item.cpf};${banco};${agencia};${conta};${valor};${forma};${pix};${item.departamento}\n`;
+    });
+
+    res.set({
+        'Content-Type': 'text/csv',
+        'Content-Disposition': `attachment; filename="remessa_pagamentos_${new Date().toISOString().split('T')[0]}.csv"`
+    });
+    res.send(csvContent);
+});
+
+app.get('/api/taxas/pdf/:id', async (req, res) => {
+    const db = readTaxasDB();
+    const item = db.find(i => i.id === req.params.id);
+    if (!item) return res.status(404).send('Solicitação não encontrada');
+
+    try {
+        const buffer = await pdfBufferFromTaxaData(item);
+        res.set({
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `inline; filename="taxa-${item.nome_taxa}.pdf"`
+        });
+        res.send(buffer);
+    } catch (e) {
+        console.error(e);
+        res.status(500).send('Erro ao gerar PDF');
     }
 });
 

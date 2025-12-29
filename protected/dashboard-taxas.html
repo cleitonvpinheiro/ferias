@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard RH - Taxas</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    .dashboard-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: clamp(12px, 4vw, 24px);
+    }
+    
+    /* Stats Cards */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    
+    .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    
+    .stat-title {
+        color: #64748b;
+        font-size: 0.875rem;
+        margin-bottom: 8px;
+    }
+    
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text);
+    }
+    
+    .stat-card.pending .stat-value { color: #c2410c; }
+    .stat-card.approved .stat-value { color: #15803d; }
+    .stat-card.rejected .stat-value { color: #b91c1c; }
+
+    .table-container {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        border: 1px solid var(--border);
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 600px;
+    }
+
+    th, td {
+        padding: 16px;
+        text-align: left;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    th {
+        background-color: #f8fafc;
+        font-weight: 600;
+        color: #475569;
+        font-size: 0.875rem;
+    }
+
+    tr:last-child td {
+        border-bottom: none;
+    }
+
+    tr:hover {
+        background-color: #f8fafc;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 12px;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        background-color: #fff7ed;
+        color: #c2410c;
+        border: 1px solid #ffedd5;
+    }
+
+    .btn-action {
+        background-color: var(--accent);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-size: 0.875rem;
+        transition: filter 0.2s;
+        display: inline-block;
+    }
+
+    .btn-action:hover {
+        filter: brightness(1.1);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 48px;
+        color: #64748b;
+    }
+    
+    .header-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .actions-group {
+        display: flex;
+        gap: 12px;
+    }
+
+    .btn-secondary {
+        background: white;
+        border: 1px solid var(--border);
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.875rem;
+        transition: background-color 0.2s;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #f1f5f9;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="brand-inner">
+     <img class="brand-logo" style="height: 80px;" src="/assets/logo.png" alt="Logo">
+     <div class="brand-title" style="font-size: 24px;">Painel de Taxas</div>
+  </header>
+
+  <main class="dashboard-container">
+    <div class="stats-grid">
+        <div class="stat-card pending">
+            <div class="stat-title">Total Pendentes</div>
+            <div class="stat-value" id="stat-pending">0</div>
+        </div>
+        <div class="stat-card approved">
+            <div class="stat-title">Total Aprovadas</div>
+            <div class="stat-value" id="stat-approved">0</div>
+        </div>
+        <div class="stat-card rejected">
+            <div class="stat-title">Total Reprovadas</div>
+            <div class="stat-value" id="stat-rejected">0</div>
+        </div>
+    </div>
+
+    <div class="header-actions">
+        <h2 style="margin: 0; font-size: 1.25rem;">Solicitações de Taxas</h2>
+        <div class="actions-group">
+            <button class="btn-secondary" onclick="exportarExcel()">
+                📊 Excel
+            </button>
+            <button class="btn-secondary" onclick="gerarArquivoPagamento()">
+                💰 Gerar Pagamento
+            </button>
+            <button class="btn-secondary" onclick="carregarSolicitacoes()">
+                🔄 Atualizar
+            </button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table id="tabela-solicitacoes">
+            <thead>
+                <tr>
+                    <th>Colaborador</th>
+                    <th>Departamento</th>
+                    <th>Função</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+            <tbody id="lista-corpo">
+                <!-- Preenchido via JS -->
+            </tbody>
+        </table>
+        <div id="empty-state" class="empty-state" hidden>
+            <p>Nenhuma solicitação de taxa encontrada. 🎉</p>
+        </div>
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    <div class="footer-content">
+      <p>&copy; 2025 Família Madalosso. Todos os direitos reservados.</p>
+      <a href="/login-rh.html" style="font-size: 0.875rem; color: var(--accent); text-decoration: none;">← Voltar para Menu RH</a>
+    </div>
+  </footer>
+
+  <script>
+    let globalData = [];
+
+    async function carregarSolicitacoes() {
+        const tbody = document.getElementById('lista-corpo');
+        const emptyState = document.getElementById('empty-state');
+        const table = document.getElementById('tabela-solicitacoes');
+        
+        // Reset Stats
+        document.getElementById('stat-pending').innerText = '0';
+        document.getElementById('stat-approved').innerText = '0';
+        document.getElementById('stat-rejected').innerText = '0';
+        
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #64748b;">Carregando...</td></tr>';
+
+        try {
+            const res = await fetch('/api/rh/taxas');
+            globalData = await res.json();
+            const data = globalData;
+
+            // Calcular Estatísticas
+            const stats = data.reduce((acc, curr) => {
+                if (curr.status === 'pendente') acc.pending++;
+                else if (curr.status === 'aprovado') acc.approved++;
+                else if (curr.status === 'reprovado') acc.rejected++;
+                return acc;
+            }, { pending: 0, approved: 0, rejected: 0 });
+
+            document.getElementById('stat-pending').innerText = stats.pending;
+            document.getElementById('stat-approved').innerText = stats.approved;
+            document.getElementById('stat-rejected').innerText = stats.rejected;
+
+            tbody.innerHTML = '';
+
+            if (data.length === 0) {
+                table.hidden = true;
+                emptyState.hidden = false;
+                return;
+            }
+
+            table.hidden = false;
+            emptyState.hidden = true;
+
+            data.forEach(item => {
+                const tr = document.createElement('tr');
+                
+                let statusBadge = '';
+                let actionBtn = '';
+                
+                switch(item.status) {
+                    case 'pendente':
+                        statusBadge = '<span class="status-badge" style="background-color: #fff7ed; color: #c2410c; border-color: #ffedd5;">Pendente</span>';
+                        actionBtn = `
+                            <div style="display: flex; gap: 8px;">
+                                <a href="/api/taxas/pdf/${item.id}" target="_blank" class="btn-action" style="background-color: #64748b;">PDF</a>
+                                <button onclick="aprovarTaxa('${item.id}')" class="btn-action" style="background-color: #15803d;">Aprovar</button>
+                                <button onclick="reprovarTaxa('${item.id}')" class="btn-action" style="background-color: #b91c1c;">Reprovar</button>
+                            </div>`;
+                        break;
+                    case 'aprovado':
+                        statusBadge = '<span class="status-badge" style="background-color: #f0fdf4; color: #15803d; border-color: #dcfce7;">Aprovado</span>';
+                        actionBtn = `<a href="/api/taxas/pdf/${item.id}" target="_blank" class="btn-action" style="background-color: #64748b;">PDF</a>`;
+                        break;
+                    case 'reprovado':
+                        statusBadge = '<span class="status-badge" style="background-color: #fef2f2; color: #b91c1c; border-color: #fee2e2;">Reprovado</span>';
+                        actionBtn = `<a href="/api/taxas/pdf/${item.id}" target="_blank" class="btn-action" style="background-color: #64748b;">PDF</a>`;
+                        break;
+                    default:
+                        statusBadge = `<span class="status-badge">${item.status}</span>`;
+                        actionBtn = '';
+                }
+
+                const total = item.valores?.total_geral || '0.00';
+
+                tr.innerHTML = `
+                    <td>
+                        <div style="font-weight: 500;">${item.nome_taxa}</div>
+                        <div style="font-size: 0.75rem; color: #64748b;">CPF: ${item.cpf}</div>
+                    </td>
+                    <td>${item.departamento}</td>
+                    <td>${item.funcao}</td>
+                    <td>R$ ${total}</td>
+                    <td>${statusBadge}</td>
+                    <td>${actionBtn}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (error) {
+            console.error('Erro ao carregar:', error);
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #ef4444;">Erro ao carregar dados. Tente novamente.</td></tr>';
+        }
+    }
+
+    function exportarExcel() {
+        if (!globalData || globalData.length === 0) {
+            alert('Sem dados para exportar');
+            return;
+        }
+
+        const wb = XLSX.utils.book_new();
+        
+        // Mapear dados para formato amigável
+        const rows = globalData.map(item => ({
+            Nome: item.nome_taxa,
+            CPF: item.cpf,
+            Departamento: item.departamento,
+            Função: item.funcao,
+            'Total (R$)': item.valores?.total_geral,
+            Status: item.status,
+            'Criado em': new Date(item.createdAt).toLocaleDateString('pt-BR')
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Taxas");
+        XLSX.writeFile(wb, "Relatorio_Taxas.xlsx");
+    }
+
+    function exportarPDF() {
+        if (!globalData || globalData.length === 0) {
+            alert('Sem dados para exportar');
+            return;
+        }
+        
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        doc.setFontSize(18);
+        doc.text('Relatório de Taxas', 14, 22);
+        doc.setFontSize(11);
+        doc.setTextColor(100);
+        doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
+
+        const tableColumn = ["Nome", "Depto", "Função", "Total", "Status"];
+        const tableRows = [];
+
+        globalData.forEach(item => {
+            const row = [
+                item.nome_taxa,
+                item.departamento,
+                item.funcao,
+                `R$ ${item.valores?.total_geral || '0.00'}`,
+                item.status
+            ];
+            tableRows.push(row);
+        });
+
+        doc.autoTable({
+            head: [tableColumn],
+            body: tableRows,
+            startY: 40,
+        });
+
+        doc.save('Relatorio_Taxas.pdf');
+    }
+
+    async function aprovarTaxa(id) {
+        if (!confirm('Deseja aprovar esta taxa?')) return;
+        try {
+            const res = await fetch(`/api/rh/taxas/${id}/aprovar`, { method: 'POST' });
+            if (res.ok) {
+                alert('Taxa aprovada!');
+                carregarSolicitacoes();
+            } else {
+                alert('Erro ao aprovar.');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erro ao conectar com servidor.');
+        }
+    }
+
+    async function reprovarTaxa(id) {
+        if (!confirm('Deseja reprovar esta taxa?')) return;
+        try {
+            const res = await fetch(`/api/rh/taxas/${id}/reprovar`, { method: 'POST' });
+            if (res.ok) {
+                alert('Taxa reprovada!');
+                carregarSolicitacoes();
+            } else {
+                alert('Erro ao reprovar.');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erro ao conectar com servidor.');
+        }
+    }
+    
+    async function gerarArquivoPagamento() {
+        if (!confirm('Gerar arquivo de pagamento para todas as taxas APROVADAS?')) return;
+        window.open('/api/rh/taxas/arquivo-pagamento', '_blank');
+    }
+
+    // Carrega ao iniciar
+    document.addEventListener('DOMContentLoaded', carregarSolicitacoes);
+  </script>
+</body>
+</html>

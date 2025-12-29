@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pagamento de Taxas</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="./styles.css">
+  <style>
+    .taxas-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        margin-bottom: 20px;
+    }
+    .taxas-table th, .taxas-table td {
+        border: 1px solid #e2e8f0;
+        padding: 8px;
+        text-align: left;
+    }
+    .taxas-table th {
+        background-color: #f8fafc;
+        font-weight: 600;
+        color: #334155;
+    }
+    .taxas-table input {
+        width: 100%;
+        border: none;
+        background: transparent;
+        font-family: inherit;
+        font-size: 1rem;
+        padding: 4px;
+    }
+    .taxas-table input:focus {
+        outline: 2px solid #2563eb;
+        background: white;
+    }
+    .dates-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 16px;
+    }
+    .date-row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+
+    /* Selection Cards for Motivo */
+    .selection-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+
+    .selection-card {
+        position: relative;
+        cursor: pointer;
+    }
+
+    .selection-card input {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .selection-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        background: #fff;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        transition: all 0.2s ease;
+        height: 100%;
+        text-align: center;
+        color: #64748b;
+    }
+
+    .selection-card:hover .selection-content {
+        border-color: #cbd5e1;
+        background: #f8fafc;
+    }
+
+    .selection-card input:checked + .selection-content {
+        border-color: var(--accent);
+        background: #eff6ff;
+        color: var(--accent);
+        font-weight: 600;
+        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.1);
+    }
+
+    .selection-icon {
+        font-size: 28px;
+        margin-bottom: 8px;
+        filter: grayscale(1);
+        opacity: 0.7;
+        transition: all 0.2s;
+    }
+
+    .selection-card input:checked + .selection-content .selection-icon {
+        filter: grayscale(0);
+        opacity: 1;
+        transform: scale(1.1);
+    }
+
+    /* Form Header Bar */
+    .form-header-bar {
+        background-color: #5A636A;
+        color: white;
+        padding: 12px 16px;
+        border-radius: 6px;
+        font-weight: 700;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 24px;
+        margin-bottom: 16px;
+        font-size: 0.9rem;
+    }
+
+    /* Clean Banking Section */
+    .banking-wrapper {
+       
+        padding: 24px;
+        border-radius: 12px;
+      
+        animation: fadeIn 0.3s ease-in-out;
+    }
+    .banking-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .full-width {
+        grid-column: 1 / -1;
+    }
+    .input-group label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #64748b;
+        margin-bottom: 6px;
+        display: block;
+    }
+    .input-group input, .input-group select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        background: white;
+    }
+    .input-group input:focus, .input-group select:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        outline: none;
+    }
+    
+    /* Segmented Control for Account Type */
+    .segmented-control {
+        display: flex;
+        background: #e2e8f0;
+        padding: 4px;
+        border-radius: 8px;
+        width: fit-content;
+        margin-top: 6px;
+    }
+    .segmented-option {
+        position: relative;
+        cursor: pointer;
+        margin: 0 !important; /* Override label margin */
+    }
+    .segmented-option input {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    .segmented-label {
+        display: block;
+        padding: 6px 16px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        color: #64748b;
+        font-weight: 600;
+        transition: all 0.2s;
+        user-select: none;
+    }
+    .segmented-option input:checked + .segmented-label {
+        background: white;
+        color: #2563eb;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    
+    @media (max-width: 640px) {
+        .banking-grid { grid-template-columns: 1fr; gap: 16px; padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+ 
+  <main class="container">
+    <div style="margin-bottom: 20px;">
+        <a href="/" style="color: #64748b; text-decoration: none; font-size: 0.9rem;">&larr; Voltar ao Menu</a>
+    </div>
+     
+   <div class="brand-inner">
+      <img class="brand-logo" src="/assets/logo.png" alt="Logo Família Madalosso">
+      <div class="brand-title">Formulário de Pagamento de Taxas</div>
+    </div>
+    
+    <form id="formTaxas" novalidate>
+      <h2 class="section-title">Dados da Taxa</h2>
+      <label>
+        Nome da Taxa
+        <input type="text" id="nome_taxa" required>
+      </label>
+      
+      <div class="grid-2">
+          <label>
+            CPF
+            <input type="text" id="cpf" required placeholder="000.000.000-00">
+          </label>
+          <label>
+            Função
+            <input type="text" id="funcao" required>
+          </label>
+      </div>
+
+      <h2 class="section-title">Dados Bancários</h2>
+      <div class="banking-wrapper">
+       
+          
+          <div class="input-group full-width" style="margin-bottom: 24px;">
+            <label for="forma_pagamento">SELECIONE A FORMA DE PAGAMENTO *</label>
+            <select id="forma_pagamento" required>
+              <option value="">Selecione...</option>
+              <option value="transferencia">Transferência Bancária</option>
+              <option value="pix">PIX</option>
+            </select>
+          </div>
+
+          <div id="fields-transferencia" class="banking-grid" style="display: none;">
+              <div class="input-group">
+                <label for="banco">Banco</label>
+                <input type="text" id="banco" placeholder="Ex: Nubank, Itaú">
+              </div>
+              
+              <div class="input-group">
+                <label for="agencia">Agência</label>
+                <input type="text" id="agencia" placeholder="0000">
+              </div>
+
+              <div class="input-group">
+                <label for="conta">Conta com Dígito</label>
+                <input type="text" id="conta" placeholder="00000-0">
+              </div>
+
+              <div class="input-group">
+                <label>Tipo de Conta</label>
+                <div class="segmented-control">
+                    <label class="segmented-option">
+                        <input type="radio" name="tipo_conta" value="corrente" checked>
+                        <span class="segmented-label">Corrente</span>
+                    </label>
+                    <label class="segmented-option">
+                        <input type="radio" name="tipo_conta" value="poupanca">
+                        <span class="segmented-label">Poupança</span>
+                    </label>
+                </div>
+              </div>
+          </div>
+
+          <div id="fields-pix" style="display: none;">
+              <div class="input-group full-width">
+                <label for="pix">Chave PIX</label>
+                <input type="text" id="pix" placeholder="CPF, E-mail ou Telefone">
+              </div>
+          </div>
+      </div>
+
+      <div class="grid-2">
+        <label>
+            Departamento
+            <input type="text" id="departamento" required>
+        </label>
+      </div>
+
+      <h2 class="section-title">Motivo</h2>
+      <div class="selection-grid">
+          <label class="selection-card">
+            <input type="checkbox" name="motivo" value="aumento_demanda">
+            <div class="selection-content">
+                <div class="selection-icon">📈</div>
+                <span>Aumento de Demanda</span>
+            </div>
+          </label>
+          <label class="selection-card">
+            <input type="checkbox" name="motivo" value="evento">
+            <div class="selection-content">
+                <div class="selection-icon">🎉</div>
+                <span>Evento</span>
+            </div>
+          </label>
+          <label class="selection-card">
+            <input type="checkbox" name="motivo" value="vaga_aberta" id="checkVagaAberta">
+            <div class="selection-content">
+                <div class="selection-icon">👤</div>
+                <span>Vaga Aberta (Antecessor)</span>
+            </div>
+          </label>
+      </div>
+      <div id="antecessorArea" hidden style="margin-top: 10px;">
+          <input type="text" id="antecessor" placeholder="Nome do antecessor">
+      </div>
+
+      <h2 class="section-title">Valores</h2>
+      <table class="taxas-table">
+          <thead>
+              <tr>
+                  <th>Item</th>
+                  <th>Valor Unitário</th>
+                  <th>Quantidade (Dias)</th>
+                  <th>Total</th>
+              </tr>
+          </thead>
+          <tbody>
+              <tr>
+                  <td>TAXA</td>
+                  <td><input type="number" id="valor_taxa" step="0.01" placeholder="0.00"></td>
+                  <td><input type="number" id="qtd_taxa" step="1" placeholder="0"></td>
+                  <td><input type="number" id="total_taxa" readonly tabindex="-1"></td>
+              </tr>
+              <tr>
+                  <td>VT</td>
+                  <td><input type="number" id="valor_vt" step="0.01" placeholder="0.00"></td>
+                  <td><input type="number" id="qtd_vt" step="1" placeholder="0"></td>
+                  <td><input type="number" id="total_vt" readonly tabindex="-1"></td>
+              </tr>
+              <tr>
+                  <td><strong>TOTAL</strong></td>
+                  <td></td>
+                  <td></td>
+                  <td><strong><input type="number" id="total_geral" readonly tabindex="-1" style="font-weight: bold;"></strong></td>
+              </tr>
+          </tbody>
+      </table>
+
+      <h2 class="section-title">Dias Trabalhados</h2>
+      <p class="form-note">Marque os dias, o mês e a semana em que foram realizados a taxa.</p>
+      <div id="datesContainer" style="display: flex; flex-direction: column; gap: 10px;">
+          <div class="date-row">
+              <input type="date" class="input-date-worked">
+              <select class="select-day-week">
+                  <option value="">Dia da Semana</option>
+                  <option value="segunda">Segunda-feira</option>
+                  <option value="terca">Terça-feira</option>
+                  <option value="quarta">Quarta-feira</option>
+                  <option value="quinta">Quinta-feira</option>
+                  <option value="sexta">Sexta-feira</option>
+                  <option value="sabado">Sábado</option>
+                  <option value="domingo">Domingo</option>
+              </select>
+          </div>
+          <div class="date-row">
+            <input type="date" class="input-date-worked">
+            <select class="select-day-week">
+                <option value="">Dia da Semana</option>
+                <option value="segunda">Segunda-feira</option>
+                <option value="terca">Terça-feira</option>
+                <option value="quarta">Quarta-feira</option>
+                <option value="quinta">Quinta-feira</option>
+                <option value="sexta">Sexta-feira</option>
+                <option value="sabado">Sábado</option>
+                <option value="domingo">Domingo</option>
+            </select>
+        </div>
+        <div class="date-row">
+            <input type="date" class="input-date-worked">
+            <select class="select-day-week">
+                <option value="">Dia da Semana</option>
+                <option value="segunda">Segunda-feira</option>
+                <option value="terca">Terça-feira</option>
+                <option value="quarta">Quarta-feira</option>
+                <option value="quinta">Quinta-feira</option>
+                <option value="sexta">Sexta-feira</option>
+                <option value="sabado">Sábado</option>
+                <option value="domingo">Domingo</option>
+            </select>
+        </div>
+        <div class="date-row">
+            <input type="date" class="input-date-worked">
+            <select class="select-day-week">
+                <option value="">Dia da Semana</option>
+                <option value="segunda">Segunda-feira</option>
+                <option value="terca">Terça-feira</option>
+                <option value="quarta">Quarta-feira</option>
+                <option value="quinta">Quinta-feira</option>
+                <option value="sexta">Sexta-feira</option>
+                <option value="sabado">Sábado</option>
+                <option value="domingo">Domingo</option>
+            </select>
+        </div>
+      </div>
+      <button type="button" id="btnAddDate" style="margin-top: 10px; font-size: 0.8rem; background: #e2e8f0; color: #334155; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">+ Adicionar Data</button>
+
+      <h2 class="section-title">Observações de Pagamento</h2>
+      <div style="background: #1e293b; color: #f1f5f9; padding: 16px; border-radius: 8px; font-size: 0.9rem; margin-bottom: 24px;">
+          <ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px;">
+              <li>Os formulários devem ser entregues na segunda-feira até as 12:00 e serão pagos na terça-feira.</li>
+              <li>Formulários entregues na quinta-feira até as 12:00 serão pagos na sexta-feira.</li>
+              <li>Formulários não entregues no prazo, ou em caso de falta de dados cadastrais/legíveis, só serão pagos no prazo seguinte.</li>
+          </ul>
+      </div>
+
+      <label>
+        E-mail do Líder/Gestor (para notificações)
+        <input type="email" id="email_gestor" required placeholder="gestor@familiamadalosso.com.br">
+      </label>
+
+      <h2 class="section-title">Assinaturas</h2>
+      
+      <!-- Assinatura Taxa -->
+      <div class="signature-wrapper" style="margin-bottom: 20px;">
+        <div class="signature">
+          <div class="signature-header">
+            Assinatura do Taxa (Colaborador)
+            <button type="button" id="limparTaxa">Limpar</button>
+          </div>
+          <canvas id="assinaturaTaxa" aria-label="Assinatura Taxa"></canvas>
+        </div>
+      </div>
+
+      <!-- Assinatura Gestor -->
+      <div class="signature-wrapper">
+        <div class="signature">
+          <div class="signature-header">
+            Assinatura Líder/Gestor
+            <button type="button" id="limparGestor">Limpar</button>
+          </div>
+          <canvas id="assinaturaGestor" aria-label="Assinatura Gestor"></canvas>
+        </div>
+      </div>
+
+      <button class="enviar" type="submit" id="btnSubmit">Enviar Solicitação</button>
+    </form>
+    <div id="feedback" class="feedback" role="alert" hidden></div>
+  </main>
+
+  <footer class="app-footer">
+    <div class="footer-content">
+      <img src="/assets/logo.png" alt="Logo" class="footer-logo">
+      <p>&copy; 2025 Família Madalosso. Todos os direitos reservados.</p>
+      <div style="display: flex; gap: 12px; align-items: center;">
+          <a href="/dashboard-taxas.html" style="font-size: 0.75rem; color: #94a3b8; text-decoration: none;">Acesso RH</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/script-taxas.js"></script>
+</body>
+</html>
