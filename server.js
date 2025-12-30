@@ -18,7 +18,18 @@ const app = express();
 
 // --- Segurança Básica (Helmet) ---
 app.use(helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.sheetjs.com"], // unsafe-inline necessário para scripts inline simples se houver
+            scriptSrcAttr: ["'unsafe-inline'"], // Permite event handlers inline como onclick
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "blob:"], // data: necessário para imagens base64
+            connectSrc: ["'self'", "https://cdn.sheetjs.com"],
+            objectSrc: ["'none'"],
+            upgradeInsecureRequests: [],
+        },
+    },
 }));
 
 // --- Rate Limiting ---
@@ -29,6 +40,12 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+const candidatoLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hora
+    max: 10, // 10 requisições por IP
+    message: 'Muitas tentativas de cadastro. Tente novamente em 1 hora.'
+});
+
 app.use(cors());
 
 // --- Middleware de Autenticação RH ---
@@ -38,7 +55,32 @@ const rhAuth = basicAuth({
     realm: 'Painel RH'
 });
 
-// Rota protegida para servir o dashboard do RH
+// Rota protegida para servir o Portal RH (Home Unificada)
+app.get('/rh', rhAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, 'protected', 'index.html'));
+});
+
+app.get('/protected/index.html', rhAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, 'protected', 'index.html'));
+});
+
+app.get('/protected/dashboard-rh.html', rhAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, 'protected', 'dashboard-rh.html'));
+});
+
+app.get('/protected/dashboard-taxas.html', rhAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, 'protected', 'dashboard-taxas.html'));
+});
+
+app.get('/protected/dashboard-candidatos.html', rhAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, 'protected', 'dashboard-candidatos.html'));
+});
+
+app.get('/protected/dashboard-vagas.html', rhAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, 'protected', 'dashboard-vagas.html'));
+});
+
+// Mantendo rotas antigas para compatibilidade (mas agora redirecionando ou servindo o arquivo correto)
 app.get('/dashboard-rh.html', rhAuth, (req, res) => {
     res.sendFile(path.join(__dirname, 'protected', 'dashboard-rh.html'));
 });
@@ -52,12 +94,37 @@ app.get('/dashboard-vagas.html', rhAuth, (req, res) => {
 app.get('/dashboard-taxas.html', rhAuth, (req, res) => {
     res.sendFile(path.join(__dirname, 'protected', 'dashboard-taxas.html'));
 });
+
+// Rota protegida para servir o dashboard de Candidatos
+app.get('/dashboard-candidatos.html', rhAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, 'protected', 'dashboard-candidatos.html'));
+});
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use('/assets', express.static('assets'));
 
 const DB_PATH = path.join(__dirname, 'data', 'solicitacoes.json');
+const FUNCIONARIOS_DB_PATH = path.join(__dirname, 'data', 'funcionarios.json');
+
+function readFuncionariosDB() {
+    if (!fs.existsSync(FUNCIONARIOS_DB_PATH)) return [];
+    try {
+        const data = fs.readFileSync(FUNCIONARIOS_DB_PATH, 'utf8');
+        return JSON.parse(data);
+    } catch (e) {
+        console.error('Erro ao ler DB Funcionarios:', e);
+        return [];
+    }
+}
+
+function writeFuncionariosDB(data) {
+    try {
+        fs.writeFileSync(FUNCIONARIOS_DB_PATH, JSON.stringify(data, null, 2));
+    } catch (e) {
+        console.error('Erro ao salvar DB Funcionarios:', e);
+    }
+}
 
 function readDB() {
     if (!fs.existsSync(DB_PATH)) return [];
@@ -80,6 +147,7 @@ function writeDB(data) {
 
 const VAGAS_DB_PATH = path.join(__dirname, 'data', 'vagas.json');
 const TAXAS_DB_PATH = path.join(__dirname, 'data', 'taxas.json');
+const CANDIDATOS_DB_PATH = path.join(__dirname, 'data', 'candidatos.json');
 
 function readVagasDB() {
     if (!fs.existsSync(VAGAS_DB_PATH)) return [];
@@ -92,11 +160,30 @@ function readVagasDB() {
     }
 }
 
+function readCandidatosDB() {
+    if (!fs.existsSync(CANDIDATOS_DB_PATH)) return [];
+    try {
+        const data = fs.readFileSync(CANDIDATOS_DB_PATH, 'utf8');
+        return JSON.parse(data);
+    } catch (e) {
+        console.error('Erro ao ler DB Candidatos:', e);
+        return [];
+    }
+}
+
 function writeVagasDB(data) {
     try {
         fs.writeFileSync(VAGAS_DB_PATH, JSON.stringify(data, null, 2));
     } catch (e) {
         console.error('Erro ao salvar DB Vagas:', e);
+    }
+}
+
+function writeCandidatosDB(data) {
+    try {
+        fs.writeFileSync(CANDIDATOS_DB_PATH, JSON.stringify(data, null, 2));
+    } catch (e) {
+        console.error('Erro ao salvar DB Candidatos:', e);
     }
 }
 
@@ -379,10 +466,17 @@ function pdfBufferFromTaxaData(payload) {
     doc.font('Helvetica-Bold').text('Observações de pagamento:', 40, y);
     y += 15;
     doc.font('Helvetica').fontSize(9);
-    doc.text('• Os formulários devem serem entregues na segunda feira até as 12:00 e serão pagas na terça feira e na quinta feita até as 12:00 que serão pagas na sexta feira.', 40, y);
-    y += 15;
-    doc.text('• Os formulários não entregues no prazo, ou em caso de falta de dados cadastrais, ou com letras ilegíveis, a taxa só será paga no prazo seguinte.', 40, y);
-    y += 30;
+    
+    const obsWidth = doc.page.width - 80;
+    const obs1 = '• Os formulários devem serem entregues na segunda feira até as 12:00 e serão pagas na terça feira e na quinta feita até as 12:00 que serão pagas na sexta feira.';
+    const h1 = doc.heightOfString(obs1, { width: obsWidth });
+    doc.text(obs1, 40, y, { width: obsWidth });
+    y += h1 + 5;
+
+    const obs2 = '• Os formulários não entregues no prazo, ou em caso de falta de dados cadastrais, ou com letras ilegíveis, a taxa só será paga no prazo seguinte.';
+    const h2 = doc.heightOfString(obs2, { width: obsWidth });
+    doc.text(obs2, 40, y, { width: obsWidth });
+    y += h2 + 60; // Garante espaço suficiente para a assinatura (que é desenhada com y-50)
 
     // Assinaturas
     const sigW = (doc.page.width - 80) / 2 - 20;
@@ -393,6 +487,7 @@ function pdfBufferFromTaxaData(payload) {
     if (payload.assinatura_taxa) {
         try {
             const sigBuf = Buffer.from(payload.assinatura_taxa.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+            // Mantendo y - 50, mas como y desceu, a assinatura sobe em relação à linha, mas fica longe do texto acima
             doc.image(sigBuf, 40 + (sigW/2) - 50, y - 50, { fit: [100, 40] });
         } catch(e) {}
     }
@@ -996,6 +1091,48 @@ app.get('/api/rh/vagas', rhAuth, (req, res) => {
 
 // --- Rotas Taxas ---
 
+app.get('/api/funcionarios', (req, res) => {
+    const db = readFuncionariosDB();
+    res.json(db);
+});
+
+// Rota para salvar rascunho (auto-save)
+app.post('/api/taxas/draft', async (req, res) => {
+    try {
+        const payload = req.body;
+        const db = readTaxasDB();
+        let id = payload.id;
+        
+        // Se já tem ID, atualiza
+        if (id) {
+            const idx = db.findIndex(i => i.id === id);
+            if (idx !== -1) {
+                db[idx] = { ...db[idx], ...payload, updatedAt: new Date().toISOString() };
+                writeTaxasDB(db);
+                return res.json({ ok: true, id });
+            }
+        }
+
+        // Se não tem ID ou não achou, cria novo como rascunho
+        id = id || crypto.randomUUID();
+        const novoRascunho = {
+            id,
+            ...payload,
+            status: 'rascunho',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        
+        db.push(novoRascunho);
+        writeTaxasDB(db);
+        
+        res.json({ ok: true, id });
+    } catch (e) {
+        console.error('Erro ao salvar rascunho:', e);
+        res.status(500).json({ ok: false, erro: 'Erro ao salvar rascunho' });
+    }
+});
+
 app.post('/api/taxas', async (req, res) => {
     try {
         const payload = req.body;
@@ -1005,20 +1142,79 @@ app.post('/api/taxas', async (req, res) => {
         }
 
         const db = readTaxasDB();
-        const id = crypto.randomUUID();
+        let id = payload.id;
         
-        const novaSolicitacao = {
-            id,
-            ...payload,
-            status: 'pendente', // pendente, aprovado, reprovado
-            createdAt: new Date().toISOString()
-        };
+        // Se já existe ID (rascunho), usamos ele, senão criamos novo
+        if (id) {
+            // Verificar se existe para atualizar status
+            const idx = db.findIndex(i => i.id === id);
+            if (idx !== -1) {
+                // Atualiza o existente
+                 db[idx] = {
+                    ...db[idx],
+                    ...payload,
+                    status: 'pendente', // Muda de rascunho para pendente
+                    updatedAt: new Date().toISOString()
+                };
+            } else {
+                // ID veio mas não achou (estranho, mas tratamos como novo)
+                const novaSolicitacao = {
+                    id,
+                    ...payload,
+                    status: 'pendente',
+                    createdAt: new Date().toISOString()
+                };
+                db.push(novaSolicitacao);
+            }
+        } else {
+             id = crypto.randomUUID();
+             const novaSolicitacao = {
+                id,
+                ...payload,
+                status: 'pendente',
+                createdAt: new Date().toISOString()
+            };
+            db.push(novaSolicitacao);
+        }
         
-        db.push(novaSolicitacao);
         writeTaxasDB(db);
 
+        // Salvar/Atualizar dados do funcionário para auto-preenchimento
+        try {
+            const funcionarios = readFuncionariosDB();
+            // Normaliza CPF para busca (remove caracteres não numéricos)
+            const cpfLimpo = payload.cpf ? payload.cpf.replace(/\D/g, '') : '';
+            
+            if (cpfLimpo) {
+                const index = funcionarios.findIndex(f => f.cpf && f.cpf.replace(/\D/g, '') === cpfLimpo);
+                
+                const dadosFuncionario = {
+                    id: index !== -1 ? funcionarios[index].id : crypto.randomUUID(),
+                    nome: payload.nome_taxa,
+                    cpf: payload.cpf,
+                    funcao: payload.funcao,
+                    departamento: payload.departamento,
+                    banco: payload.banco,
+                    agencia: payload.agencia,
+                    conta: payload.conta,
+                    tipo_conta: payload.tipo_conta,
+                    chave_pix: payload.pix,
+                    updatedAt: new Date().toISOString()
+                };
+
+                if (index !== -1) {
+                    funcionarios[index] = { ...funcionarios[index], ...dadosFuncionario };
+                } else {
+                    funcionarios.push({ ...dadosFuncionario, createdAt: new Date().toISOString() });
+                }
+                writeFuncionariosDB(funcionarios);
+            }
+        } catch (e) {
+            console.error('Erro ao salvar dados do funcionario:', e);
+        }
+
         // Notificar RH
-        await enviarEmailTaxasRH(novaSolicitacao);
+        await enviarEmailTaxasRH(db.find(i => i.id === id));
 
         res.json({ message: 'Solicitação enviada com sucesso!', id });
     } catch (e) {
@@ -1165,6 +1361,14 @@ app.post('/api/vagas/avaliar', rhAuth, async (req, res) => {
 
         db[idx].status = status; // aprovada, rejeitada
         db[idx].justificativa_rh = justificativa;
+        
+        // Se rejeitada, marca como não ativa
+        if (status === 'rejeitada' || status === 'reprovada') {
+            db[idx].ativa = false;
+        } else if (status === 'aprovada') {
+            db[idx].ativa = true;
+        }
+
         db[idx].updatedAt = new Date().toISOString();
         
         writeVagasDB(db);
@@ -1195,6 +1399,7 @@ app.post('/api/vagas', async (req, res) => {
             id,
             ...payload,
             status: 'pendente',
+            ativa: true, // Por padrão ativa (aparece na lista de abertas/pendentes)
             createdAt: new Date().toISOString()
         };
         db.push(novaVaga);
@@ -1206,6 +1411,44 @@ app.post('/api/vagas', async (req, res) => {
     } catch (e) {
         console.error(e);
         res.status(500).json({ ok: false, erro: 'Erro ao salvar vaga' });
+    }
+});
+
+app.put('/api/vagas/:id', rhAuth, (req, res) => {
+    try {
+        const { id } = req.params;
+        const updates = req.body;
+        const db = readVagasDB();
+        const idx = db.findIndex(v => v.id === id);
+        
+        if (idx === -1) return res.status(404).json({ ok: false, erro: 'Vaga não encontrada' });
+        
+        // Se estiver reabrindo, pode querer atualizar o status para aprovada se estava rejeitada?
+        // Vamos manter simples: atualiza os campos enviados.
+        
+        db[idx] = { ...db[idx], ...updates, updatedAt: new Date().toISOString() };
+        writeVagasDB(db);
+        
+        res.json({ ok: true });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao atualizar vaga' });
+    }
+});
+
+app.delete('/api/vagas/:id', rhAuth, (req, res) => {
+    try {
+        const { id } = req.params;
+        const db = readVagasDB();
+        const filtered = db.filter(v => v.id !== id);
+        
+        if (db.length === filtered.length) return res.status(404).json({ ok: false, erro: 'Vaga não encontrada' });
+        
+        writeVagasDB(filtered);
+        res.json({ ok: true });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao excluir vaga' });
     }
 });
 
@@ -1226,8 +1469,196 @@ app.get('/api/vagas/pdf/:id', async (req, res) => {
     }
 });
 
+// --- Rotas Candidatos ---
+
+// Função simples de sanitização para evitar XSS básico
+function sanitizeInput(str) {
+    if (typeof str !== 'string') return str;
+    return str.replace(/<[^>]*>?/gm, '').trim(); // Remove tags HTML
+}
+
+app.post('/api/candidatos', candidatoLimiter, async (req, res) => {
+    try {
+        const payload = req.body;
+        
+        // 1. Validação de Campos Obrigatórios
+        if (!payload.nome || !payload.email || !payload.telefone) {
+            return res.status(400).json({ ok: false, erro: 'Campos obrigatórios ausentes' });
+        }
+
+        // Validação básica de email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(payload.email)) {
+            return res.status(400).json({ ok: false, erro: 'Email inválido' });
+        }
+
+        // 2. Sanitização de todo o payload
+        const safePayload = {};
+        for (const key in payload) {
+            if (key === 'curriculo') continue; // Tratado separadamente
+            const val = payload[key];
+            if (typeof val === 'string') {
+                safePayload[key] = sanitizeInput(val);
+            } else {
+                safePayload[key] = val;
+            }
+        }
+
+        // 3. Validação de Currículo (Arquivo)
+        if (payload.curriculo) {
+            if (typeof payload.curriculo !== 'string' || !payload.curriculo.startsWith('data:')) {
+                return res.status(400).json({ ok: false, erro: 'Formato de arquivo inválido' });
+            }
+
+            // Validar MIME Type
+            const matches = payload.curriculo.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+            if (!matches || matches.length !== 3) {
+                return res.status(400).json({ ok: false, erro: 'Arquivo corrompido ou inválido' });
+            }
+
+            const mimeType = matches[1];
+            const allowedMimes = [
+                'application/pdf', 
+                'application/msword', 
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'image/jpeg', 
+                'image/png'
+            ];
+
+            if (!allowedMimes.includes(mimeType)) {
+                return res.status(400).json({ ok: false, erro: 'Tipo de arquivo não permitido. Apenas PDF, DOC, DOCX, JPG ou PNG.' });
+            }
+
+            // Validar Tamanho (aprox. 5MB limite)
+            // Base64 string length ~ 1.37 * file size
+            // 5MB * 1.37 ~= 7,200,000 chars
+            const base64Length = matches[2].length;
+            if (base64Length > 7500000) { 
+                return res.status(400).json({ ok: false, erro: 'Arquivo muito grande. Limite máximo de 5MB.' });
+            }
+            
+            safePayload.curriculo = payload.curriculo;
+        }
+
+        const db = readCandidatosDB();
+        const id = crypto.randomUUID();
+        
+        const novoCandidato = {
+            id,
+            ...safePayload,
+            status: 'novo', // novo, visto, entrevista, contratado, rejeitado
+            createdAt: new Date().toISOString()
+        };
+        
+        db.push(novoCandidato);
+        writeCandidatosDB(db);
+
+        res.json({ ok: true, message: 'Candidatura enviada com sucesso!', id });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro interno ao salvar candidatura.' });
+    }
+});
+
+app.get('/api/rh/candidatos', rhAuth, (req, res) => {
+    try {
+        const db = readCandidatosDB();
+        // Ordenar por data (mais recente primeiro)
+        const lista = db.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        // Retornar lista sem o base64 do curriculo para economizar banda na listagem
+        const listaLeve = lista.map(({ curriculo, ...rest }) => rest);
+        res.json(listaLeve);
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao listar candidatos' });
+    }
+});
+
+app.get('/api/rh/candidatos/:id', rhAuth, (req, res) => {
+    try {
+        const db = readCandidatosDB();
+        const item = db.find(i => i.id === req.params.id);
+        if (!item) return res.status(404).json({ ok: false, erro: 'Candidato não encontrado' });
+        res.json(item);
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao buscar candidato' });
+    }
+});
+
+app.get('/api/rh/candidatos/:id/curriculo', rhAuth, (req, res) => {
+    try {
+        const db = readCandidatosDB();
+        const item = db.find(i => i.id === req.params.id);
+        if (!item || !item.curriculo) return res.status(404).send('Currículo não encontrado');
+
+        // item.curriculo deve ser algo como "data:application/pdf;base64,JVBER..."
+        const matches = item.curriculo.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+        
+        if (!matches || matches.length !== 3) {
+            return res.status(400).send('Formato de arquivo inválido');
+        }
+
+        const type = matches[1];
+        const buffer = Buffer.from(matches[2], 'base64');
+        
+        // Extensão baseada no tipo
+        let ext = 'bin';
+        if (type.includes('pdf')) ext = 'pdf';
+        else if (type.includes('word')) ext = 'doc';
+        else if (type.includes('officedocument')) ext = 'docx';
+        else if (type.includes('image')) ext = 'jpg';
+
+        res.set({
+            'Content-Type': type,
+            'Content-Disposition': `attachment; filename="Curriculo_${item.nome.replace(/\s+/g, '_')}.${ext}"`
+        });
+        res.send(buffer);
+    } catch (e) {
+        console.error(e);
+        res.status(500).send('Erro ao baixar currículo');
+    }
+});
+
+app.put('/api/rh/candidatos/:id/status', rhAuth, (req, res) => {
+    try {
+        const { status } = req.body;
+        if (!status) return res.status(400).json({ ok: false, erro: 'Status não informado' });
+
+        const db = readCandidatosDB();
+        const idx = db.findIndex(i => i.id === req.params.id);
+        if (idx === -1) return res.status(404).json({ ok: false, erro: 'Candidato não encontrado' });
+
+        db[idx].status = status;
+        db[idx].updatedAt = new Date().toISOString();
+        writeCandidatosDB(db);
+
+        res.json({ ok: true });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao atualizar status' });
+    }
+});
+
+app.delete('/api/rh/candidatos/:id', rhAuth, (req, res) => {
+    try {
+        const db = readCandidatosDB();
+        const idx = db.findIndex(i => i.id === req.params.id);
+        if (idx === -1) return res.status(404).json({ ok: false, erro: 'Candidato não encontrado' });
+
+        db.splice(idx, 1);
+        writeCandidatosDB(db);
+
+        res.json({ ok: true });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao remover candidato' });
+    }
+});
+
+
 // Final do arquivo
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });

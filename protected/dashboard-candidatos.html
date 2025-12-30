@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Candidatos - RH</title>
+    <link rel="stylesheet" href="/rh-styles.css">
+    <style>
+        /* Kanban Specific Styles */
+        .filters-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            background: var(--bg-surface);
+            padding: 16px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            align-items: center;
+            flex-wrap: wrap;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .filter-group label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .filter-input, .filter-select {
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            width: 100%;
+            background: var(--bg-surface);
+            color: var(--text-primary);
+        }
+
+        .filter-input:focus, .filter-select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+        }
+        
+        /* Kanban Board */
+        .kanban-board {
+            display: flex;
+            gap: 24px;
+            overflow-x: auto;
+            padding-bottom: 24px;
+            min-height: calc(100vh - 250px);
+            align-items: flex-start;
+        }
+        
+        .kanban-column {
+            flex: 1;
+            min-width: 320px;
+            max-width: 400px;
+            background: #f1f5f9;
+            border-radius: var(--radius-md);
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border);
+            height: 100%;
+        }
+        
+        .column-header {
+            padding: 16px;
+            background: var(--bg-surface);
+            border-radius: var(--radius-md) var(--radius-md) 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .column-title {
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95rem;
+        }
+        
+        .count-badge {
+            background: var(--bg-body);
+            color: var(--text-secondary);
+            padding: 2px 10px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border: 1px solid var(--border);
+        }
+        
+        .column-body {
+            padding: 16px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+            max-height: calc(100vh - 320px);
+        }
+        
+        /* Candidate Card */
+        .candidate-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            box-shadow: var(--shadow-sm);
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .candidate-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--accent);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        
+        .card-name {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 1rem;
+            line-height: 1.3;
+        }
+        
+        .card-date {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            margin-left: 8px;
+        }
+        
+        .card-details {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .card-detail-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal {
+            background: var(--bg-surface);
+            padding: 0;
+            border-radius: var(--radius-lg);
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-content-wrapper {
+            padding: 24px;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+            background: #f8fafc;
+        }
+        
+        .modal-title h2 { 
+            margin: 0; 
+            font-size: 1.5rem; 
+            color: var(--primary);
+            font-weight: 800;
+        }
+        
+        .modal-meta { 
+            font-size: 0.875rem; 
+            color: var(--text-secondary); 
+            margin-top: 8px; 
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: color 0.2s;
+            padding: 4px;
+            line-height: 1;
+        }
+        
+        .close-modal:hover { color: var(--danger); }
+        
+        .modal-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            margin-bottom: 24px;
+        }
+        
+        @media (max-width: 768px) {
+            .modal-grid { grid-template-columns: 1fr; gap: 24px; }
+            .kanban-board { flex-direction: column; min-height: auto; }
+            .kanban-column { width: 100%; max-width: none; }
+        }
+        
+        .detail-group { margin-bottom: 20px; }
+        
+        .detail-label { 
+            font-size: 0.75rem; 
+            font-weight: 700; 
+            color: var(--text-secondary); 
+            text-transform: uppercase; 
+            letter-spacing: 0.05em; 
+            margin-bottom: 6px; 
+        }
+        
+        .detail-value { 
+            font-size: 1rem; 
+            color: var(--text-primary); 
+            line-height: 1.5; 
+        }
+
+        .section-title {
+            color: var(--primary);
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin: 0 0 20px 0;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f1f5f9;
+        }
+        
+        .modal-actions {
+            padding: 24px;
+            background: #f8fafc;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        
+        .status-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+    </style>
+</head>
+<body>
+    <nav class="rh-navbar">
+        <a href="/protected/index.html" class="rh-navbar-brand">
+            <span>👥</span> Portal RH
+        </a>
+        <div class="rh-navbar-menu">
+            <a href="/protected/dashboard-rh.html" class="rh-nav-link">Férias</a>
+            <a href="/protected/dashboard-taxas.html" class="rh-nav-link">Taxas</a>
+            <a href="/protected/dashboard-candidatos.html" class="rh-nav-link active">Candidatos</a>
+            <a href="/protected/dashboard-vagas.html" class="rh-nav-link">Vagas</a>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <div class="page-header">
+            <h1 class="page-title">Gestão de Candidatos</h1>
+            <p class="page-subtitle">Acompanhe o fluxo de recrutamento e seleção</p>
+        </div>
+
+        <div class="filters-bar">
+            <div class="filter-group">
+                <label>Buscar Candidato</label>
+                <input type="text" id="searchInput" class="filter-input" placeholder="Nome, email ou cargo..." onkeyup="filtrarCandidatos()">
+            </div>
+            <div class="filter-group">
+                <label>Filtrar por Vaga/Cargo</label>
+                <select id="vagaFilter" class="filter-select" onchange="filtrarCandidatos()">
+                    <option value="">Todos os Cargos</option>
+                </select>
+            </div>
+            <div class="filter-group" style="flex: 0; min-width: auto; align-self: flex-end;">
+                 <div style="font-size: 0.875rem; color: var(--text-secondary); white-space: nowrap; padding-bottom: 10px;">
+                    <span id="lastUpdate">Atualizado agora</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="loading" style="text-align: center; padding: 60px; color: var(--text-secondary);">
+            <div style="font-size: 2rem; margin-bottom: 1rem;">⏳</div>
+            <div>Carregando candidatos...</div>
+        </div>
+
+        <div class="kanban-board" id="kanbanBoard" style="display: none;">
+            <!-- Columns generated by JS -->
+        </div>
+    </div>
+
+    <!-- Modal Detalhes -->
+    <div class="modal-overlay" id="modalDetalhes">
+        <div class="modal">
+            <button class="close-modal" onclick="fecharModal()" style="position: absolute; top: 16px; right: 16px;">&times;</button>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+  <footer style="text-align: center; padding: 40px; color: var(--text-secondary); font-size: 0.875rem;">
+    <p>&copy; 2025 Família Madalosso. Acesso Restrito ao RH.</p>
+  </footer>
+
+    <script>
+        let todosCandidatos = [];
+        const colunas = [
+            { id: 'novo', title: 'Novos', color: '#3b82f6' },
+            { id: 'visto', title: 'Em Análise', color: '#64748b' },
+            { id: 'entrevista', title: 'Entrevista', color: '#f59e0b' },
+            { id: 'contratado', title: 'Contratados', color: '#10b981' },
+            { id: 'rejeitado', title: 'Arquivados', color: '#ef4444' }
+        ];
+
+        async function carregarCandidatos() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('kanbanBoard').style.display = 'none';
+            
+            try {
+                const res = await fetch('/api/rh/candidatos');
+                todosCandidatos = await res.json();
+                
+                populateVagaFilter();
+                renderKanban(todosCandidatos);
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('kanbanBoard').style.display = 'flex';
+            } catch (e) {
+                console.error(e);
+                alert('Erro ao carregar dados.');
+            }
+        }
+
+        function populateVagaFilter() {
+            const cargos = [...new Set(todosCandidatos.map(c => c.cargo1 || 'Outros').filter(Boolean))];
+            const select = document.getElementById('vagaFilter');
+            select.innerHTML = '<option value="">Todos os Cargos</option>';
+            cargos.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                select.appendChild(opt);
+            });
+        }
+
+        function filtrarCandidatos() {
+            const term = document.getElementById('searchInput').value.toLowerCase();
+            const cargo = document.getElementById('vagaFilter').value;
+            
+            const filtrados = todosCandidatos.filter(c => {
+                const matchTerm = c.nome.toLowerCase().includes(term) || 
+                                  c.email.toLowerCase().includes(term) ||
+                                  (c.cargo1 && c.cargo1.toLowerCase().includes(term));
+                const matchCargo = !cargo || (c.cargo1 === cargo);
+                return matchTerm && matchCargo;
+            });
+            
+            renderKanban(filtrados);
+        }
+
+        function renderKanban(lista) {
+            const board = document.getElementById('kanbanBoard');
+            board.innerHTML = '';
+            
+            colunas.forEach(col => {
+                const items = lista.filter(c => (c.status || 'novo') === col.id);
+                
+                const colDiv = document.createElement('div');
+                colDiv.className = 'kanban-column';
+                colDiv.innerHTML = `
+                    <div class="column-header" style="border-top: 3px solid ${col.color}">
+                        <div class="column-title">
+                            ${col.title}
+                            <span class="count-badge">${items.length}</span>
+                        </div>
+                    </div>
+                    <div class="column-body">
+                        ${items.map(c => createCardHTML(c)).join('')}
+                    </div>
+                `;
+                board.appendChild(colDiv);
+            });
+        }
+
+        function createCardHTML(c) {
+            return `
+                <div class="candidate-card" onclick="abrirDetalhes('${c.id}')">
+                    <div class="card-header">
+                        <span class="card-name">${c.nome}</span>
+                        <span class="card-date">${new Date(c.createdAt).toLocaleDateString('pt-BR')}</span>
+                    </div>
+                    <div class="card-details">
+                        ${c.cargo1 ? `<div class="card-detail-row"><span>💼</span> ${c.cargo1}</div>` : ''}
+                        <div class="card-detail-row"><span>💰</span> ${c.salarioPretendido || 'N/A'}</div>
+                        <div class="card-detail-row"><span>📍</span> ${c.cidade}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function abrirDetalhes(id) {
+            const modal = document.getElementById('modalDetalhes');
+            const content = document.getElementById('modalContent');
+            content.innerHTML = '<div style="padding:40px; text-align:center;">Carregando...</div>';
+            modal.style.display = 'flex';
+
+            try {
+                // Se já temos os dados básicos, podemos mostrar algo, mas melhor buscar completo para garantir
+                const res = await fetch(`/api/rh/candidatos/${id}`);
+                const c = await res.json();
+                
+                renderModalContent(c);
+            } catch (e) {
+                content.innerHTML = '<div style="color:red; text-align:center;">Erro ao carregar detalhes.</div>';
+            }
+        }
+
+        function renderModalContent(c) {
+            const content = document.getElementById('modalContent');
+            const statusLabel = colunas.find(col => col.id === (c.status || 'novo'))?.title || c.status;
+            
+            // Helper for badge class
+            const getBadgeClass = (status) => {
+                const map = {
+                    'novo': 'badge badge-primary',
+                    'visto': 'badge badge-secondary',
+                    'entrevista': 'badge badge-warning',
+                    'contratado': 'badge badge-success',
+                    'rejeitado': 'badge badge-danger'
+                };
+                return map[status] || 'badge badge-secondary';
+            };
+
+            const html = `
+                <div class="modal-header">
+                    <div class="modal-title">
+                        <h2>${c.nome}</h2>
+                        <div class="modal-meta">
+                            Cadastrado em ${new Date(c.createdAt).toLocaleDateString('pt-BR')} às ${new Date(c.createdAt).toLocaleTimeString('pt-BR')}
+                            <span class="${getBadgeClass(c.status || 'novo')}" style="margin-left: 10px;">${statusLabel}</span>
+                        </div>
+                    </div>
+                    <div>
+                        <a href="/api/rh/candidatos/${c.id}/curriculo" target="_blank" class="btn btn-primary">📄 Baixar Currículo</a>
+                    </div>
+                </div>
+
+                <div class="modal-content-wrapper">
+                    <div class="modal-grid">
+                        <div>
+                            <h3 class="section-title">Dados Pessoais</h3>
+                            <div class="detail-group">
+                                <div class="detail-label">Email</div>
+                                <div class="detail-value">${c.email}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Telefone / Recado</div>
+                                <div class="detail-value">${c.telefone} ${c.recado ? `/ ${c.recado}` : ''}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Idade / Estado Civil</div>
+                                <div class="detail-value">${c.idade} anos, ${c.estadoCivil}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Endereço</div>
+                                <div class="detail-value">${c.endereco}, ${c.bairro} - ${c.cidade}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Filhos</div>
+                                <div class="detail-value">${c.filhos} (${c.qtdFilhos || 0})</div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="section-title">Profissional</h3>
+                            <div class="detail-group">
+                                <div class="detail-label">Escolaridade</div>
+                                <div class="detail-value">${c.escolaridade}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Pretensão Salarial</div>
+                                <div class="detail-value">${c.salarioPretendido || 'Não informada'}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Disponibilidade</div>
+                                <div class="detail-value">${c.horario || 'Não informada'}</div>
+                            </div>
+                            
+                            ${c.empresa1 ? `
+                            <div class="detail-group" style="background:var(--bg-body); padding:16px; border-radius:var(--radius-sm); border:1px solid var(--border);">
+                                <div class="detail-label" style="margin-bottom:8px;">Última Experiência</div>
+                                <div class="detail-value">
+                                    <strong style="color:var(--primary);">${c.empresa1}</strong><br>
+                                    ${c.cargo1}<br>
+                                    <span style="font-size:0.85em; color:var(--text-secondary);">${c.admissao1 || '?'} a ${c.saida1 || '?'}</span>
+                                </div>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="btn btn-danger" onclick="excluirCandidato('${c.id}')">🗑️ Excluir</button>
+                    
+                    <div class="status-actions">
+                        <span style="font-size:0.875rem; color:var(--text-secondary); align-self:center; margin-right:8px;">Mover para:</span>
+                        ${c.status !== 'visto' ? `<button class="btn btn-secondary" onclick="mudarStatus('${c.id}', 'visto')">Análise</button>` : ''}
+                        ${c.status !== 'entrevista' ? `<button class="btn btn-warning" onclick="mudarStatus('${c.id}', 'entrevista')">Entrevista</button>` : ''}
+                        ${c.status !== 'contratado' ? `<button class="btn btn-success" onclick="mudarStatus('${c.id}', 'contratado')">Contratar</button>` : ''}
+                        ${c.status !== 'rejeitado' ? `<button class="btn btn-danger" onclick="mudarStatus('${c.id}', 'rejeitado')">Arquivar</button>` : ''}
+                    </div>
+                </div>
+            `;
+            
+            content.innerHTML = html;
+        }
+
+        async function mudarStatus(id, novoStatus) {
+            try {
+                const res = await fetch(`/api/rh/candidatos/${id}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: novoStatus })
+                });
+                if (res.ok) {
+                    // Atualiza localmente e fecha modal ou recarrega
+                    // Vamos recarregar o modal para ver a mudança
+                    const updatedRes = await fetch(`/api/rh/candidatos/${id}`);
+                    const updatedC = await updatedRes.json();
+                    renderModalContent(updatedC);
+                    // Atualiza lista em background
+                    carregarCandidatos(); 
+                } else {
+                    alert('Erro ao atualizar status');
+                }
+            } catch (e) {
+                alert('Erro de conexão');
+            }
+        }
+
+        async function excluirCandidato(id) {
+            if (!confirm('Tem certeza que deseja excluir este candidato permanentemente?')) return;
+            try {
+                const res = await fetch(`/api/rh/candidatos/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    fecharModal();
+                    carregarCandidatos();
+                } else {
+                    alert('Erro ao excluir');
+                }
+            } catch (e) {
+                alert('Erro de conexão');
+            }
+        }
+
+        function fecharModal() {
+            document.getElementById('modalDetalhes').style.display = 'none';
+        }
+
+        // Close modal on outside click
+        document.getElementById('modalDetalhes').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('modalDetalhes')) fecharModal();
+        });
+
+        // Start
+        carregarCandidatos();
+    </script>
+</body>
+</html>

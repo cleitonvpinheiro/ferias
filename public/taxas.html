@@ -222,6 +222,14 @@
     </div>
     
     <form id="formTaxas" novalidate>
+      <div class="input-group full-width" style="margin-bottom: 24px; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <label for="select_funcionario">SELECIONE O COLABORADOR (Preenchimento Automático)</label>
+          <select id="select_funcionario">
+              <option value="">Carregando colaboradores...</option>
+          </select>
+          <input type="hidden" id="taxa_id_draft">
+      </div>
+
       <h2 class="section-title">Dados da Taxa</h2>
       <label>
         Nome da Taxa

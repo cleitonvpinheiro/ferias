@@ -5,442 +5,329 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dashboard RH - Vagas</title>
   <link rel="icon" href="/assets/logo.png" type="image/png">
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/rh-styles.css">
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-  <style>
-    .dashboard-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: clamp(12px, 4vw, 24px);
-    }
-    
-    /* Stats Cards */
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 16px;
-        margin-bottom: 24px;
-    }
-    
-    .stat-card {
-        background: white;
-        padding: 20px;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-    }
-    
-    .stat-title {
-        color: #64748b;
-        font-size: 0.875rem;
-        margin-bottom: 8px;
-    }
-    
-    .stat-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: var(--text);
-    }
-    
-    .table-container {
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-        border: 1px solid var(--border);
-        overflow-x: auto;
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        min-width: 800px;
-    }
-
-    th, td {
-        padding: 16px;
-        text-align: left;
-        border-bottom: 1px solid #e2e8f0;
-    }
-
-    th {
-        background-color: #f8fafc;
-        font-weight: 600;
-        color: #475569;
-        font-size: 0.875rem;
-    }
-
-    tr:last-child td {
-        border-bottom: none;
-    }
-
-    tr:hover {
-        background-color: #f8fafc;
-    }
-
-    .btn-action {
-        background-color: var(--accent);
-        color: white;
-        padding: 8px 16px;
-        border-radius: 6px;
-        text-decoration: none;
-        font-size: 0.875rem;
-        transition: filter 0.2s;
-        display: inline-block;
-    }
-
-    .btn-action:hover {
-        filter: brightness(1.1);
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 48px;
-        color: #64748b;
-    }
-    
-    .header-actions {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 24px;
-        flex-wrap: wrap;
-        gap: 16px;
-    }
-    
-    .actions-group {
-        display: flex;
-        gap: 12px;
-    }
-
-    .btn-secondary {
-        background: white;
-        border: 1px solid var(--border);
-        padding: 8px 16px;
-        border-radius: 6px;
-        cursor: pointer;
-        color: var(--text);
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 0.875rem;
-        transition: background-color 0.2s;
-    }
-    
-    .btn-secondary:hover {
-        background-color: #f1f5f9;
-    }
-    
-    .btn-approve {
-        background-color: #22c55e;
-        color: white;
-        padding: 6px 12px;
-        border-radius: 6px;
-        border: none;
-        cursor: pointer;
-        font-size: 0.875rem;
-    }
-    
-    .btn-reject {
-        background-color: #ef4444;
-        color: white;
-        padding: 6px 12px;
-        border-radius: 6px;
-        border: none;
-        cursor: pointer;
-        font-size: 0.875rem;
-    }
-
-    /* Modal */
-    .modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-    }
-
-    .modal[hidden] {
-        display: none !important;
-    }
-    
-    .modal-content {
-        background: white;
-        padding: 24px;
-        border-radius: 12px;
-        width: 90%;
-        max-width: 500px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    }
-  </style>
 </head>
 <body>
-
-  <header class="brand-inner">
-     <img class="brand-logo" style="height: 80px;" src="/assets/logo.png" alt="Logo">
-     <div class="brand-title" style="font-size: 24px;">Painel de Vagas</div>
-  </header>
+  <nav class="rh-navbar">
+      <a href="/protected/index.html" class="rh-navbar-brand">
+          <span>🏠</span> Portal RH
+      </a>
+      <div class="rh-navbar-menu">
+          <a href="/protected/dashboard-rh.html" class="rh-nav-link">Férias</a>
+          <a href="/protected/dashboard-taxas.html" class="rh-nav-link">Taxas</a>
+          <a href="/protected/dashboard-candidatos.html" class="rh-nav-link">Candidatos</a>
+          <a href="/protected/dashboard-vagas.html" class="rh-nav-link active">Vagas</a>
+      </div>
+  </nav>
 
   <main class="dashboard-container">
+    <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-end;">
+        <div>
+            <h1 class="page-title">Gestão de Vagas</h1>
+            <p class="page-subtitle">Controle as vagas abertas e candidatos inscritos</p>
+        </div>
+        <div style="font-size: 0.875rem; color: var(--text-secondary);">
+            <span id="lastUpdate">Atualizado agora</span>
+        </div>
+    </div>
+
     <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-title">Total Solicitadas</div>
-            <div class="stat-value" id="stat-total">0</div>
+        <div class="stat-card pending">
+            <div class="stat-header">
+                <div class="stat-title">Vagas Abertas</div>
+                <div class="stat-icon">📢</div>
+            </div>
+            <div class="stat-value" id="stat-abertas">0</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-title">Abertas</div>
-            <div class="stat-value" id="stat-abertas" style="color: #3b82f6;">0</div>
+        <div class="stat-card approved">
+            <div class="stat-header">
+                <div class="stat-title">Candidatos Total</div>
+                <div class="stat-icon">👥</div>
+            </div>
+            <div class="stat-value" id="stat-candidatos">0</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-title">Rejeitadas</div>
-            <div class="stat-value" id="stat-rejeitadas" style="color: #ef4444;">0</div>
+        <div class="stat-card" style="border-left: 4px solid var(--text-secondary);">
+            <div class="stat-header">
+                <div class="stat-title">Encerradas</div>
+                <div class="stat-icon">🔒</div>
+            </div>
+            <div class="stat-value" id="stat-encerradas">0</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-title">Fechadas</div>
-            <div class="stat-value" id="stat-fechadas" style="color: #22c55e;">0</div>
+        <div class="stat-card rejected">
+            <div class="stat-header">
+                <div class="stat-title">Canceladas</div>
+                <div class="stat-icon">🚫</div>
+            </div>
+            <div class="stat-value" id="stat-canceladas">0</div>
         </div>
     </div>
 
-    <div class="header-actions">
-        <h2 style="margin: 0; font-size: 1.25rem;">Solicitações de Vagas</h2>
-        <div class="actions-group">
-            <button class="btn-secondary" onclick="exportarExcel()">
-                📊 Excel
-            </button>
-            <button class="btn-secondary" onclick="carregarVagas()">
-                🔄 Atualizar
-            </button>
-        </div>
+    <div class="tabs-container">
+        <button class="tab-button active" onclick="switchTab('ativas')" id="btn-tab-ativas">Vagas Abertas</button>
+        <button class="tab-button" onclick="switchTab('encerradas')" id="btn-tab-encerradas">Encerradas / Canceladas</button>
     </div>
 
-    <div class="table-container">
-        <table id="tabela-vagas">
-            <thead>
-                <tr>
-                    <th>Cargo</th>
-                    <th>Setor</th>
-                    <th>Vagas</th>
-                    <th>Data Abertura</th>
-                    <th>Status</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody id="lista-corpo">
-                <!-- Preenchido via JS -->
-            </tbody>
-        </table>
-        <div id="empty-state" class="empty-state" hidden>
-            <p>Nenhuma solicitação de vaga encontrada. 🎉</p>
+    <div id="tab-ativas">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+            <h2 style="margin: 0; font-size: 1.25rem; color: var(--primary);">Vagas Ativas</h2>
+            <div style="display: flex; gap: 0.75rem;">
+                <a href="/vagas.html" target="_blank" class="btn btn-primary">
+                    ➕ Nova Vaga
+                </a>
+                <button class="btn btn-outline" onclick="carregarVagas()">
+                    🔄 Atualizar
+                </button>
+            </div>
         </div>
-    </div>
-    
-    <!-- Modal Rejeição -->
-    <div id="modal-rejeicao" class="modal" hidden>
-        <div class="modal-content">
-            <h3 style="margin-top: 0;">Rejeitar Solicitação</h3>
-            <p style="color: #64748b; margin-bottom: 12px;">Informe o motivo da rejeição. Um e-mail será enviado ao solicitante.</p>
-            <textarea id="justificativa-rejeicao" rows="4" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; resize: vertical;" placeholder="Ex: Vaga congelada por diretoria..."></textarea>
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px;">
-                <button onclick="fecharModal()" class="btn-secondary">Cancelar</button>
-                <button onclick="confirmarRejeicao()" class="btn-action" style="background-color: #ef4444;">Confirmar Rejeição</button>
+
+        <div class="table-container">
+            <div class="table-wrapper">
+                <table id="tabela-ativas">
+                    <thead>
+                        <tr>
+                            <th>Título da Vaga</th>
+                            <th>Departamento</th>
+                            <th>Status</th>
+                            <th>Candidatos</th>
+                            <th>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lista-ativas">
+                        <!-- Preenchido via JS -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="empty-ativas" style="text-align: center; padding: 3rem; color: var(--text-secondary);" hidden>
+                <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Nenhuma vaga ativa no momento.</p>
             </div>
         </div>
     </div>
 
+    <div id="tab-encerradas" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+            <h2 style="margin: 0; font-size: 1.25rem; color: var(--text-secondary);">Histórico de Vagas</h2>
+        </div>
+
+        <div class="table-container">
+            <div class="table-wrapper">
+                <table id="tabela-encerradas">
+                    <thead>
+                        <tr>
+                            <th>Título da Vaga</th>
+                            <th>Departamento</th>
+                            <th>Status</th>
+                            <th>Candidatos</th>
+                            <th>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lista-encerradas">
+                        <!-- Preenchido via JS -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="empty-encerradas" style="text-align: center; padding: 3rem; color: var(--text-secondary);" hidden>
+                <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Nenhuma vaga encerrada.</p>
+            </div>
+        </div>
+    </div>
   </main>
 
-  <footer class="app-footer">
-    <div class="footer-content">
-      <p>&copy; 2025 Família Madalosso. Todos os direitos reservados.</p>
-      <a href="/" style="font-size: 0.875rem; color: var(--accent); text-decoration: none;">← Voltar para Início</a>
-    </div>
+  <footer style="text-align: center; padding: 40px; color: var(--text-secondary); font-size: 0.875rem;">
+    <p>&copy; 2025 Família Madalosso. Acesso Restrito ao RH.</p>
   </footer>
 
   <script>
-    let globalData = [];
-    let currentVagaId = null;
+    let todasVagas = [];
+
+    function switchTab(tab) {
+        // Update Buttons
+        document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+        document.getElementById(`btn-tab-${tab}`).classList.add('active');
+        
+        // Update Content
+        document.getElementById('tab-ativas').style.display = tab === 'ativas' ? 'block' : 'none';
+        document.getElementById('tab-encerradas').style.display = tab === 'encerradas' ? 'block' : 'none';
+    }
 
     async function carregarVagas() {
-        const tbody = document.getElementById('lista-corpo');
-        const emptyState = document.getElementById('empty-state');
-        const table = document.getElementById('tabela-vagas');
+        const tbodyAtivas = document.getElementById('lista-ativas');
+        const tbodyEncerradas = document.getElementById('lista-encerradas');
         
-        document.getElementById('stat-total').innerText = '0';
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #64748b;">Carregando...</td></tr>';
+        tbodyAtivas.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem;">Carregando...</td></tr>';
 
         try {
-            const res = await fetch('/api/rh/vagas');
-            globalData = await res.json();
+            // Tenta carregar da API correta
+            const resVagas = await fetch('/api/rh/vagas');
+            if (!resVagas.ok) throw new Error('Falha ao carregar vagas');
+            todasVagas = await resVagas.json();
+
+            // Stats
+            document.getElementById('stat-abertas').innerText = todasVagas.filter(v => v.ativa !== false).length;
             
-            document.getElementById('stat-total').innerText = globalData.length;
-            
-            // Cálculos de Estatísticas
-            const abertas = globalData.filter(i => i.status === 'pendente' || !i.status).length;
-            const rejeitadas = globalData.filter(i => i.status === 'reprovada' || i.status === 'rejeitada').length;
-            const fechadas = globalData.filter(i => i.status === 'concluida' || i.status === 'aprovada' || i.status === 'fechada').length;
+            // Render
+            renderTabelas();
 
-            document.getElementById('stat-abertas').innerText = abertas;
-            document.getElementById('stat-rejeitadas').innerText = rejeitadas;
-            document.getElementById('stat-fechadas').innerText = fechadas;
+            // Tenta carregar contagem de candidatos em background
+            atualizarContagemCandidatos();
 
-            tbody.innerHTML = '';
-
-            if (globalData.length === 0) {
-                table.hidden = true;
-                emptyState.hidden = false;
-                return;
-            }
-
-            table.hidden = false;
-            emptyState.hidden = true;
-
-            globalData.forEach(item => {
-                if (!item.id) {
-                    console.error('Vaga sem ID encontrada:', item);
-                    return;
-                }
-
-                const tr = document.createElement('tr');
-                const dataAbertura = new Date(item.data_abertura).toLocaleDateString('pt-BR');
-                const motivoMap = { 'substituicao': 'Substituição', 'aumento_quadro': 'Aumento Quadro' };
-                
-                const status = item.status || 'pendente';
-                let statusLabel = `<span style="color: #3b82f6; font-weight: 500;">Pendente</span>`;
-                if (status === 'aprovada') statusLabel = `<span style="color: #22c55e; font-weight: 500;">Aprovada</span>`;
-                if (status === 'rejeitada' || status === 'reprovada') statusLabel = `<span style="color: #ef4444; font-weight: 500;">Rejeitada</span>`;
-                
-                let actions = `
-                    <a href="/api/vagas/pdf/${item.id}" target="_blank" class="btn-action">📄 PDF</a>
-                `;
-
-                if (status === 'pendente' || !status) {
-                    // Garantir que o ID é passado como string segura
-                    actions += `
-                        <button onclick="aprovarVaga('${item.id}')" class="btn-approve" title="Aprovar">✅</button>
-                        <button onclick="abrirRejeicao('${item.id}')" class="btn-reject" title="Rejeitar">❌</button>
-                    `;
-                }
-
-                tr.innerHTML = `
-                    <td>${item.cargo}</td>
-                    <td>${item.setor}</td>
-                    <td>${item.numero_vagas}</td>
-                    <td>${dataAbertura}</td>
-                    <td>${statusLabel}</td>
-                    <td style="display: flex; gap: 8px; align-items: center;">
-                        ${actions}
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
         } catch (error) {
             console.error('Erro ao carregar:', error);
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #ef4444;">Erro ao carregar dados.</td></tr>';
+            tbodyAtivas.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--danger);">Erro ao carregar dados.</td></tr>';
         }
     }
 
-    function abrirRejeicao(id) {
-        currentVagaId = id;
-        document.getElementById('justificativa-rejeicao').value = '';
-        document.getElementById('modal-rejeicao').hidden = false;
+    function renderTabelas() {
+        const ativas = todasVagas.filter(v => v.ativa !== false);
+        const encerradas = todasVagas.filter(v => v.ativa === false);
+
+        renderLista(ativas, 'lista-ativas', 'empty-ativas', 'tabela-ativas');
+        renderLista(encerradas, 'lista-encerradas', 'empty-encerradas', 'tabela-encerradas');
     }
 
-    function fecharModal() {
-        document.getElementById('modal-rejeicao').hidden = true;
-        currentVagaId = null;
-    }
+    function renderLista(lista, tbodyId, emptyId, tableId) {
+        const tbody = document.getElementById(tbodyId);
+        const emptyState = document.getElementById(emptyId);
+        const table = document.getElementById(tableId);
 
-    async function confirmarRejeicao() {
-        if (!currentVagaId) {
-            alert('Erro: ID da vaga não identificado. Tente recarregar a página.');
+        tbody.innerHTML = '';
+
+        if (lista.length === 0) {
+            table.hidden = true;
+            emptyState.hidden = false;
             return;
         }
 
-        const justificativa = document.getElementById('justificativa-rejeicao').value;
-        if (!justificativa) {
-            alert('Por favor, informe a justificativa.');
-            return;
-        }
+        table.hidden = false;
+        emptyState.hidden = true;
 
-        try {
-            console.log('Enviando rejeição:', { id: currentVagaId, status: 'rejeitada', justificativa });
-            const res = await fetch('/api/vagas/avaliar', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: currentVagaId, status: 'rejeitada', justificativa })
-            });
+        lista.forEach(vaga => {
+            const tr = document.createElement('tr');
+            
+            let statusLabel = 'Ativa';
+            let statusClass = 'badge-success';
 
-            if (res.ok) {
-                alert('Vaga rejeitada e e-mail enviado ao gestor.');
-                fecharModal();
-                carregarVagas();
+            if (vaga.ativa === false) {
+                if (vaga.status === 'rejeitada' || vaga.status === 'reprovada') {
+                    statusLabel = 'Cancelada';
+                    statusClass = 'badge-danger';
+                } else {
+                    statusLabel = 'Encerrada';
+                    statusClass = 'badge-secondary';
+                }
             } else {
-                const errData = await res.json();
-                alert('Erro ao rejeitar vaga: ' + (errData.erro || 'Desconhecido'));
+                if (vaga.status === 'pendente') {
+                    statusLabel = 'Pendente';
+                    statusClass = 'badge-warning';
+                } else if (vaga.status === 'aprovada') {
+                    statusLabel = 'Aberta';
+                    statusClass = 'badge-success';
+                }
             }
-        } catch (e) {
-            console.error(e);
-            alert('Erro de conexão.');
-        }
+            
+            // Ações dependem do status
+            let actions = '';
+            if (vaga.ativa !== false) {
+                actions = `
+                    <button onclick="fecharVaga('${vaga.id}')" class="btn btn-sm btn-outline">Encerrar</button>
+                    <button onclick="excluirVaga('${vaga.id}')" class="btn btn-sm btn-danger">Excluir</button>
+                `;
+            } else {
+                actions = `
+                    <button onclick="reabrirVaga('${vaga.id}')" class="btn btn-sm btn-primary">Reabrir</button>
+                    <button onclick="excluirVaga('${vaga.id}')" class="btn btn-sm btn-danger">Excluir</button>
+                `;
+            }
+
+            tr.innerHTML = `
+                <td>
+                    <div style="font-weight: 600; color: var(--primary);">${vaga.titulo || vaga.cargo || 'Sem Título'}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary);">ID: ${vaga.id}</div>
+                </td>
+                <td>${vaga.departamento || vaga.setor || '-'}</td>
+                <td><span class="badge ${statusClass}">${statusLabel}</span></td>
+                <td id="count-${vaga.id}">-</td>
+                <td>
+                    <div style="display: flex; gap: 6px;">
+                        ${actions}
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
     }
 
-    async function aprovarVaga(id) {
-        if (!id) {
-            alert('Erro: ID da vaga inválido.');
-            return;
-        }
-        if (!confirm('Deseja realmente aprovar esta vaga?')) return;
-
+    async function atualizarContagemCandidatos() {
         try {
-            console.log('Enviando aprovação:', { id, status: 'aprovada' });
-            const res = await fetch('/api/vagas/avaliar', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, status: 'aprovada' })
-            });
-
+            const res = await fetch('/api/rh/candidatos');
             if (res.ok) {
-                alert('Vaga aprovada com sucesso!');
-                carregarVagas();
-            } else {
-                const errData = await res.json();
-                alert('Erro ao aprovar vaga: ' + (errData.erro || 'Desconhecido'));
+                const candidatos = await res.json();
+                document.getElementById('stat-candidatos').innerText = candidatos.length;
+                
+                // Tenta contar por vaga se possível
+                // Assumindo que o candidato tem vagaId ou cargo
+                // Se não tiver, não conseguimos linkar
             }
-        } catch (e) {
-            console.error(e);
-            alert('Erro de conexão.');
-        }
+        } catch(e) { console.log('Erro stats candidatos'); }
+    }
+
+    async function fecharVaga(id) {
+        if (!confirm('Deseja encerrar esta vaga? Ela sairá da lista de abertas.')) return;
+        await atualizarStatusVaga(id, false);
+    }
+
+    async function reabrirVaga(id) {
+        if (!confirm('Deseja reabrir esta vaga?')) return;
+        // Ao reabrir, define como ativa e aprovada
+        await atualizarStatusVaga(id, true, 'aprovada');
+    }
+
+    async function atualizarStatusVaga(id, ativa, status = null) {
+        try {
+            const body = { ativa };
+            if (status) body.status = status;
+
+            const res = await fetch(`/api/vagas/${id}`, { 
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (res.ok) carregarVagas();
+            else alert('Erro ao atualizar status.');
+        } catch (e) { console.error(e); }
+    }
+
+    async function excluirVaga(id) {
+        if (!confirm('Deseja excluir permanentemente esta vaga?')) return;
+        try {
+            const res = await fetch(`/api/vagas/${id}`, { method: 'DELETE' });
+            if (res.ok) carregarVagas();
+            else alert('Erro ao excluir.');
+        } catch (e) { console.error(e); }
     }
 
     function exportarExcel() {
-        if (!globalData || globalData.length === 0) {
-            alert('Sem dados para exportar');
+        if (todasVagas.length === 0) {
+            alert('Não há dados para exportar.');
             return;
         }
 
-        const wb = XLSX.utils.book_new();
-        const rows = globalData.map(item => ({
-            Cargo: item.cargo,
-            Setor: item.setor,
-            'Num Vagas': item.numero_vagas,
-            'Data Abertura': new Date(item.data_abertura).toLocaleDateString('pt-BR'),
-            'Status': (item.status || 'pendente').toUpperCase(),
-            'Justificativa RH': item.justificativa_rh || '',
-            'Motivo': item.motivo,
-            'Reporta a': item.reportara_a,
-            'Tipo': item.tipo_contratacao,
-            'Criado em': new Date(item.createdAt).toLocaleDateString('pt-BR')
+        const dadosExportacao = todasVagas.map(v => ({
+            ID: v.id,
+            Titulo: v.titulo || v.cargo,
+            Departamento: v.departamento || v.setor,
+            Status: v.ativa === false ? (v.status === 'rejeitada' || v.status === 'reprovada' ? 'Cancelada' : 'Encerrada') : (v.status === 'aprovada' ? 'Aberta' : 'Pendente'),
+            CriadoEm: v.createdAt ? new Date(v.createdAt).toLocaleDateString('pt-BR') : '-',
+            AtualizadoEm: v.updatedAt ? new Date(v.updatedAt).toLocaleDateString('pt-BR') : '-'
         }));
 
-        const ws = XLSX.utils.json_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(dadosExportacao);
         XLSX.utils.book_append_sheet(wb, ws, "Vagas");
         XLSX.writeFile(wb, "Relatorio_Vagas.xlsx");
     }
 
+    // Carrega ao iniciar
     document.addEventListener('DOMContentLoaded', carregarVagas);
   </script>
 </body>

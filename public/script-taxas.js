@@ -2,6 +2,185 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('formTaxas');
     const feedback = document.getElementById('feedback');
     const btnSubmit = document.getElementById('btnSubmit');
+    const selectFuncionario = document.getElementById('select_funcionario');
+    const draftIdInput = document.getElementById('taxa_id_draft');
+
+    // --- Load Funcionarios ---
+    async function loadFuncionarios() {
+        try {
+            const res = await fetch('/api/funcionarios');
+            const funcionarios = await res.json();
+            
+            selectFuncionario.innerHTML = '<option value="">Selecione um colaborador...</option>';
+            funcionarios.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f.id;
+                opt.textContent = f.nome;
+                opt.dataset.dados = JSON.stringify(f);
+                selectFuncionario.appendChild(opt);
+            });
+        } catch (e) {
+            console.error('Erro ao carregar funcionarios', e);
+            selectFuncionario.innerHTML = '<option value="">Erro ao carregar lista</option>';
+        }
+    }
+    loadFuncionarios();
+
+    // --- Handle Selection ---
+    selectFuncionario.addEventListener('change', () => {
+        const opt = selectFuncionario.selectedOptions[0];
+        
+        // Se resetou para o valor vazio
+        if (!opt || !opt.value) {
+            document.getElementById('formTaxas').reset();
+            // Reset dynamic fields
+            const formaPagamento = document.getElementById('forma_pagamento');
+            if(formaPagamento) {
+                formaPagamento.dispatchEvent(new Event('change'));
+            }
+            return;
+        }
+
+        try {
+            const dados = JSON.parse(opt.dataset.dados);
+            console.log('Dados carregados:', dados);
+
+            // Helper to fill and highlight
+            const fill = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.value = val || '';
+                    // Visual feedback
+                    el.style.backgroundColor = '#e0f2fe'; // light blue
+                    setTimeout(() => el.style.backgroundColor = '', 1000);
+                }
+            };
+
+            // Fill fields
+            if(dados.nome) fill('nome_taxa', dados.nome);
+            if(dados.cpf) fill('cpf', dados.cpf);
+            if(dados.funcao) fill('funcao', dados.funcao);
+            if(dados.departamento) fill('departamento', dados.departamento);
+            
+            // Banking
+            const formaPagamento = document.getElementById('forma_pagamento');
+            
+            // Logic to pre-select banking info if available in dados
+            if (dados.chave_pix) {
+                formaPagamento.value = 'pix';
+                formaPagamento.dispatchEvent(new Event('change'));
+                fill('pix', dados.chave_pix);
+            } else if (dados.banco) {
+                formaPagamento.value = 'transferencia';
+                formaPagamento.dispatchEvent(new Event('change'));
+                fill('banco', dados.banco);
+                fill('agencia', dados.agencia);
+                fill('conta', dados.conta);
+                if (dados.tipo_conta) {
+                    const rad = document.querySelector(`input[name="tipo_conta"][value="${dados.tipo_conta}"]`);
+                    if(rad) rad.checked = true;
+                }
+            }
+            
+            // Trigger auto-save immediately to start a draft
+            saveDraft();
+            
+        } catch (e) {
+            console.error('Erro ao preencher dados:', e);
+        }
+    });
+
+    // --- Auto-Save Draft Logic ---
+    function debounce(func, wait) {
+        let timeout;
+        return function(...args) {
+            const context = this;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(context, args), wait);
+        };
+    }
+
+    const collectPayload = () => {
+        const getVal = (id) => document.getElementById(id)?.value || '';
+        const getChecked = (name) => Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value);
+
+        // Dates
+        const dates = [];
+        document.querySelectorAll('.date-row').forEach(row => {
+            const d = row.querySelector('.input-date-worked').value;
+            const w = row.querySelector('.select-day-week').value;
+            if (d || w) dates.push({ data: d, dia: w });
+        });
+
+        const formaPagamentoVal = getVal('forma_pagamento');
+        
+        // Signatures (only if not blank, to avoid huge empty payloads in draft if not signed)
+        const canvasTaxa = document.getElementById('assinaturaTaxa');
+        const canvasGestor = document.getElementById('assinaturaGestor');
+        const sigTaxa = !isCanvasBlank(canvasTaxa) ? canvasTaxa.toDataURL() : '';
+        const sigGestor = !isCanvasBlank(canvasGestor) ? canvasGestor.toDataURL() : '';
+
+        return {
+            id: draftIdInput.value || undefined, // Send ID if exists
+            nome_taxa: getVal('nome_taxa'),
+            cpf: getVal('cpf'),
+            funcao: getVal('funcao'),
+            forma_pagamento: formaPagamentoVal,
+            banco: (formaPagamentoVal === 'transferencia') ? getVal('banco') : '',
+            agencia: (formaPagamentoVal === 'transferencia') ? getVal('agencia') : '',
+            conta: (formaPagamentoVal === 'transferencia') ? getVal('conta') : '',
+            tipo_conta: (formaPagamentoVal === 'transferencia') ? document.querySelector('input[name="tipo_conta"]:checked')?.value : '',
+            pix: (formaPagamentoVal === 'pix') ? getVal('pix') : '',
+            departamento: getVal('departamento'),
+            motivo: getChecked('motivo'),
+            antecessor: getVal('antecessor'),
+            valores: {
+                taxa: {
+                    valor: getVal('valor_taxa'),
+                    qtd: getVal('qtd_taxa'),
+                    total: getVal('total_taxa')
+                },
+                vt: {
+                    valor: getVal('valor_vt'),
+                    qtd: getVal('qtd_vt'),
+                    total: getVal('total_vt')
+                },
+                total_geral: getVal('total_geral')
+            },
+            dias_trabalhados: dates,
+            email_gestor: getVal('email_gestor'),
+            assinatura_taxa: sigTaxa,
+            assinatura_gestor: sigGestor
+        };
+    };
+
+    const saveDraft = debounce(async () => {
+        const payload = collectPayload();
+        // Only save if at least name is present (avoid saving empty drafts on initial load if triggered)
+        if (!payload.nome_taxa) return;
+
+        try {
+            const res = await fetch('/api/taxas/draft', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.ok && data.id) {
+                draftIdInput.value = data.id;
+                console.log('Rascunho salvo:', data.id);
+            }
+        } catch (e) {
+            console.warn('Erro no auto-save:', e);
+        }
+    }, 2000);
+
+    // Attach auto-save to all inputs
+    form.addEventListener('input', (e) => {
+        // Skip hidden inputs or if submit was clicked
+        if (e.target.type === 'hidden') return;
+        saveDraft();
+    });
 
     // --- Toggle Vaga Aberta Input ---
     const checkVagaAberta = document.getElementById('checkVagaAberta');
@@ -302,6 +481,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 for(let i=0; i<4; i++) {
                    btnAddDate.click(); 
                 }
+
+                // Reload funcionarios list to include the newly saved one
+                loadFuncionarios();
 
             } else {
                 throw new Error(data.message || 'Erro ao enviar.');

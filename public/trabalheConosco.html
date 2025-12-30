@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trabalhe Conosco - Família Madalosso</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .language-switcher {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+        }
+        .language-switcher select {
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="brand-inner">
+        <img class="brand-logo" src="/assets/logo.png" alt="Logo Família Madalosso">
+        <div class="brand-title">Banco de Talentos</div>
+        <div class="brand-mark">RECRUTAMENTO</div>
+    </div>
+
+    <div class="container">
+        <div class="language-switcher">
+            <select id="language-select">
+                <option value="pt">Português</option>
+                <option value="es">Español</option>
+                <option value="en">English</option>
+            </select>
+        </div>
+
+        <form id="formTalentos">
+            <h2 class="section-title" data-translate="formTitle">Formulário de Recrutamento</h2>
+            <div class="form-note">Preencha os dados abaixo para se candidatar.</div>
+
+            <!-- Dados Pessoais -->
+            <h3 class="section-title" data-translate="personalData">Dados Pessoais</h3>
+            
+            <label>
+                <span data-translate="candidateName">Nome do Candidato:</span>
+                <input type="text" name="nome" required>
+            </label>
+
+            <div class="grid-2">
+                <label>
+                    <span data-translate="naturalidade">Naturalidade:</span>
+                    <input type="text" name="naturalidade" required>
+                </label>
+                <label>
+                    <span data-translate="birthDate">Data de Nascimento:</span>
+                    <input type="date" name="nascimento" required>
+                </label>
+            </div>
+
+            <div class="grid-2">
+                <label>
+                    <span data-translate="age">Idade:</span>
+                    <input type="number" name="idade" min="0" required>
+                </label>
+                <label>
+                    <span data-translate="civilStatus">Estado Civil:</span>
+                    <select name="estadoCivil">
+                        <option>Solteiro(a)</option>
+                        <option>Casado(a)</option>
+                        <option>Divorciado(a)</option>
+                        <option>Viúvo(a)</option>
+                    </select>
+                </label>
+            </div>
+
+            <label>
+                <span data-translate="address">Endereço:</span>
+                <input type="text" name="endereco" required>
+            </label>
+
+            <div class="grid-2">
+                <label>
+                    <span data-translate="neighborhood">Bairro:</span>
+                    <input type="text" name="bairro" required>
+                </label>
+                <label>
+                    <span data-translate="city">Cidade:</span>
+                    <input type="text" name="cidade" required>
+                </label>
+            </div>
+
+            <div class="grid-2">
+                <label>
+                    <span data-translate="phone">Telefone:</span>
+                    <input type="tel" name="telefone" required>
+                </label>
+                <label>
+                    <span data-translate="recado">Recado:</span>
+                    <input type="tel" name="recado">
+                </label>
+            </div>
+
+            <div class="grid-2">
+                <label>
+                    <span data-translate="rg">RG / RNE:</span>
+                    <input type="text" name="rg">
+                </label>
+                <label>
+                    <span data-translate="cpf">CPF:</span>
+                    <input type="text" name="cpf">
+                </label>
+            </div>
+
+            <div class="grid-2">
+                <label>
+                    <span data-translate="race">Raça/Etnia:</span>
+                    <select name="raca">
+                        <option>Indígena</option>
+                        <option>Branca</option>
+                        <option>Preta</option>
+                        <option>Parda</option>
+                    </select>
+                </label>
+                <label>
+                    <span data-translate="email">Email:</span>
+                    <input type="email" name="email" required>
+                </label>
+            </div>
+
+            <div class="grid-2">
+                <label>
+                    <span data-translate="children">Filhos menores de idade?</span>
+                    <select name="filhos">
+                        <option>Não</option>
+                        <option>Sim</option>
+                    </select>
+                </label>
+                <label>
+                    <span data-translate="childrenQuantity">Se sim, quantos?</span>
+                    <input type="number" name="qtdFilhos" min="0">
+                </label>
+            </div>
+
+            <div class="grid-2">
+                <label>
+                    <span data-translate="education">Escolaridade:</span>
+                    <select name="escolaridade">
+                        <option>Ensino Fundamental Completo</option>
+                        <option>Ensino Fundamental Incompleto</option>
+                        <option>Ensino Médio Completo</option>
+                        <option>Ensino Médio Incompleto</option>
+                        <option>Ensino Superior Completo</option>
+                        <option>Ensino Superior Incompleto</option>
+                    </select>
+                </label>
+                <label>
+                    <span data-translate="vtCardNumber">Nº do cartão VT:</span>
+                    <input type="text" name="cartaoVT">
+                </label>
+            </div>
+
+            <!-- Informações de Trabalho -->
+            <h3 class="section-title" data-translate="workInformation">Informações de Trabalho</h3>
+            
+            <div class="grid-2">
+                <label>
+                    <span data-translate="worked">Já trabalhou no Madalosso?</span>
+                    <select name="trabalhou">
+                        <option>Não</option>
+                        <option>Sim</option>
+                    </select>
+                </label>
+                <label>
+                    <span data-translate="periodAndFunction">Qual período e função?</span>
+                    <input type="text" name="periodoFuncao">
+                </label>
+            </div>
+
+            <label>Uniforme</label>
+            <div class="grid-2">
+                <label>
+                    <span data-translate="shirt">Camiseta:</span>
+                    <select name="camiseta">
+                        <option>P</option>
+                        <option>M</option>
+                        <option>G</option>
+                        <option>GG</option>
+                        <option>XG</option>
+                    </select>
+                </label>
+                <label>
+                    <span data-translate="pants">Calça:</span>
+                    <select name="calca">
+                        <option>P</option>
+                        <option>M</option>
+                        <option>G</option>
+                        <option>GG</option>
+                        <option>XG</option>
+                    </select>
+                </label>
+            </div>
+            <label>
+                <span data-translate="shoe">Sapato (nº):</span>
+                <input type="number" name="sapato">
+            </label>
+
+            <!-- Experiência -->
+            <h3 class="section-title" data-translate="professionalExperience">Experiência Profissional</h3>
+            
+            <div style="background: #f9fafb; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #e5e7eb;">
+                <label>
+                    <span data-translate="lastCompany">Última Empresa:</span>
+                    <input type="text" name="empresa1">
+                </label>
+                <div class="grid-2">
+                    <label>
+                        <span data-translate="cargo">Cargo:</span>
+                        <input type="text" name="cargo1">
+                    </label>
+                    <label>
+                        <span data-translate="lastSalary">Último Salário:</span>
+                        <input type="text" name="salario1">
+                    </label>
+                </div>
+                <div class="grid-2">
+                    <label>
+                        <span data-translate="admission">Admissão:</span>
+                        <input type="date" name="admissao1">
+                    </label>
+                    <label>
+                        <span data-translate="departure">Saída:</span>
+                        <input type="date" name="saida1">
+                    </label>
+                </div>
+                <label>
+                    <span data-translate="reasonForDeparture">Motivo da saída:</span>
+                    <input type="text" name="motivo1">
+                </label>
+            </div>
+
+            <div style="background: #f9fafb; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #e5e7eb;">
+                <label>
+                    <span data-translate="penultimateCompany">Penúltima Empresa:</span>
+                    <input type="text" name="empresa2">
+                </label>
+                <div class="grid-2">
+                    <label>
+                        <span data-translate="cargo">Cargo:</span>
+                        <input type="text" name="cargo2">
+                    </label>
+                    <label>
+                        <span data-translate="lastSalary">Último Salário:</span>
+                        <input type="text" name="salario2">
+                    </label>
+                </div>
+                <div class="grid-2">
+                    <label>
+                        <span data-translate="admission">Admissão:</span>
+                        <input type="date" name="admissao2">
+                    </label>
+                    <label>
+                        <span data-translate="departure">Saída:</span>
+                        <input type="date" name="saida2">
+                    </label>
+                </div>
+                <label>
+                    <span data-translate="reasonForDeparture">Motivo da saída:</span>
+                    <input type="text" name="motivo2">
+                </label>
+            </div>
+
+            <!-- Outras Informações -->
+            <h3 class="section-title" data-translate="otherInformation">Outras Informações</h3>
+            <div class="grid-2">
+                <label>
+                    <span data-translate="availability">Disponibilidade de Horário:</span>
+                    <select name="horario">
+                        <option>Manhã</option>
+                        <option>Tarde</option>
+                        <option>Noite</option>
+                        <option>Integral</option>
+                    </select>
+                </label>
+                <label>
+                    <span data-translate="salaryPretension">Pretensão Salarial:</span>
+                    <input type="text" name="salarioPretendido">
+                </label>
+            </div>
+
+            <!-- Anexo -->
+            <h3 class="section-title" data-translate="attachResume">Anexe seu Currículo</h3>
+            <label style="border: 2px dashed #ccc; padding: 20px; text-align: center; border-radius: 8px; cursor: pointer;">
+                <span>Clique para selecionar arquivo (PDF, DOC, DOCX, Imagem - Máx 5MB)</span>
+                <input type="file" id="curriculo" name="curriculoFile" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" style="display: none;" onchange="this.previousElementSibling.textContent = this.files[0] ? this.files[0].name : 'Clique para selecionar arquivo'">
+            </label>
+
+            <!-- Termo -->
+            <h3 class="section-title" data-translate="consentTerm">Termo de Consentimento</h3>
+            <p data-translate="consentText" style="font-size: 0.9em; color: #555; margin-bottom: 12px;">
+                Em observância à Lei 13.709/18 (LGPD), autorizo a empresa IRMÃOS MADALOSSO LTDA a tratar meus dados pessoais
+                para fins de recrutamento e seleção.
+            </p>
+            <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="autorizacao" required style="width: auto; margin: 0;">
+                <b data-translate="authorizeTreatment">Autorizo o tratamento dos meus dados</b>
+            </label>
+
+            <button type="submit" style="background: #2563eb; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 20px;" data-translate="send">Enviar Candidatura</button>
+
+        </form>
+    </div>
+
+    <script src="script-candidato.js"></script>
+
+    <footer class="app-footer">
+        <div class="footer-content">
+          <img src="/assets/logo.png" alt="Logo" class="footer-logo">
+          <p>&copy; 2025 Família Madalosso. Todos os direitos reservados.</p>
+          <div style="display: flex; gap: 12px; align-items: center;">
+              <p style="font-size: 0.75rem; color: #94a3b8; margin: 0;">Banco de Talentos v1.0</p>
+          </div>
+        </div>
+    </footer>
+</body>
+</html>

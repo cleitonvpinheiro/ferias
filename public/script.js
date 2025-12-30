@@ -407,7 +407,7 @@ form.addEventListener('submit', async e => {
         
         // Aguarda 2 segundos e redireciona para o painel RH
         setTimeout(() => {
-            window.location.href = '/dashboard-rh.html';
+            window.location.href = '/protected/dashboard-rh.html';
         }, 2000);
 
         // Atualiza a interface para habilitar assinatura se necessário
