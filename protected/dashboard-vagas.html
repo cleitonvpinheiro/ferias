@@ -22,12 +22,12 @@
   </nav>
 
   <main class="dashboard-container">
-    <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-end;">
+    <div class="page-header">
         <div>
             <h1 class="page-title">Gestão de Vagas</h1>
             <p class="page-subtitle">Controle as vagas abertas e candidatos inscritos</p>
         </div>
-        <div style="font-size: 0.875rem; color: var(--text-secondary);">
+        <div class="last-update">
             <span id="lastUpdate">Atualizado agora</span>
         </div>
     </div>
@@ -69,9 +69,9 @@
     </div>
 
     <div id="tab-ativas">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
-            <h2 style="margin: 0; font-size: 1.25rem; color: var(--primary);">Vagas Ativas</h2>
-            <div style="display: flex; gap: 0.75rem;">
+        <div class="action-bar">
+            <h2>Vagas Ativas</h2>
+            <div class="action-buttons">
                 <a href="/vagas.html" target="_blank" class="btn btn-primary">
                     ➕ Nova Vaga
                 </a>
@@ -98,15 +98,15 @@
                     </tbody>
                 </table>
             </div>
-            <div id="empty-ativas" style="text-align: center; padding: 3rem; color: var(--text-secondary);" hidden>
+            <div id="empty-ativas" class="empty-state" hidden>
                 <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Nenhuma vaga ativa no momento.</p>
             </div>
         </div>
     </div>
 
     <div id="tab-encerradas" style="display: none;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
-            <h2 style="margin: 0; font-size: 1.25rem; color: var(--text-secondary);">Histórico de Vagas</h2>
+        <div class="action-bar">
+            <h2 style="color: var(--text-secondary);">Histórico de Vagas</h2>
         </div>
 
         <div class="table-container">
@@ -126,10 +126,25 @@
                     </tbody>
                 </table>
             </div>
-            <div id="empty-encerradas" style="text-align: center; padding: 3rem; color: var(--text-secondary);" hidden>
+            <div id="empty-encerradas" class="empty-state" hidden>
                 <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Nenhuma vaga encerrada.</p>
             </div>
         </div>
+    </div>
+
+    <!-- Modal Sugestões -->
+    <div id="modal-sugestoes" class="modal-overlay">
+      <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">
+                <h2>Candidatos Sugeridos</h2>
+            </div>
+            <button class="close-modal" onclick="fecharModalSugestoes()">&times;</button>
+        </div>
+        <div class="modal-content-wrapper" id="lista-sugestoes-conteudo">
+            <p>Carregando...</p>
+        </div>
+      </div>
     </div>
   </main>
 
@@ -229,6 +244,7 @@
             let actions = '';
             if (vaga.ativa !== false) {
                 actions = `
+                    <button onclick="verSugestoes('${vaga.id}')" class="btn btn-sm btn-info" style="background: #0ea5e9; color: white; border: none; margin-right: 4px;" title="Ver Sugestões de Candidatos">💡</button>
                     <button onclick="fecharVaga('${vaga.id}')" class="btn btn-sm btn-outline">Encerrar</button>
                     <button onclick="excluirVaga('${vaga.id}')" class="btn btn-sm btn-danger">Excluir</button>
                 `;
@@ -329,6 +345,75 @@
 
     // Carrega ao iniciar
     document.addEventListener('DOMContentLoaded', carregarVagas);
+
+    // --- Sugestões Logic ---
+    async function verSugestoes(id) {
+        const modal = document.getElementById('modal-sugestoes');
+        const conteudo = document.getElementById('lista-sugestoes-conteudo');
+        modal.style.display = 'flex';
+        conteudo.innerHTML = '<div style="text-align: center; padding: 2rem;"><p>Buscando candidatos compatíveis...</p></div>';
+        
+        try {
+            const res = await fetch(`/api/rh/vagas/${id}/sugestoes`);
+            if (!res.ok) throw new Error('Erro ao buscar sugestões');
+            const candidatos = await res.json();
+            
+            if (candidatos.length === 0) {
+                conteudo.innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;"><p>Nenhum candidato encontrado com perfil similar ao cargo desta vaga.</p></div>';
+                return;
+            }
+            
+            let html = '<div style="display: grid; gap: 10px; max-height: 60vh; overflow-y: auto;">';
+            candidatos.forEach(c => {
+                html += `
+                    <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                            <div>
+                                <h3 style="margin: 0; color: var(--primary); font-size: 1.1rem;">${c.nome}</h3>
+                                <div style="font-size: 0.85rem; color: #64748b;">${c.email} • ${c.telefone}</div>
+                            </div>
+                            <span style="font-size: 0.75rem; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; color: #64748b;">
+                                ${new Date(c.createdAt).toLocaleDateString()}
+                            </span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9rem;">
+                            <div style="background: #f8fafc; padding: 8px; border-radius: 4px;">
+                                <strong style="display: block; color: #475569; font-size: 0.75rem; text-transform: uppercase;">Experiência Recente</strong>
+                                ${c.cargo1 || '-'}
+                            </div>
+                            <div style="background: #f8fafc; padding: 8px; border-radius: 4px;">
+                                <strong style="display: block; color: #475569; font-size: 0.75rem; text-transform: uppercase;">Experiência Anterior</strong>
+                                ${c.cargo2 || '-'}
+                            </div>
+                        </div>
+                        ${c.periodoFuncao ? `
+                            <div style="margin-top: 8px; font-size: 0.85rem; color: #059669; background: #ecfdf5; padding: 8px; border-radius: 4px;">
+                                <strong>Já trabalhou no Madalosso:</strong> ${c.periodoFuncao}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            html += '</div>';
+            conteudo.innerHTML = html;
+            
+        } catch (e) {
+            console.error(e);
+            conteudo.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--danger);"><p>Erro ao carregar sugestões.</p></div>';
+        }
+    }
+
+    function fecharModalSugestoes() {
+        document.getElementById('modal-sugestoes').style.display = 'none';
+    }
+
+    // Close when clicking outside
+    window.onclick = function(event) {
+        const modal = document.getElementById('modal-sugestoes');
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
   </script>
 </body>
 </html>

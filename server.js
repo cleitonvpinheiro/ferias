@@ -1452,6 +1452,55 @@ app.delete('/api/vagas/:id', rhAuth, (req, res) => {
     }
 });
 
+app.get('/api/rh/vagas/:id/sugestoes', rhAuth, (req, res) => {
+    try {
+        const { id } = req.params;
+        const vagas = readVagasDB();
+        const vaga = vagas.find(v => v.id === id);
+        
+        if (!vaga) return res.status(404).json({ ok: false, erro: 'Vaga não encontrada' });
+        
+        const candidatos = readCandidatosDB();
+        
+        // Normalizer helper
+        const normalize = (str) => str ? str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
+        
+        const cargoVaga = normalize(vaga.cargo);
+        if (!cargoVaga) return res.json([]); // Sem cargo definido, sem sugestões
+
+        const sugestoes = candidatos.filter(c => {
+            const c1 = normalize(c.cargo1);
+            const c2 = normalize(c.cargo2);
+            const pf = normalize(c.periodoFuncao);
+            
+            // Match Logic:
+            // 1. Cargo do candidato contém o da vaga (ex: "Auxiliar de Cozinha" contém "Cozinha") - Wait, "Cozinha" contains "Cozinha".
+            // 2. Cargo da vaga contém o do candidato (ex: "Chefe de Cozinha" contém "Cozinha")
+            // Precisamos ter cuidado com matches muito curtos.
+            
+            const matches = (source, target) => {
+                if (!source || !target) return false;
+                if (target.length < 3) return source === target; // Evita match em "de", "e", etc.
+                return source.includes(target);
+            };
+
+            return matches(c1, cargoVaga) || matches(cargoVaga, c1) ||
+                   matches(c2, cargoVaga) || matches(cargoVaga, c2) ||
+                   matches(pf, cargoVaga) || matches(cargoVaga, pf);
+        });
+        
+        const sugestoesLeve = sugestoes
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+            .map(({ curriculo, ...rest }) => rest);
+            
+        res.json(sugestoesLeve);
+        
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao buscar sugestões' });
+    }
+});
+
 app.get('/api/vagas/pdf/:id', async (req, res) => {
     try {
         const db = readVagasDB();

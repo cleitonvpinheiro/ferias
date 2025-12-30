@@ -24,12 +24,12 @@
   </nav>
 
   <main class="dashboard-container">
-    <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-end;">
+    <div class="page-header">
         <div>
             <h1 class="page-title">Gestão de Taxas</h1>
             <p class="page-subtitle">Acompanhe e aprove as solicitações de pagamento</p>
         </div>
-        <div style="font-size: 0.875rem; color: var(--text-secondary);">
+        <div class="last-update">
             <span id="lastUpdate">Atualizado agora</span>
         </div>
     </div>
@@ -58,9 +58,9 @@
         </div>
     </div>
 
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
-        <h2 style="margin: 0; font-size: 1.25rem; color: var(--primary);">Solicitações Recentes</h2>
-        <div style="display: flex; gap: 0.75rem;">
+    <div class="action-bar">
+        <h2>Solicitações Recentes</h2>
+        <div class="action-buttons">
             <button class="btn btn-outline" onclick="exportarExcel()">
                 📊 Excel
             </button>
@@ -91,7 +91,7 @@
                 </tbody>
             </table>
         </div>
-        <div id="empty-state" style="text-align: center; padding: 3rem; color: var(--text-secondary);" hidden>
+        <div id="empty-state" class="empty-state" hidden>
             <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Nenhuma solicitação de taxa encontrada.</p>
             <p style="font-size: 0.9rem;">As novas solicitações aparecerão aqui.</p>
         </div>

@@ -86,7 +86,48 @@ body {
 }
 
 .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
     margin-bottom: 2rem;
+}
+
+.action-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.action-bar h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--primary);
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-secondary);
+}
+
+.loading-state {
+    text-align: center;
+    padding: 60px;
+    color: var(--text-secondary);
+}
+
+.loading-icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
 }
 
 .page-title {
@@ -100,6 +141,11 @@ body {
 .page-subtitle {
     color: var(--text-secondary);
     font-size: 1rem;
+}
+
+.last-update {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
 }
 
 /* Stats Grid */
@@ -373,9 +419,29 @@ tr:hover td {
 
 .portal-card h2 {
     color: var(--primary);
-    font-size: 1.25rem;
+    font-size: 1.5rem;
     font-weight: 700;
     margin-bottom: 12px;
+    margin-top: 0;
+}
+
+.portal-logo-container {
+    text-align: center;
+    padding: 20px;
+    margin-bottom: 0;
+}
+
+.portal-logo {
+    height: 200px;
+    width: auto;
+}
+
+.portal-header .page-title {
+    font-size: 2.5rem;
+}
+
+.portal-header .page-subtitle {
+    font-size: 1.1rem;
 }
 
 .portal-card p {
@@ -386,7 +452,346 @@ tr:hover td {
 
 /* Utilities */
 @media (max-width: 768px) {
-    .rh-navbar { padding: 0 1rem; }
-    .rh-navbar-menu { display: none; } /* TODO: Mobile Menu */
+    .rh-navbar { 
+        padding: 0 1rem; 
+        flex-direction: column;
+        height: auto;
+        gap: 1rem;
+        padding-bottom: 1rem;
+    }
+    
+    .rh-navbar-brand {
+        width: 100%;
+        padding-top: 1rem;
+    }
+
+    .rh-navbar-menu { 
+        display: flex; 
+        width: 100%;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        -webkit-overflow-scrolling: touch;
+        gap: 8px;
+    }
+    
+    .rh-nav-link {
+        white-space: nowrap;
+        font-size: 0.85rem;
+        padding: 6px 12px;
+        background: #f1f5f9;
+    }
+
     .dashboard-container { padding: 1rem; }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 0.5rem;
+    }
 }
+
+/* Kanban Specific Styles */
+.filters-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    background: var(--bg-surface);
+    padding: 16px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    align-items: center;
+    flex-wrap: wrap;
+    box-shadow: var(--shadow-sm);
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 200px;
+}
+
+.filter-group label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.filter-input, .filter-select {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    width: 100%;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    box-sizing: border-box; /* Ensure padding doesn't affect width */
+}
+
+.filter-input:focus, .filter-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+/* Kanban Board */
+.kanban-board {
+    display: flex;
+    gap: 24px;
+    overflow-x: auto;
+    padding-bottom: 24px;
+    min-height: calc(100vh - 250px);
+    align-items: flex-start;
+}
+
+.kanban-column {
+    flex: 1;
+    min-width: 320px;
+    max-width: 400px;
+    background: #f1f5f9;
+    border-radius: var(--radius-md);
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border);
+    height: 100%;
+}
+
+.column-header {
+    padding: 16px;
+    background: var(--bg-surface);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.column-title {
+    font-weight: 700;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.95rem;
+}
+
+.count-badge {
+    background: var(--bg-body);
+    color: var(--text-secondary);
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: 1px solid var(--border);
+}
+
+.column-body {
+    padding: 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+    max-height: calc(100vh - 320px);
+}
+
+/* Candidate Card */
+.candidate-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.candidate-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--accent);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.card-name {
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 1rem;
+    line-height: 1.3;
+}
+
+.card-date {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    margin-left: 8px;
+}
+
+.card-details {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.card-detail-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: var(--bg-surface);
+    padding: 0;
+    border-radius: var(--radius-lg);
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: var(--shadow-lg);
+    display: flex; /* Changed from none to flex by default, but hidden via inline style or class */
+    flex-direction: column;
+}
+
+/* Fix for existing modal usage that might rely on display: block */
+.modal[style*="display: block"] {
+    display: flex !important;
+}
+
+.modal-content-wrapper {
+    padding: 24px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 24px;
+    border-bottom: 1px solid var(--border);
+    background: #f8fafc;
+}
+
+.modal-title h2 { 
+    margin: 0; 
+    font-size: 1.5rem; 
+    color: var(--primary);
+    font-weight: 800;
+}
+
+.modal-meta { 
+    font-size: 0.875rem; 
+    color: var(--text-secondary); 
+    margin-top: 8px; 
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.close-modal {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: color 0.2s;
+    padding: 4px;
+    line-height: 1;
+}
+
+.close-modal:hover { color: var(--danger); }
+
+.modal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+    .modal-grid { grid-template-columns: 1fr; gap: 24px; }
+    .kanban-board { flex-direction: column; min-height: auto; }
+    .kanban-column { width: 100%; max-width: none; }
+}
+
+.detail-group { margin-bottom: 20px; }
+
+.detail-card {
+    background: var(--bg-body);
+    padding: 16px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    margin-bottom: 20px;
+}
+
+.detail-label { 
+    font-size: 0.75rem; 
+    font-weight: 700; 
+    color: var(--text-secondary); 
+    text-transform: uppercase; 
+    letter-spacing: 0.05em; 
+    margin-bottom: 6px; 
+}
+
+.detail-value { 
+    font-size: 1rem; 
+    color: var(--text-primary); 
+    line-height: 1.5; 
+}
+
+.section-title {
+    color: var(--primary);
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0 0 20px 0;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #f1f5f9;
+}
+
+.modal-actions {
+    padding: 24px;
+    background: #f8fafc;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.status-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
