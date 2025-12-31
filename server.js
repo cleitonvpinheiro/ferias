@@ -21,7 +21,7 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.sheetjs.com"], // unsafe-inline necessário para scripts inline simples se houver
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.sheetjs.com", "https://cdnjs.cloudflare.com"], // unsafe-inline necessário para scripts inline simples se houver
             scriptSrcAttr: ["'unsafe-inline'"], // Permite event handlers inline como onclick
             styleSrc: ["'self'", "'unsafe-inline'"],
             imgSrc: ["'self'", "data:", "blob:"], // data: necessário para imagens base64
