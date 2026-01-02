@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Formulário On The Job</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="./styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #c0392b;
+      --primary-hover: #a93226;
+      --secondary: #1e293b;
+      --bg-color: #f1f5f9;
+      --card-bg: #ffffff;
+      --text-main: #334155;
+      --text-light: #64748b;
+      --border: #e2e8f0;
+      --focus-ring: rgba(192, 57, 43, 0.25);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      margin: 0;
+      padding: 40px 20px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      padding: 48px;
+      border-radius: 16px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    /* Brand Header */
+    .brand-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 40px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 24px;
+    }
+
+    .brand-logo {
+      height: 80px;
+      width: auto;
+      margin-bottom: 16px;
+    }
+
+    .brand-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--secondary);
+      text-transform: uppercase;
+      letter-spacing: -0.025em;
+    }
+
+    /* Sections */
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--secondary);
+      margin: 40px 0 24px 0;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+    }
+    
+    .section-title::before {
+      content: '';
+      display: block;
+      width: 6px;
+      height: 24px;
+      background-color: var(--primary);
+      margin-right: 12px;
+      border-radius: 2px;
+    }
+
+    /* Inputs & Labels */
+    label {
+      display: block;
+      font-weight: 500;
+      color: var(--secondary);
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    input[type="number"],
+    input[type="email"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.95rem;
+      color: var(--text-main);
+      background-color: #fff;
+      transition: all 0.2s ease;
+      box-sizing: border-box;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--focus-ring);
+    }
+
+    /* Grid Layouts */
+    .form-grid {
+      display: grid;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .grid-2 { grid-template-columns: 1fr 1fr; }
+    .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+    @media (max-width: 768px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .container { padding: 24px; }
+    }
+
+    /* Custom Table Grid */
+    .table-grid {
+      display: grid;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 32px;
+      background-color: #fff;
+    }
+
+    .table-cell {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+    }
+    
+    .table-cell:last-child {
+       border-right: none;
+    }
+
+    .table-header {
+      background-color: #f8fafc;
+      font-weight: 600;
+      color: var(--secondary);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .table-input {
+      width: 100%;
+      border: 1px solid transparent;
+      background: transparent;
+      padding: 8px;
+      font-size: 0.9rem;
+    }
+    .table-input:hover { background: #f1f5f9; border-radius: 4px; }
+    .table-input:focus { background: #fff; border: 1px solid var(--primary); border-radius: 4px; outline: none; }
+
+    .grid-cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .grid-cols-4 { grid-template-columns: 2fr 1fr 1fr 1fr; }
+
+    /* Option Cards (Radio Replacement) */
+    .radio-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 12px;
+      margin-bottom: 32px;
+      padding: 0;
+      background: transparent;
+      border: none;
+    }
+
+    .option-card {
+      position: relative;
+      cursor: pointer;
+      flex: 1;
+      min-width: 140px;
+    }
+
+    .option-card input {
+      position: absolute;
+      opacity: 0;
+      cursor: pointer;
+      height: 0;
+      width: 0;
+    }
+
+    .option-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px 20px;
+      background-color: #fff;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      color: var(--text-main);
+      font-weight: 500;
+      font-size: 0.95rem;
+      transition: all 0.2s ease;
+      height: 100%;
+      text-align: center;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .option-content:hover {
+      border-color: #94a3b8;
+      background-color: #f8fafc;
+      transform: translateY(-2px);
+    }
+
+    .option-card input:checked + .option-content {
+      border-color: var(--primary);
+      background-color: #fef2f2; /* Light red tint matching primary */
+      color: var(--primary);
+      font-weight: 600;
+      box-shadow: 0 4px 6px -1px rgba(192, 57, 43, 0.15);
+      transform: translateY(-2px);
+    }
+    
+    .option-card input:checked + .option-content::before {
+      content: '✓';
+      display: inline-block;
+      margin-right: 8px;
+      font-weight: 800;
+    }
+
+    .option-card input:focus + .option-content {
+      box-shadow: 0 0 0 4px var(--focus-ring);
+    }
+    
+    /* Specific adjustments for number scale */
+    .scale-group .option-card {
+      min-width: 48px;
+      flex: 0 0 auto;
+    }
+    .scale-group .option-content {
+      padding: 12px 0;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%; /* Make them circular */
+    }
+    .scale-group .option-card input:checked + .option-content::before {
+      display: none; /* No checkmark for small circles */
+    }
+    
+    .section-label {
+        font-weight: 600;
+        color: var(--secondary);
+        margin-bottom: 8px;
+        display: block;
+        font-size: 1rem;
+    }
+
+    /* Buttons */
+    .enviar {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      background-color: var(--primary);
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      text-align: center;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 40px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      box-shadow: 0 4px 6px -1px rgba(192, 57, 43, 0.2);
+    }
+    .enviar:hover {
+      background-color: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 8px -1px rgba(192, 57, 43, 0.3);
+    }
+    .enviar:active { transform: translateY(0); }
+    .enviar:disabled { background-color: #94a3b8; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* Footer */
+    .app-footer {
+      text-align: center;
+      margin-top: 60px;
+      color: var(--text-light);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--border);
+      padding-top: 32px;
+    }
+    .footer-logo { height: 30px; opacity: 0.5; margin-bottom: 8px; }
+
+    /* Feedback */
+    .feedback {
+      margin-top: 24px;
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+      font-weight: 500;
+    }
+    .feedback.success {
+      background-color: #dcfce7;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+    .feedback.error {
+      background-color: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+  </style>
+</head>
+<body>
+ 
+  <main class="container">
+    <div style="margin-bottom: 24px;">
+        <a href="/" style="color: var(--text-light); text-decoration: none; font-size: 0.9rem; font-weight: 500; display: inline-flex; align-items: center; transition: color 0.2s;">
+          <span style="margin-right: 6px;">&larr;</span> Voltar ao Menu
+        </a>
+    </div>
+     
+   <div class="brand-inner">
+      <img class="brand-logo" src="/assets/logo.png" alt="Logo Família Madalosso">
+      <div class="brand-title">FORMULÁRIO ON THE JOB</div>
+    </div>
+    
+    <form id="formOnTheJob" novalidate>
+      
+      <!-- Cabeçalho do Colaborador -->
+      <h2 class="section-title">Dados Iniciais</h2>
+      
+      <div class="form-grid grid-2">
+        <label>
+          Colaborador
+          <input type="text" id="colaborador" required placeholder="Nome completo">
+        </label>
+        <label>
+          Empresa
+          <input type="text" id="empresa" required placeholder="Unidade/Empresa">
+        </label>
+      </div>
+      
+      <div class="form-grid grid-3">
+        <label>
+            Data da Proposta
+            <input type="date" id="dataProposta" required>
+        </label>
+        <label>
+            Vigorar a partir de
+            <input type="date" id="vigorarInicio" required>
+        </label>
+        <label>
+            Até
+            <input type="date" id="vigorarFim" required>
+        </label>
+      </div>
+
+      <!-- Tabela Comparativa -->
+      <h2 class="section-title">Comparativo</h2>
+      <div class="table-grid grid-cols-3">
+        <!-- Header -->
+        <div class="table-cell table-header">Informações</div>
+        <div class="table-cell table-header">Atual</div>
+        <div class="table-cell table-header">Proposta</div>
+        
+        <!-- Cargo -->
+        <div class="table-cell table-header">Cargo:</div>
+        <div class="table-cell"><input type="text" class="table-input" id="cargoAtual"></div>
+        <div class="table-cell"><input type="text" class="table-input" id="cargoProposta"></div>
+
+        <!-- Horário -->
+        <div class="table-cell table-header">Horário:</div>
+        <div class="table-cell"><input type="text" class="table-input" id="horarioAtual"></div>
+        <div class="table-cell"><input type="text" class="table-input" id="horarioProposta"></div>
+
+        <!-- Setor -->
+        <div class="table-cell table-header">Setor:</div>
+        <div class="table-cell"><input type="text" class="table-input" id="setorAtual"></div>
+        <div class="table-cell"><input type="text" class="table-input" id="setorProposta"></div>
+
+        <!-- Observação -->
+        <div class="table-cell table-header">Observação:</div>
+        <div class="table-cell"><input type="text" class="table-input" id="obsAtual"></div>
+        <div class="table-cell"><input type="text" class="table-input" id="obsProposta"></div>
+      </div>
+
+      <!-- Checkboxes / Radios -->
+      <h2 class="section-title">Detalhes da Movimentação</h2>
+      
+      <div class="section-label">Nível da Movimentação/Promoção:</div>
+      <div class="radio-group">
+        <label class="option-card">
+          <input type="radio" name="nivel" value="junior">
+          <span class="option-content">Júnior</span>
+        </label>
+        <label class="option-card">
+          <input type="radio" name="nivel" value="pleno">
+          <span class="option-content">Pleno</span>
+        </label>
+        <label class="option-card">
+          <input type="radio" name="nivel" value="senior">
+          <span class="option-content">Sênior</span>
+        </label>
+      </div>
+
+      <div class="section-label">Faixa de Enquadramento salário:</div>
+      <div class="radio-group scale-group">
+        <label class="option-card"><input type="radio" name="faixa" value="1"><span class="option-content">1</span></label>
+        <label class="option-card"><input type="radio" name="faixa" value="2"><span class="option-content">2</span></label>
+        <label class="option-card"><input type="radio" name="faixa" value="3"><span class="option-content">3</span></label>
+        <label class="option-card"><input type="radio" name="faixa" value="4"><span class="option-content">4</span></label>
+        <label class="option-card"><input type="radio" name="faixa" value="5"><span class="option-content">5</span></label>
+        <label class="option-card"><input type="radio" name="faixa" value="6"><span class="option-content">6</span></label>
+        <label class="option-card"><input type="radio" name="faixa" value="7"><span class="option-content">7</span></label>
+        <label class="option-card"><input type="radio" name="faixa" value="8"><span class="option-content">8</span></label>
+        <label class="option-card"><input type="radio" name="faixa" value="9"><span class="option-content">9</span></label>
+        <label class="option-card"><input type="radio" name="faixa" value="10"><span class="option-content">10</span></label>
+      </div>
+
+      <div class="section-label">O Processo de ON THE JOB se encaixa:</div>
+      <div class="radio-group">
+        <label class="option-card">
+            <input type="radio" name="processo" value="promocao">
+            <span class="option-content">Promoção</span>
+        </label>
+        <label class="option-card">
+            <input type="radio" name="processo" value="mudanca">
+            <span class="option-content">Mudança de Função</span>
+        </label>
+        <label class="option-card">
+            <input type="radio" name="processo" value="enquadramento">
+            <span class="option-content">Enquadramento</span>
+        </label>
+      </div>
+
+      <div class="section-label">Jornada semanal:</div>
+      <div class="radio-group">
+        <label class="option-card">
+            <input type="radio" name="jornada" value="flexivel">
+            <span class="option-content">Flexível</span>
+        </label>
+        <label class="option-card">
+            <input type="radio" name="jornada" value="44h">
+            <span class="option-content">44h</span>
+        </label>
+        <label class="option-card">
+            <input type="radio" name="jornada" value="confianca">
+            <span class="option-content">Cargo de Confiança</span>
+        </label>
+        <label class="option-card">
+            <input type="radio" name="jornada" value="horista">
+            <span class="option-content">Horista</span>
+        </label>
+      </div>
+
+      <div class="section-label">Será necessário realizar exame de mudança de função:</div>
+      <div class="radio-group">
+        <label class="option-card">
+            <input type="radio" name="exame" value="sim">
+            <span class="option-content">Sim</span>
+        </label>
+        <label class="option-card">
+            <input type="radio" name="exame" value="nao">
+            <span class="option-content">Não</span>
+        </label>
+        <label class="option-card">
+            <input type="radio" name="exame" value="na">
+            <span class="option-content">N/A</span>
+        </label>
+      </div>
+
+      <!-- Tabela Salarial -->
+      <h2 class="section-title">Alteração Salarial</h2>
+      <div class="table-grid grid-cols-3">
+        <div class="table-cell table-header">Informações / Data</div>
+        <div class="table-cell table-header">De: Atual (R$)</div>
+        <div class="table-cell table-header">Para: Proposta (R$)</div>
+
+        <div class="table-cell">
+            <span style="margin-right:8px; font-weight:bold;">Salário:</span>
+            <input type="date" class="table-input" id="salarioData1">
+        </div>
+        <div class="table-cell"><input type="number" step="0.01" class="table-input" id="salarioDe1"></div>
+        <div class="table-cell"><input type="number" step="0.01" class="table-input" id="salarioPara1"></div>
+
+        <div class="table-cell">
+            <span style="margin-right:8px; font-weight:bold;">Salário:</span>
+            <input type="date" class="table-input" id="salarioData2">
+        </div>
+        <div class="table-cell"><input type="number" step="0.01" class="table-input" id="salarioDe2"></div>
+        <div class="table-cell"><input type="number" step="0.01" class="table-input" id="salarioPara2"></div>
+      </div>
+
+      <!-- Tabela Benefícios -->
+      <h2 class="section-title">Benefícios</h2>
+      <div class="table-grid grid-cols-4">
+        <div class="table-cell table-header">Benefício</div>
+        <div class="table-cell table-header">Imediato</div>
+        <div class="table-cell table-header">Após 90 dias</div>
+        <div class="table-cell table-header">Após 180 dias</div>
+
+        <!-- 6 Rows of benefits -->
+        <script>
+            for(let i=0; i<6; i++) {
+                document.write(`
+                    <div class="table-cell"><input type="text" class="table-input" id="beneficio_${i}"></div>
+                    <div class="table-cell"><input type="text" class="table-input" id="imediato_${i}"></div>
+                    <div class="table-cell"><input type="text" class="table-input" id="apos90_${i}"></div>
+                    <div class="table-cell"><input type="text" class="table-input" id="apos180_${i}"></div>
+                `);
+            }
+        </script>
+      </div>
+
+      <button class="enviar" type="submit" id="btnSubmit">Enviar Formulário</button>
+    </form>
+    <div id="feedback" class="feedback" role="alert" hidden></div>
+  </main>
+
+  <footer class="app-footer">
+    <div class="footer-content">
+      <img src="/assets/logo.png" alt="Logo" class="footer-logo">
+      <p>&copy; 2025 Família Madalosso. Todos os direitos reservados.</p>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('formOnTheJob').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('btnSubmit');
+        const feedback = document.getElementById('feedback');
+        
+        btn.disabled = true;
+        btn.textContent = 'Enviando...';
+        feedback.hidden = true;
+        feedback.className = 'feedback';
+
+        // Helper to get checked value
+        const getRadioVal = (name) => {
+            const el = document.querySelector(`input[name="${name}"]:checked`);
+            return el ? el.value : '';
+        };
+
+        // Gather benefits rows
+        const beneficios = [];
+        for(let i=0; i<6; i++) {
+            const ben = document.getElementById(`beneficio_${i}`).value;
+            if(ben) { // Only send rows with benefit name
+                beneficios.push({
+                    beneficio: ben,
+                    imediato: document.getElementById(`imediato_${i}`).value,
+                    apos90: document.getElementById(`apos90_${i}`).value,
+                    apos180: document.getElementById(`apos180_${i}`).value
+                });
+            }
+        }
+
+        const payload = {
+            colaborador: document.getElementById('colaborador').value,
+            empresa: document.getElementById('empresa').value,
+            dataProposta: document.getElementById('dataProposta').value,
+            vigorarInicio: document.getElementById('vigorarInicio').value,
+            vigorarFim: document.getElementById('vigorarFim').value,
+            
+            comparativo: {
+                cargo: { atual: document.getElementById('cargoAtual').value, proposta: document.getElementById('cargoProposta').value },
+                horario: { atual: document.getElementById('horarioAtual').value, proposta: document.getElementById('horarioProposta').value },
+                setor: { atual: document.getElementById('setorAtual').value, proposta: document.getElementById('setorProposta').value },
+                obs: { atual: document.getElementById('obsAtual').value, proposta: document.getElementById('obsProposta').value },
+            },
+
+            movimentacao: {
+                nivel: getRadioVal('nivel'),
+                faixa: getRadioVal('faixa'),
+                processo: getRadioVal('processo'),
+                jornada: getRadioVal('jornada'),
+                exame: getRadioVal('exame')
+            },
+
+            salarios: [
+                {
+                    data: document.getElementById('salarioData1').value,
+                    de: document.getElementById('salarioDe1').value,
+                    para: document.getElementById('salarioPara1').value
+                },
+                {
+                    data: document.getElementById('salarioData2').value,
+                    de: document.getElementById('salarioDe2').value,
+                    para: document.getElementById('salarioPara2').value
+                }
+            ],
+
+            beneficios: beneficios
+        };
+
+        try {
+            const res = await fetch('/api/on-the-job', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+
+            if (data.ok) {
+                feedback.textContent = 'Formulário enviado com sucesso!';
+                feedback.classList.add('success');
+                feedback.hidden = false;
+                document.getElementById('formOnTheJob').reset();
+            } else {
+                throw new Error(data.erro || 'Erro ao enviar');
+            }
+        } catch (err) {
+            feedback.textContent = err.message;
+            feedback.classList.add('error');
+            feedback.hidden = false;
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Enviar Formulário';
+        }
+    });
+  </script>
+</body>
+</html>

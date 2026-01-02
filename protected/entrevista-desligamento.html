@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Formulário de Desligamento</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="/rh-styles.css">
+  <style>
+      body { background-color: #f3f4f6; min-height: 100vh; display: flex; flex-direction: column; }
+      .form-page-container { max-width: 900px; margin: 2rem auto; width: 95%; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+      
+      .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
+      .form-full { grid-column: 1 / -1; }
+      .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+      .form-label { font-weight: 600; font-size: 0.9rem; color: #374151; }
+      .form-input { 
+          width: 100%; 
+          padding: 0.625rem 0.875rem; 
+          border: 1px solid #d1d5db; 
+          border-radius: 6px; 
+          font-size: 0.95rem; 
+          transition: border-color 0.2s, box-shadow 0.2s;
+          box-sizing: border-box;
+          background-color: #f9fafb;
+      }
+      .form-input:focus { 
+          outline: none; 
+          border-color: #2563eb; 
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); 
+          background-color: #fff;
+      }
+      textarea.form-input { resize: vertical; min-height: 100px; }
+      
+      .radio-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }
+      .radio-item { 
+          display: flex; 
+          align-items: center; 
+          gap: 0.5rem; 
+          padding: 0.5rem;
+          border-radius: 4px;
+          cursor: pointer;
+      }
+      .radio-item:hover { background-color: #f3f4f6; }
+      
+      .table-eval th, .table-eval td { border: 1px solid #e5e7eb; padding: 0.75rem; text-align: center; }
+      .table-eval th { background-color: #f9fafb; font-weight: 600; color: #374151; }
+      .table-eval td:first-child { text-align: left; font-weight: 500; }
+      
+      .section-title { 
+          font-weight: 700; 
+          margin-top: 2rem; 
+          margin-bottom: 1rem; 
+          padding-bottom: 0.5rem; 
+          border-bottom: 2px solid #e5e7eb; 
+          color: #1f2937;
+          font-size: 1.1rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+      }
+
+      .header-logo { text-align: center; margin-bottom: 2rem; }
+      .header-logo img { height: 60px; margin-bottom: 1rem; }
+      .header-logo h1 { font-size: 1.5rem; color: #1f2937; margin: 0; }
+  </style>
+</head>
+<body>
+
+  <div class="form-page-container">
+        <div class="header-logo">
+            <img src="/assets/logo.png" alt="Família Madalosso" style="height: 80px; margin-bottom: 1rem;">
+            <h1>Entrevista de Desligamento</h1>
+            <p style="color: #6b7280; margin-top: 0.5rem;">Por favor, preencha as informações abaixo.</p>
+        </div>
+
+        <form id="form-desligamento" onsubmit="salvarEntrevista(event)">
+            <!-- Header -->
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Nome</label>
+                    <input type="text" name="nome" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Cargo</label>
+                    <input type="text" name="cargo" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Data Admissão</label>
+                    <input type="date" name="data_admissao" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Setor</label>
+                    <input type="text" name="setor" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Chefe Imediato</label>
+                    <input type="text" name="chefe" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Armário</label>
+                    <input type="text" name="armario" class="form-input">
+                </div>
+            </div>
+
+            <div class="section-title">TIPO DE DESLIGAMENTO</div>
+            <div class="radio-grid">
+                <label class="radio-item"><input type="radio" name="tipo_desligamento" value="Sem justa causa" required> Sem justa causa</label>
+                <label class="radio-item"><input type="radio" name="tipo_desligamento" value="Por justa causa"> Por justa causa</label>
+                <label class="radio-item"><input type="radio" name="tipo_desligamento" value="Pedido do colaborador"> Pedido do colaborador</label>
+                <label class="radio-item"><input type="radio" name="tipo_desligamento" value="Distrato"> Distrato</label>
+                <label class="radio-item"><input type="radio" name="tipo_desligamento" value="Término do estágio"> Término do estágio</label>
+                <label class="radio-item"><input type="radio" name="tipo_desligamento" value="Aposentadoria"> Aposentadoria</label>
+                <label class="radio-item"><input type="radio" name="tipo_desligamento" value="Outros"> Outros</label>
+            </div>
+
+            <div class="section-title">MOTIVO DO DESLIGAMENTO</div>
+            <p><strong>Por Pedido:</strong></p>
+            <div class="radio-grid">
+                <label class="radio-item"><input type="radio" name="motivo_desligamento" value="Salário"> Salário</label>
+                <label class="radio-item"><input type="radio" name="motivo_desligamento" value="Oportunidade de trabalho"> Oportunidade de trabalho</label>
+                <label class="radio-item"><input type="radio" name="motivo_desligamento" value="Horário de trabalho"> Horário de trabalho</label>
+                <label class="radio-item"><input type="radio" name="motivo_desligamento" value="Ambiente de trabalho"> Ambiente de trabalho</label>
+                <label class="radio-item"><input type="radio" name="motivo_desligamento" value="Desmotivação"> Desmotivação</label>
+                <label class="radio-item"><input type="radio" name="motivo_desligamento" value="Problemas pessoais / familiares"> Problemas pessoais / familiares</label>
+                <label class="radio-item"><input type="radio" name="motivo_desligamento" value="Distrato"> Distrato</label>
+                <label class="radio-item"><input type="radio" name="motivo_desligamento" value="Outros"> Outros</label>
+            </div>
+            <p style="margin-top: 10px;"><strong>Por Dispensa:</strong></p>
+            <div class="radio-grid">
+                <label class="radio-item"><input type="radio" name="motivo_desligamento" value="Baixo desempenho"> Baixo desempenho</label>
+                <label class="radio-item"><input type="radio" name="motivo_desligamento" value="Pontualidade, assiduidade"> Pontualidade, assiduidade</label>
+                <label class="radio-item"><input type="radio" name="motivo_desligamento" value="Não cumprimento de normas"> Não cumprimento de normas</label>
+                <label class="radio-item"><input type="radio" name="motivo_desligamento" value="Redução do quadro"> Redução do quadro</label>
+                <label class="radio-item"><input type="radio" name="motivo_desligamento" value="Relacionamento com chefia"> Relacionamento com chefia</label>
+                <label class="radio-item"><input type="radio" name="motivo_desligamento" value="Relacionamento com colegas"> Relacionamento com colegas</label>
+                <label class="radio-item"><input type="radio" name="motivo_desligamento" value="Outros"> Outros</label>
+            </div>
+
+            <div id="eval-container"></div>
+
+            <div class="section-title">PERGUNTAS FINAIS</div>
+            <div class="form-grid" style="grid-template-columns: 1fr; gap: 1.5rem;">
+                <div class="form-group">
+                    <label class="form-label">Como você percebia o atendimento do setor de RH?</label>
+                    <input type="text" name="percepcao_rh" class="form-input" placeholder="Sua opinião...">
+                </div>
+                
+                <div class="form-grid" style="margin-bottom: 0;">
+                    <div class="form-group">
+                        <label class="form-label">Indicaria a empresa?</label>
+                        <select name="indicaria_empresa" class="form-input">
+                            <option value="sim">Sim</option>
+                            <option value="nao">Não</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Por quê?</label>
+                        <input type="text" name="indicaria_porque" class="form-input">
+                    </div>
+                </div>
+
+                <div class="form-grid" style="margin-bottom: 0;">
+                    <div class="form-group">
+                        <label class="form-label">Voltaria a trabalhar?</label>
+                        <select name="voltaria_trabalhar" class="form-input">
+                            <option value="sim">Sim</option>
+                            <option value="nao">Não</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Em que condições?</label>
+                        <input type="text" name="voltaria_condicoes" class="form-input">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Nota (0 a 10)</label>
+                    <input type="number" name="nota_empresa" class="form-input" min="0" max="10" style="max-width: 150px;">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Comentários</label>
+                    <textarea name="comentarios" class="form-input" rows="4" placeholder="Observações adicionais..."></textarea>
+                </div>
+            </div>
+
+            <div style="margin-top: 2rem; text-align: right;">
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem;">Enviar Entrevista</button>
+            </div>
+        </form>
+  </div>
+
+  <script>
+      // Avaliações Config
+      const evaluations = {
+          beneficios: {
+              title: 'BENEFÍCIOS',
+              items: [
+                  { id: 'alim_var', label: 'Alimentação - Variedade' },
+                  { id: 'alim_qual', label: 'Alimentação - Qualidade' },
+                  { id: 'alim_qtd', label: 'Alimentação - Quantidade' },
+                  { id: 'conv_parana', label: 'Convênio Paraná Clínica' },
+                  { id: 'conv_odonto', label: 'Convênio OdontoPrev' },
+                  { id: 'card_alim', label: 'Cartão Alimentação Senff' },
+                  { id: 'card_cred', label: 'Cartão Crédito Senff' },
+                  { id: 'emp_itau', label: 'Empréstimo Consignado Itaú' },
+                  { id: 'treinamentos', label: 'Treinamentos' }
+              ]
+          },
+          comunicacao: {
+              title: 'COMUNICAÇÃO',
+              items: [
+                  { id: 'recursos', label: 'Recursos de comunicação' },
+                  { id: 'qualidade', label: 'Qualidade das informações' },
+                  { id: 'periodicidade', label: 'Periodicidade das informações' },
+                  { id: 'variedade', label: 'Variedade das informações' }
+              ]
+          },
+          ambiente: {
+              title: 'AMBIENTE DE TRABALHO',
+              items: [
+                  { id: 'ilum', label: 'Iluminação' },
+                  { id: 'ruido', label: 'Ruído' },
+                  { id: 'vent', label: 'Ventilação' },
+                  { id: 'espaco', label: 'Espaço físico' },
+                  { id: 'sanit', label: 'Sanitários' },
+                  { id: 'limpeza', label: 'Organização / Limpeza' },
+                  { id: 'seguranca', label: 'Segurança' }
+              ]
+          },
+          relacionamento: {
+              title: 'RELACIONAMENTOS',
+              items: [
+                  { id: 'chefia', label: 'Chefia' },
+                  { id: 'colegas', label: 'Colegas' },
+                  { id: 'diretoria', label: 'Gerência / Empresa / Diretoria' },
+                  { id: 'clientes', label: 'Clientes' }
+              ]
+          }
+      };
+
+      function renderEvaluations() {
+          const container = document.getElementById('eval-container');
+          container.innerHTML = '';
+
+          for (const [key, section] of Object.entries(evaluations)) {
+              const div = document.createElement('div');
+              div.innerHTML = `<div class="section-title">${section.title}</div>
+                  <table class="table-eval" style="width:100%">
+                      <thead>
+                          <tr>
+                              <th>Item</th>
+                              <th>Ótimo (O)</th>
+                              <th>Bom (B)</th>
+                              <th>Regular (Rg)</th>
+                              <th>Ruim (Ru)</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                          ${section.items.map(item => `
+                              <tr>
+                                  <td>${item.label}</td>
+                                  <td><input type="radio" name="avaliacoes[${key}_${item.id}]" value="O"></td>
+                                  <td><input type="radio" name="avaliacoes[${key}_${item.id}]" value="B"></td>
+                                  <td><input type="radio" name="avaliacoes[${key}_${item.id}]" value="Rg"></td>
+                                  <td><input type="radio" name="avaliacoes[${key}_${item.id}]" value="Ru"></td>
+                              </tr>
+                          `).join('')}
+                      </tbody>
+                  </table>`;
+              container.appendChild(div);
+          }
+      }
+
+      async function salvarEntrevista(e) {
+          e.preventDefault();
+          const formData = new FormData(e.target);
+          const data = Object.fromEntries(formData.entries());
+          
+          const avaliacoes = {};
+          for (const [key, value] of formData.entries()) {
+              if (key.startsWith('avaliacoes[')) {
+                  const realKey = key.match(/\[(.*?)\]/)[1];
+                  avaliacoes[realKey] = value;
+                  delete data[key]; 
+              }
+          }
+          data.avaliacoes = avaliacoes;
+
+          try {
+              const res = await fetch('/api/entrevistas-desligamento', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(data)
+              });
+              
+              if (res.ok) {
+                  alert('Obrigado! Sua entrevista foi registrada.');
+                  e.target.reset();
+                  window.scrollTo(0,0);
+              } else {
+                  alert('Erro ao salvar. Tente novamente.');
+              }
+          } catch (err) {
+              alert('Erro de conexão');
+          }
+      }
+
+      // Init
+      renderEvaluations();
+  </script>
+</body>
+</html>

@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard RH - Gestão de EPIs</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="/rh-styles.css">
+  <style>
+      .form-epi {
+          background: white;
+          padding: 20px;
+          border-radius: 8px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          margin-bottom: 20px;
+          display: flex;
+          gap: 15px;
+          align-items: flex-end;
+          flex-wrap: wrap;
+      }
+      .form-group {
+          flex: 1;
+          min-width: 200px;
+      }
+      .form-group label {
+          display: block;
+          margin-bottom: 5px;
+          font-weight: 500;
+          color: var(--text-primary);
+      }
+      .form-group input {
+          width: 100%;
+          padding: 10px;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+      }
+      .epi-list {
+          display: grid;
+          gap: 10px;
+      }
+      .epi-item {
+          background: white;
+          padding: 15px;
+          border-radius: 8px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border: 1px solid #e2e8f0;
+      }
+      .epi-info h3 {
+          margin: 0;
+          font-size: 1rem;
+          color: var(--text-primary);
+      }
+      .epi-info p {
+          margin: 5px 0 0;
+          color: var(--text-secondary);
+          font-size: 0.875rem;
+      }
+      .btn-danger {
+          background-color: #ef4444;
+          color: white;
+          border: none;
+          padding: 8px 12px;
+          border-radius: 6px;
+          cursor: pointer;
+      }
+      .btn-danger:hover {
+          background-color: #dc2626;
+      }
+  </style>
+</head>
+<body>
+  <nav class="rh-navbar">
+      <a href="/protected/index.html" class="rh-navbar-brand">
+          <span>🏠</span> Portal RH
+      </a>
+      <div class="rh-navbar-menu">
+          <a href="/protected/dashboard-rh.html" class="rh-nav-link">Férias</a>
+          <a href="/protected/dashboard-taxas.html" class="rh-nav-link">Taxas</a>
+          <a href="/protected/dashboard-candidatos.html" class="rh-nav-link">Candidatos</a>
+          <a href="/protected/dashboard-vagas.html" class="rh-nav-link">Vagas</a>
+          <a href="/protected/dashboard-epis.html" class="rh-nav-link active">EPIs</a>
+          <a href="/protected/dashboard-desligamento.html" class="rh-nav-link">Desligamento</a>
+      </div>
+  </nav>
+
+  <main class="dashboard-container">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Gestão de EPIs</h1>
+            <p class="page-subtitle">Cadastre os equipamentos e valores para controle da portaria</p>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card pending">
+            <div class="stat-header">
+                <div class="stat-title">Total em Estoque</div>
+                <div class="stat-icon">📦</div>
+            </div>
+            <div class="stat-value" id="stat-total-items">0</div>
+        </div>
+        <div class="stat-card rejected">
+            <div class="stat-header">
+                <div class="stat-title">Estoque Baixo</div>
+                <div class="stat-icon">⚠️</div>
+            </div>
+            <div class="stat-value" id="stat-low-stock">0</div>
+        </div>
+        <div class="stat-card approved">
+            <div class="stat-header">
+                <div class="stat-title">Valor Total</div>
+                <div class="stat-icon">💰</div>
+            </div>
+            <div class="stat-value" id="stat-total-value">R$ 0,00</div>
+        </div>
+    </div>
+
+    <div class="form-epi">
+        <div class="form-group">
+            <label>Nome do EPI</label>
+            <input type="text" id="novoNome" placeholder="Ex: Capacete de Segurança">
+        </div>
+        <div class="form-group">
+            <label>Valor (R$)</label>
+            <input type="number" id="novoValor" placeholder="0.00" step="0.01">
+        </div>
+        <button class="btn btn-primary" onclick="adicionarEPI()">Adicionar EPI</button>
+    </div>
+
+    <div class="epi-list" id="listaEpis">
+        <!-- Lista carregada via JS -->
+        <div style="text-align: center; padding: 20px; color: var(--text-secondary);">Carregando...</div>
+    </div>
+
+    <div class="page-header" style="margin-top: 40px;">
+        <div>
+            <h1 class="page-title">Termos de Desconto</h1>
+            <p class="page-subtitle">Gerenciamento de descontos gerados pela portaria</p>
+        </div>
+    </div>
+
+    <div class="epi-list" id="listaDescontos">
+        <div style="text-align: center; padding: 20px; color: var(--text-secondary);">Carregando termos...</div>
+    </div>
+
+    <div class="page-header" style="margin-top: 40px;">
+        <div>
+            <h1 class="page-title">Histórico de Movimentações</h1>
+            <p class="page-subtitle">Registro de retiradas e devoluções na portaria</p>
+        </div>
+    </div>
+
+    <div class="epi-list" id="listaMovimentacoes">
+        <div style="text-align: center; padding: 20px; color: var(--text-secondary);">Carregando movimentações...</div>
+    </div>
+  </main>
+
+  <script>
+      let globalEpis = [];
+
+      async function carregarEpis() {
+          try {
+              const res = await fetch('/api/rh/epis');
+              globalEpis = await res.json();
+              
+              const lista = document.getElementById('listaEpis');
+              lista.innerHTML = '';
+
+              // Calculate Stats
+              const totalItems = globalEpis.reduce((acc, epi) => acc + (epi.estoque || 0), 0);
+              const lowStock = globalEpis.filter(epi => (epi.estoque || 0) <= 5).length;
+              const totalValue = globalEpis.reduce((acc, epi) => acc + ((epi.estoque || 0) * epi.valor), 0);
+
+              document.getElementById('stat-total-items').innerText = totalItems;
+              document.getElementById('stat-low-stock').innerText = lowStock;
+              document.getElementById('stat-total-value').innerText = totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+              if (globalEpis.length === 0) {
+                  lista.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">Nenhum EPI cadastrado.</div>';
+                  return;
+              }
+
+              globalEpis.forEach(epi => {
+                  const div = document.createElement('div');
+                  div.className = 'epi-item';
+                  
+                  const estoque = epi.estoque || 0;
+                  const estoqueClass = estoque <= 5 ? 'color: #ef4444; font-weight: bold;' : 'color: var(--text-secondary);';
+
+                  div.innerHTML = `
+                      <div class="epi-info">
+                          <h3>${epi.nome}</h3>
+                          <p>Valor Unit.: R$ ${epi.valor.toFixed(2)}</p>
+                          <p style="${estoqueClass}">Estoque: ${estoque} unidades</p>
+                      </div>
+                      <button class="btn-danger" onclick="removerEPI('${epi.id}')">Remover</button>
+                  `;
+                  lista.appendChild(div);
+              });
+          } catch (e) {
+              console.error(e);
+              alert('Erro ao carregar EPIs');
+          }
+      }
+
+      async function carregarDescontos() {
+          try {
+              const res = await fetch('/api/rh/descontos');
+              const descontos = await res.json();
+              
+              const lista = document.getElementById('listaDescontos');
+              lista.innerHTML = '';
+
+              if (descontos.length === 0) {
+                  lista.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">Nenhum termo de desconto encontrado.</div>';
+                  return;
+              }
+
+              descontos.forEach(d => {
+                  const div = document.createElement('div');
+                  div.className = 'epi-item'; // Reusing style
+                  
+                  // Se status for undefined, trata como pendente (legado)
+                  const isPendente = d.status === 'pendente_rh' || !d.status;
+                  const isResolvido = d.status === 'resolvido';
+
+                  let statusColor = isPendente ? '#eab308' : '#22c55e';
+                  let statusText = isPendente ? 'Pendente Assinatura' : 'Resolvido';
+
+                  div.innerHTML = `
+                      <div class="epi-info">
+                          <h3>${d.nome_funcionario}</h3>
+                          <p style="font-size: 0.9em; color: var(--text-secondary);">CPF: ${d.cpf_funcionario}</p>
+                          <p>Item: ${d.itens[0].nome} - R$ ${d.itens[0].valor.toFixed(2)}</p>
+                          <p style="color: ${statusColor}; font-weight: 600;">${statusText}</p>
+                      </div>
+                      <div style="display: flex; gap: 10px;">
+                          <a href="/api/rh/descontos/${d.id}/pdf" target="_blank" class="btn btn-primary" style="text-decoration: none; display: flex; align-items: center;">📄 Imprimir</a>
+                          ${isPendente ? 
+                              `<button class="btn btn-primary" style="background: var(--success);" onclick="resolverDesconto('${d.id}')">✅ Assinado</button>` : ''}
+                      </div>
+                  `;
+                  lista.appendChild(div);
+              });
+          } catch (e) {
+              console.error(e);
+              alert('Erro ao carregar descontos');
+          }
+      }
+
+      async function carregarMovimentacoes() {
+          try {
+              const res = await fetch('/api/rh/movimentacoes');
+              const movs = await res.json();
+              
+              const lista = document.getElementById('listaMovimentacoes');
+              lista.innerHTML = '';
+
+              if (movs.length === 0) {
+                  lista.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">Nenhuma movimentação registrada.</div>';
+                  return;
+              }
+
+              movs.forEach(m => {
+                  const div = document.createElement('div');
+                  div.className = 'epi-item';
+                  
+                  const epi = globalEpis.find(e => e.id === m.epi_id);
+                  const epiName = epi ? epi.nome : 'Item removido/desconhecido';
+                  
+                  const isDevolucao = !!m.data_devolucao;
+                  const dateVal = isDevolucao ? m.data_devolucao : m.data_retirada;
+                  const date = new Date(dateVal).toLocaleString('pt-BR');
+                  const statusColor = isDevolucao ? '#22c55e' : '#3b82f6';
+                  const statusText = isDevolucao ? 'Devolvido' : 'Retirado (Em uso)';
+
+                  div.innerHTML = `
+                      <div class="epi-info">
+                          <h3>${epiName}</h3>
+                          <p style="font-size: 0.9em; color: var(--text-secondary);">ID Func: ${m.funcionario_id}</p>
+                          <p style="color: ${statusColor}; font-weight: 500;">${statusText}</p>
+                          <p style="font-size: 0.8rem; color: #64748b;">${date}</p>
+                      </div>
+                      <div style="text-align:right">
+                         ${m.evidencia_retirada ? '<span style="font-size:0.8rem; background:#eee; padding:2px 6px; border-radius:4px; display:inline-block; margin-bottom:4px;">📸 Foto</span>' : ''}
+                         ${m.tipo_evidencia_retirada === 'assinatura' ? '<span style="font-size:0.8rem; background:#eee; padding:2px 6px; border-radius:4px; display:inline-block;">✍️ Assinatura</span>' : ''}
+                      </div>
+                  `;
+                  lista.appendChild(div);
+              });
+          } catch (e) {
+              console.error(e);
+              alert('Erro ao carregar movimentações');
+          }
+      }
+
+      async function resolverDesconto(id) {
+          if (!confirm('Confirmar que o funcionário assinou o termo? Isso irá liberar o acesso na portaria.')) return;
+          
+          try {
+              const res = await fetch(`/api/rh/descontos/${id}/resolver`, { method: 'POST' });
+              const data = await res.json();
+              if (data.ok) {
+                  carregarDescontos();
+              } else {
+                  alert('Erro: ' + data.erro);
+              }
+          } catch (e) {
+              console.error(e);
+              alert('Erro ao resolver desconto');
+          }
+      }
+
+      async function adicionarEPI() {
+
+          const nome = document.getElementById('novoNome').value;
+          const valor = document.getElementById('novoValor').value;
+
+          if (!nome || !valor) return alert('Preencha todos os campos');
+
+          try {
+              const res = await fetch('/api/rh/epis', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ nome, valor })
+              });
+
+              const data = await res.json();
+              if (data.ok) {
+                  document.getElementById('novoNome').value = '';
+                  document.getElementById('novoValor').value = '';
+                  carregarEpis();
+              } else {
+                  alert('Erro: ' + data.erro);
+              }
+          } catch (e) {
+              console.error(e);
+              alert('Erro ao adicionar EPI');
+          }
+      }
+
+      async function removerEPI(id) {
+          if (!confirm('Tem certeza que deseja remover este item?')) return;
+
+          try {
+              const res = await fetch(`/api/rh/epis/${id}`, { method: 'DELETE' });
+              const data = await res.json();
+              
+              if (data.ok) {
+                  carregarEpis();
+              } else {
+                  alert('Erro: ' + data.erro);
+              }
+          } catch (e) {
+              console.error(e);
+              alert('Erro ao remover EPI');
+          }
+      }
+
+      // Carregar ao iniciar
+      (async () => {
+          await carregarEpis();
+          carregarDescontos();
+          carregarMovimentacoes();
+      })();
+  </script>
+</body>
+</html>

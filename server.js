@@ -11,6 +11,9 @@ const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const pdfService = require('./services/pdfService');
+
+const LOGO_PATH = path.join(__dirname, 'assets', 'logo.png');
 
 dotenv.config();
 
@@ -23,11 +26,11 @@ app.use(helmet({
             defaultSrc: ["'self'"],
             scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.sheetjs.com", "https://cdnjs.cloudflare.com"], // unsafe-inline necessário para scripts inline simples se houver
             scriptSrcAttr: ["'unsafe-inline'"], // Permite event handlers inline como onclick
-            styleSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
             imgSrc: ["'self'", "data:", "blob:"], // data: necessário para imagens base64
-            connectSrc: ["'self'", "https://cdn.sheetjs.com"],
+            connectSrc: ["'self'", "https://cdn.sheetjs.com", "http://localhost:8080", "ws://localhost:8080"],
             objectSrc: ["'none'"],
-            upgradeInsecureRequests: [],
         },
     },
 }));
@@ -47,12 +50,29 @@ const candidatoLimiter = rateLimit({
 });
 
 app.use(cors());
+app.use(express.json({ limit: '10mb' })); // Aumentado para suportar imagens base64
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // --- Middleware de Autenticação RH ---
 const rhAuth = basicAuth({
     users: { [process.env.RH_USER || 'admin']: process.env.RH_PASS || 'admin123' },
     challenge: true,
     realm: 'Painel RH'
+});
+
+// --- Middleware de Autenticação Portaria ---
+const portariaAuth = basicAuth({
+    users: { [process.env.PORTARIA_USER || 'portaria']: process.env.PORTARIA_PASS || 'portaria123' },
+    challenge: true,
+    realm: 'Painel Portaria'
+});
+
+app.get('/protected/dashboard-portaria.html', portariaAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, 'protected', 'dashboard-portaria.html'));
+});
+
+app.get('/protected/dashboard-funcionarios.html', rhAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, 'protected', 'dashboard-funcionarios.html'));
 });
 
 // Rota protegida para servir o Portal RH (Home Unificada)
@@ -80,6 +100,10 @@ app.get('/protected/dashboard-vagas.html', rhAuth, (req, res) => {
     res.sendFile(path.join(__dirname, 'protected', 'dashboard-vagas.html'));
 });
 
+app.get('/protected/dashboard-onthejob.html', rhAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, 'protected', 'dashboard-onthejob.html'));
+});
+
 // Mantendo rotas antigas para compatibilidade (mas agora redirecionando ou servindo o arquivo correto)
 app.get('/dashboard-rh.html', rhAuth, (req, res) => {
     res.sendFile(path.join(__dirname, 'protected', 'dashboard-rh.html'));
@@ -99,6 +123,11 @@ app.get('/dashboard-taxas.html', rhAuth, (req, res) => {
 app.get('/dashboard-candidatos.html', rhAuth, (req, res) => {
     res.sendFile(path.join(__dirname, 'protected', 'dashboard-candidatos.html'));
 });
+
+app.get('/protected/dashboard-epis.html', rhAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, 'protected', 'dashboard-epis.html'));
+});
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
@@ -148,6 +177,48 @@ function writeDB(data) {
 const VAGAS_DB_PATH = path.join(__dirname, 'data', 'vagas.json');
 const TAXAS_DB_PATH = path.join(__dirname, 'data', 'taxas.json');
 const CANDIDATOS_DB_PATH = path.join(__dirname, 'data', 'candidatos.json');
+const EPIS_DB_PATH = path.join(__dirname, 'data', 'epis.json');
+
+const MOVIMENTACOES_EPIS_DB_PATH = path.join(__dirname, 'data', 'movimentacoes_epis.json');
+const DESCONTOS_EPIS_DB_PATH = path.join(__dirname, 'data', 'descontos_epis.json');
+
+function readMovimentacoesEpisDB() {
+    if (!fs.existsSync(MOVIMENTACOES_EPIS_DB_PATH)) return [];
+    try {
+        const data = fs.readFileSync(MOVIMENTACOES_EPIS_DB_PATH, 'utf8');
+        return JSON.parse(data);
+    } catch (e) {
+        console.error('Erro ao ler DB Movimentacoes EPIs:', e);
+        return [];
+    }
+}
+
+function writeMovimentacoesEpisDB(data) {
+    try {
+        fs.writeFileSync(MOVIMENTACOES_EPIS_DB_PATH, JSON.stringify(data, null, 2));
+    } catch (e) {
+        console.error('Erro ao salvar DB Movimentacoes EPIs:', e);
+    }
+}
+
+function readDescontosEpisDB() {
+    if (!fs.existsSync(DESCONTOS_EPIS_DB_PATH)) return [];
+    try {
+        const data = fs.readFileSync(DESCONTOS_EPIS_DB_PATH, 'utf8');
+        return JSON.parse(data);
+    } catch (e) {
+        console.error('Erro ao ler DB Descontos EPIs:', e);
+        return [];
+    }
+}
+
+function writeDescontosEpisDB(data) {
+    try {
+        fs.writeFileSync(DESCONTOS_EPIS_DB_PATH, JSON.stringify(data, null, 2));
+    } catch (e) {
+        console.error('Erro ao salvar DB Descontos EPIs:', e);
+    }
+}
 
 function readVagasDB() {
     if (!fs.existsSync(VAGAS_DB_PATH)) return [];
@@ -184,6 +255,25 @@ function writeCandidatosDB(data) {
         fs.writeFileSync(CANDIDATOS_DB_PATH, JSON.stringify(data, null, 2));
     } catch (e) {
         console.error('Erro ao salvar DB Candidatos:', e);
+    }
+}
+
+function readEpisDB() {
+    if (!fs.existsSync(EPIS_DB_PATH)) return [];
+    try {
+        const data = fs.readFileSync(EPIS_DB_PATH, 'utf8');
+        return JSON.parse(data);
+    } catch (e) {
+        console.error('Erro ao ler DB EPIs:', e);
+        return [];
+    }
+}
+
+function writeEpisDB(data) {
+    try {
+        fs.writeFileSync(EPIS_DB_PATH, JSON.stringify(data, null, 2));
+    } catch (e) {
+        console.error('Erro ao salvar DB EPIs:', e);
     }
 }
 
@@ -227,462 +317,9 @@ function validarPayload(p) {
   return { ok: true };
 }
 
-function pdfBufferFromData(payload) {
-  const doc = new PDFDocument({ size: 'A4', margin: 50 });
-  const chunks = [];
-  doc.on('data', c => chunks.push(c));
-  return new Promise(resolve => {
-    doc.on('end', () => resolve(Buffer.concat(chunks)));
-
-    const titulo = 'Solicitação de Férias';
-    const dataHoje = new Date().toLocaleDateString('pt-BR');
-    const inicioFmt = new Date(payload.inicio).toLocaleDateString('pt-BR');
-    const inicio2Fmt = payload.inicio2 ? new Date(payload.inicio2).toLocaleDateString('pt-BR') : null;
-
-    doc.rect(50, 50, doc.page.width - 100, 60).fill('#f1f5f9');
-    doc.fillColor('#0f172a').fontSize(20).text(titulo, 50, 72, { width: doc.page.width - 100, align: 'center' });
-    doc.moveDown(2);
-
-    doc.fillColor('#111827').fontSize(12);
-    doc.text(`Data: ${dataHoje}`, { align: 'right' });
-    doc.moveDown();
-
-    doc.fontSize(14).fillColor('#0f172a').text('Dados do Colaborador');
-    doc.moveTo(50, doc.y + 2).lineTo(doc.page.width - 50, doc.y + 2).stroke('#cbd5e1');
-    doc.moveDown();
-
-    doc.fillColor('#111827').fontSize(12);
-    doc.text(`Nome`, { continued: true }).text(`: ${payload.nome}`);
-    doc.text(`Setor`, { continued: true }).text(`: ${payload.setor}`);
-
-    doc.moveDown();
-    doc.fontSize(14).fillColor('#0f172a').text('Solicitação');
-    doc.moveTo(50, doc.y + 2).lineTo(doc.page.width - 50, doc.y + 2).stroke('#cbd5e1');
-    doc.moveDown();
-
-    doc.fillColor('#111827').fontSize(12);
-    doc.text(`Início das férias`, { continued: true }).text(`: ${inicioFmt}`);
-    if (inicio2Fmt) doc.text(`Início do segundo período`, { continued: true }).text(`: ${inicio2Fmt}`);
-    doc.text(`Período de Férias`, { continued: true }).text(`: ${payload.tipoGozo}`);
-    doc.text(`Solicitação de 13º`, { continued: true }).text(`: ${payload.decimo ? 'Sim' : 'Não'}`);
-    
-    const aprovado = payload.statusRH === 'aprovado';
-    doc.text(`Status RH`, { continued: true }).text(`: ${aprovado ? 'APROVADO' : 'REPROVADO'}`);
-    if (!aprovado && payload.sugestaoData) {
-       const sugFmt = new Date(payload.sugestaoData).toLocaleDateString('pt-BR');
-       doc.text(`Sugestão de nova data`, { continued: true }).text(`: ${sugFmt}`);
-    }
-    
-    // Configurações para as assinaturas
-    doc.moveDown(2);
-    const boxWidth = (doc.page.width - 100 - 20) / 3; // 3 assinaturas com 10px de gap entre elas
-    const boxHeight = 100;
-    let startY = doc.y;
-
-    // --- Gestor ---
-    doc.fontSize(10).fillColor('#0f172a').text('Gestor', 50, startY);
-    doc.rect(50, startY + 15, boxWidth, boxHeight).stroke('#94a3b8');
-
-    // Digital Signature Indicator for Gestor
-    doc.fillColor('#6b7280').fontSize(8).text('Assinatura Eletrônica (Autentique)', 50 + 5, startY + boxHeight / 2, { width: boxWidth - 10, align: 'center' });
-
-    const nomeGestor = payload.nomeGestor || payload.gestorEmail || 'Gestor';
-    doc.fillColor('#111827').fontSize(9).text(nomeGestor, 50, startY + boxHeight + 20, { width: boxWidth, align: 'center' });
-
-    // --- RH ---
-    const xRH = 50 + boxWidth + 10;
-    doc.fontSize(10).fillColor('#0f172a').text('RH', xRH, startY);
-    doc.rect(xRH, startY + 15, boxWidth, boxHeight).stroke('#94a3b8');
-    
-    // Digital Signature Indicator for RH
-    doc.fillColor('#6b7280').fontSize(8).text('Assinatura Eletrônica (Autentique)', xRH + 5, startY + boxHeight / 2, { width: boxWidth - 10, align: 'center' });
-    
-    doc.fillColor('#111827').fontSize(9).text('Validação RH', xRH, startY + boxHeight + 20, { width: boxWidth, align: 'center' });
-
-    // --- Colaborador ---
-    const xColab = xRH + boxWidth + 10;
-    doc.fontSize(10).fillColor('#0f172a').text('Colaborador', xColab, startY);
-    doc.rect(xColab, startY + 15, boxWidth, boxHeight).stroke('#94a3b8');
-    if (payload.assinatura) {
-        try {
-            const sigBuf = Buffer.from(payload.assinatura.replace(/^data:image\/\w+;base64,/, ''), 'base64');
-            doc.image(sigBuf, xColab + 5, startY + 15 + 5, { fit: [boxWidth - 10, boxHeight - 10] });
-        } catch(e) { console.error('Erro img colab', e); }
-    } else {
-        doc.fillColor('#6b7280').fontSize(8).text('Aguardando assinatura...', xColab + 5, startY + boxHeight / 2, { width: boxWidth - 10, align: 'center' });
-    }
-    doc.fillColor('#111827').fontSize(9).text(payload.nome, xColab, startY + boxHeight + 20, { width: boxWidth, align: 'center' });
 
 
-    doc.moveDown(12);
 
-    doc.fillColor('#111827').fontSize(11).text('Declaro que as informações acima são verdadeiras.');
-    doc.moveDown();
-    doc.text('Local e data:', { continued: true }).text(` ${dataHoje}`);
-
-    doc.end();
-  });
-}
-
-function pdfBufferFromTaxaData(payload) {
-  const doc = new PDFDocument({ size: 'A4', margin: 40 });
-  const chunks = [];
-  doc.on('data', c => chunks.push(c));
-  return new Promise(resolve => {
-    doc.on('end', () => resolve(Buffer.concat(chunks)));
-
-    const titulo = 'FORMULÁRIO DE PAGAMENTO DE TAXAS';
-    
-    // Header
-    doc.rect(40, 40, doc.page.width - 80, 50).fillAndStroke('#333333', '#000000');
-    doc.fillColor('#FFFFFF').fontSize(16).text(titulo, 40, 58, { width: doc.page.width - 80, align: 'center' });
-    
-    doc.fillColor('#000000').fontSize(10);
-    let y = 100;
-
-    const drawBox = (label, value, x, y, w, h) => {
-        doc.rect(x, y, w, h).stroke();
-        doc.font('Helvetica-Bold').text(label, x + 5, y + 5);
-        doc.font('Helvetica').text(value || '', x + 5, y + 20);
-    };
-
-    // Nome da Taxa
-    drawBox('NOME DA TAXA:', payload.nome_taxa, 40, y, doc.page.width - 80, 40);
-    y += 40;
-
-    // CPF
-    drawBox('CPF:', payload.cpf, 40, y, doc.page.width - 80, 40);
-    y += 40;
-
-    // Forma de Pagamento
-    const formaPagamentoText = payload.forma_pagamento === 'transferencia' ? 'TRANSFERÊNCIA BANCÁRIA' : 
-                               payload.forma_pagamento === 'pix' ? 'PIX' : '';
-    drawBox('FORMA DE PAGAMENTO:', formaPagamentoText, 40, y, doc.page.width - 80, 40);
-    y += 40;
-
-    // Banco | Agencia | Conta | Tipo
-    const w4 = (doc.page.width - 80) / 4;
-    drawBox('BANCO:', payload.banco, 40, y, w4, 40);
-    drawBox('AGÊNCIA:', payload.agencia, 40 + w4, y, w4, 40);
-    drawBox('CONTA:', payload.conta, 40 + w4 * 2, y, w4, 40);
-    
-    // Tipo de Conta Checkboxes
-    doc.rect(40 + w4 * 3, y, w4, 40).stroke();
-    doc.font('Helvetica-Bold').text('TIPO DE CONTA:', 40 + w4 * 3 + 5, y + 5);
-    const ccCheck = payload.tipo_conta === 'corrente' ? '(X)' : '( )';
-    const cpCheck = payload.tipo_conta === 'poupanca' ? '(X)' : '( )';
-    doc.font('Helvetica').fontSize(8).text(`Conta Corrente ${ccCheck}`, 40 + w4 * 3 + 5, y + 20);
-    doc.font('Helvetica').fontSize(8).text(`Conta Poupança ${cpCheck}`, 40 + w4 * 3 + 5, y + 30);
-    doc.fontSize(10);
-    y += 40;
-
-    // PIX
-    drawBox('PIX VINCULADO A CONTA:', payload.pix, 40, y, doc.page.width - 80, 40);
-    y += 40;
-
-    // Departamento | Funcao
-    const w2 = (doc.page.width - 80) / 2;
-    drawBox('DEPARTAMENTO:', payload.departamento, 40, y, w2, 40);
-    drawBox('FUNÇÃO:', payload.funcao, 40 + w2, y, w2, 40);
-    y += 40;
-
-    // Motivo
-    doc.rect(40, y, doc.page.width - 80, 30).stroke();
-    doc.font('Helvetica-Bold').text('MOTIVO:', 45, y + 10);
-    const motivos = payload.motivo || [];
-    const mDemanda = motivos.includes('aumento_demanda') ? '(X)' : '( )';
-    const mEvento = motivos.includes('evento') ? '(X)' : '( )';
-    const mVaga = motivos.includes('vaga_aberta') ? '(X)' : '( )';
-    
-    doc.font('Helvetica').text(`${mDemanda} AUMENTO DE DEMANDA   ${mEvento} EVENTO   ${mVaga} VAGA ABERTA (ANTECESSOR): ${payload.antecessor || '________________'}`, 100, y + 10);
-    y += 30;
-
-    // Table Header
-    doc.rect(40, y, doc.page.width - 80, 20).fill('#555555');
-    doc.fillColor('#FFFFFF').font('Helvetica-Bold');
-    doc.text('ITEM', 40, y + 5, { width: w4, align: 'center' });
-    doc.text('VALOR', 40 + w4, y + 5, { width: w4, align: 'center' });
-    doc.text('QUANTIDADE', 40 + w4 * 2, y + 5, { width: w4, align: 'center' });
-    doc.text('TOTAL', 40 + w4 * 3, y + 5, { width: w4, align: 'center' });
-    y += 20;
-
-    // Table Rows
-    const drawRow = (item, valor, qtd, total) => {
-        doc.fillColor('#000000').font('Helvetica');
-        doc.rect(40, y, w4, 20).stroke();
-        doc.text(item, 40, y + 5, { width: w4, align: 'center' });
-        
-        doc.rect(40 + w4, y, w4, 20).stroke();
-        doc.text(valor, 40 + w4, y + 5, { width: w4, align: 'center' });
-        
-        doc.rect(40 + w4 * 2, y, w4, 20).stroke();
-        doc.text(qtd, 40 + w4 * 2, y + 5, { width: w4, align: 'center' });
-        
-        doc.rect(40 + w4 * 3, y, w4, 20).stroke();
-        doc.text(total, 40 + w4 * 3, y + 5, { width: w4, align: 'center' });
-        y += 20;
-    };
-
-    drawRow('TAXA', payload.valores?.taxa?.valor || '', payload.valores?.taxa?.qtd || '', payload.valores?.taxa?.total || '');
-    drawRow('VT', payload.valores?.vt?.valor || '', payload.valores?.vt?.qtd || '', payload.valores?.vt?.total || '');
-    
-    // Total Geral
-    doc.fillColor('#000000').font('Helvetica-Bold');
-    doc.rect(40, y, w4, 20).stroke();
-    doc.text('TOTAL', 40, y + 5, { width: w4, align: 'center' });
-    doc.rect(40 + w4, y, w4 * 3, 20).stroke(); // Empty middle
-    doc.rect(40 + w4 * 3, y, w4, 20).stroke();
-    doc.text(payload.valores?.total_geral || '', 40 + w4 * 3, y + 5, { width: w4, align: 'center' });
-    y += 30;
-
-    // Dias Trabalhados
-    doc.font('Helvetica-Bold').text('Marque os dias o mês e o a semana em que foram realizados a taxa', 40, y);
-    y += 15;
-    
-    const dias = payload.dias_trabalhados || [];
-    // Print in rows of 2
-    for(let i=0; i<dias.length; i+=2) {
-        const d1 = dias[i];
-        const d2 = dias[i+1];
-        
-        let textLine = `Data: ${d1.data ? new Date(d1.data).toLocaleDateString('pt-BR') : '___/___/___'}   Dia da Semana: ${d1.dia || '_________'}`;
-        if (d2) {
-            textLine += `          Data: ${d2.data ? new Date(d2.data).toLocaleDateString('pt-BR') : '___/___/___'}   Dia da Semana: ${d2.dia || '_________'}`;
-        }
-        doc.font('Helvetica').text(textLine, 40, y);
-        doc.moveTo(40, y+12).lineTo(doc.page.width - 40, y+12).stroke(); // Underline look
-        y += 20;
-    }
-    if (dias.length === 0) {
-        // Empty lines if no dates
-         doc.font('Helvetica').text('Data: ___/___/___   Dia da Semana: _________          Data: ___/___/___   Dia da Semana: _________', 40, y);
-         y+=20;
-         doc.font('Helvetica').text('Data: ___/___/___   Dia da Semana: _________          Data: ___/___/___   Dia da Semana: _________', 40, y);
-         y+=20;
-    }
-    y += 10;
-
-    // Observacoes
-    doc.font('Helvetica-Bold').text('Observações de pagamento:', 40, y);
-    y += 15;
-    doc.font('Helvetica').fontSize(9);
-    
-    const obsWidth = doc.page.width - 80;
-    const obs1 = '• Os formulários devem serem entregues na segunda feira até as 12:00 e serão pagas na terça feira e na quinta feita até as 12:00 que serão pagas na sexta feira.';
-    const h1 = doc.heightOfString(obs1, { width: obsWidth });
-    doc.text(obs1, 40, y, { width: obsWidth });
-    y += h1 + 5;
-
-    const obs2 = '• Os formulários não entregues no prazo, ou em caso de falta de dados cadastrais, ou com letras ilegíveis, a taxa só será paga no prazo seguinte.';
-    const h2 = doc.heightOfString(obs2, { width: obsWidth });
-    doc.text(obs2, 40, y, { width: obsWidth });
-    y += h2 + 60; // Garante espaço suficiente para a assinatura (que é desenhada com y-50)
-
-    // Assinaturas
-    const sigW = (doc.page.width - 80) / 2 - 20;
-    
-    // Taxa
-    doc.moveTo(40, y).lineTo(40 + sigW, y).stroke();
-    doc.font('Helvetica').fontSize(10).text('Assinatura do Taxa', 40, y + 5, { width: sigW, align: 'center' });
-    if (payload.assinatura_taxa) {
-        try {
-            const sigBuf = Buffer.from(payload.assinatura_taxa.replace(/^data:image\/\w+;base64,/, ''), 'base64');
-            // Mantendo y - 50, mas como y desceu, a assinatura sobe em relação à linha, mas fica longe do texto acima
-            doc.image(sigBuf, 40 + (sigW/2) - 50, y - 50, { fit: [100, 40] });
-        } catch(e) {}
-    }
-
-    // Gestor
-    doc.moveTo(doc.page.width - 40 - sigW, y).lineTo(doc.page.width - 40, y).stroke();
-    doc.text('Assinatura Líder/Gestor', doc.page.width - 40 - sigW, y + 5, { width: sigW, align: 'center' });
-    if (payload.assinatura_gestor) {
-        try {
-            const sigBuf = Buffer.from(payload.assinatura_gestor.replace(/^data:image\/\w+;base64,/, ''), 'base64');
-            doc.image(sigBuf, doc.page.width - 40 - sigW + (sigW/2) - 50, y - 50, { fit: [100, 40] });
-        } catch(e) {}
-    }
-    
-    y += 40;
-    // Data RH
-    doc.moveTo(doc.page.width - 200, y).lineTo(doc.page.width - 40, y).stroke();
-    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}   RH/DP`, doc.page.width - 200, y + 5, { width: 160, align: 'right' });
-
-    doc.end();
-  });
-}
-
-function pdfBufferFromVagaData(payload) {
-  const doc = new PDFDocument({ size: 'A4', margin: 40 });
-  const chunks = [];
-  doc.on('data', c => chunks.push(c));
-  return new Promise(resolve => {
-    doc.on('end', () => resolve(Buffer.concat(chunks)));
-
-    const titulo = 'FORMULÁRIO ABERTURA DE VAGA DE TRABALHO';
-    
-    // Header Box
-    doc.rect(40, 40, doc.page.width - 80, 50).fillAndStroke('#333333', '#000000');
-    doc.fillColor('#FFFFFF').fontSize(16).text(titulo, 40, 58, { width: doc.page.width - 80, align: 'center' });
-    
-    // Reset colors for body
-    doc.fillColor('#000000').fontSize(10);
-    let y = 100;
-
-    // Helper to draw labeled box
-    const drawBox = (label, value, x, y, w, h) => {
-        doc.rect(x, y, w, h).stroke();
-        doc.font('Helvetica-Bold').text(label, x + 5, y + 5);
-        doc.font('Helvetica').text(value || '', x + 5, y + 20);
-    };
-
-    // Dados Gerais Header
-    doc.rect(40, y, doc.page.width - 80, 20).fill('#555555');
-    doc.fillColor('#FFFFFF').font('Helvetica-Bold').text('DADOS GERAIS', 40, y + 5, { width: doc.page.width - 80, align: 'center' });
-    y += 20;
-
-    doc.fillColor('#000000');
-    // Cargo | Num Vagas
-    drawBox('CARGO:', payload.cargo, 40, y, (doc.page.width - 80) * 0.7, 40);
-    drawBox('NÚMERO DE VAGAS:', payload.numero_vagas, 40 + (doc.page.width - 80) * 0.7, y, (doc.page.width - 80) * 0.3, 40);
-    y += 40;
-    // Setor | Data
-    drawBox('SETOR:', payload.setor, 40, y, (doc.page.width - 80) * 0.7, 40);
-    drawBox('DATA:', new Date(payload.data_abertura).toLocaleDateString('pt-BR'), 40 + (doc.page.width - 80) * 0.7, y, (doc.page.width - 80) * 0.3, 40);
-    y += 40;
-
-    // Motivo Header
-    doc.rect(40, y, doc.page.width - 80, 20).fill('#555555');
-    doc.fillColor('#FFFFFF').font('Helvetica-Bold').text('MOTIVO DA CONTRATAÇÃO', 40, y + 5, { width: doc.page.width - 80, align: 'center' });
-    y += 20;
-
-    doc.fillColor('#000000');
-    // Left side: Substituicao details
-    const leftW = (doc.page.width - 80) * 0.65;
-    const rightW = (doc.page.width - 80) * 0.35;
-    
-    doc.rect(40, y, leftW, 80).stroke();
-    doc.font('Helvetica-Bold').text('SUBSTITUIÇÃO (nome):', 45, y + 10);
-    doc.font('Helvetica').text(payload.substituicao_nome || '__________________________', 160, y + 10);
-    
-    doc.font('Helvetica-Bold').text('SERÁ DESLIGADO:', 45, y + 35);
-    const simCheck = payload.sera_desligado === 'sim' ? '( X )' : '(   )';
-    const naoCheck = payload.sera_desligado === 'nao' ? '( X )' : '(   )';
-    doc.font('Helvetica').text(`${simCheck} SIM   ${naoCheck} NÃO`, 150, y + 35);
-
-    doc.font('Helvetica-Bold').text('REPORTARÁ A QUEM:', 45, y + 60);
-    doc.font('Helvetica').text(payload.reportara_a || '__________________________', 170, y + 60);
-
-    // Right side: Checkboxes
-    doc.rect(40 + leftW, y, rightW, 80).stroke();
-    const substCheck = payload.motivo === 'substituicao' ? '( X )' : '(   )';
-    const aumCheck = payload.motivo === 'aumento_quadro' ? '( X )' : '(   )';
-    
-    doc.font('Helvetica-Bold').text(`SUBSTITUIÇÃO ${substCheck}`, 40 + leftW + 10, y + 25);
-    doc.font('Helvetica-Bold').text(`AUMENTO DE QUADRO ${aumCheck}`, 40 + leftW + 10, y + 55);
-    y += 80;
-
-    // Escala / Tipo
-    doc.rect(40, y, leftW, 20).fill('#555555');
-    doc.fillColor('#FFFFFF').text('ESCALA / HORÁRIO DE TRABALHO', 40, y + 5, { width: leftW, align: 'center' });
-    
-    doc.rect(40 + leftW, y, rightW, 20).fill('#555555');
-    doc.text('TIPO DE CONTRATAÇÃO', 40 + leftW, y + 5, { width: rightW, align: 'center' });
-    y += 20;
-
-    doc.fillColor('#000000');
-    // Escala content
-    doc.rect(40, y, leftW, 50).stroke();
-    doc.font('Helvetica').text(payload.escala_horario || '', 45, y + 15, { width: leftW - 10 });
-
-    // Tipo content
-    doc.rect(40 + leftW, y, rightW, 50).stroke();
-    const menCheck = payload.tipo_contratacao === 'mensalista' ? '( X )' : '(   )';
-    const horCheck = payload.tipo_contratacao === 'horista' ? '( X )' : '(   )';
-    doc.font('Helvetica-Bold').text(`MENSALISTA ${menCheck}`, 40 + leftW + 10, y + 15);
-    doc.font('Helvetica-Bold').text(`HORISTA       ${horCheck}`, 40 + leftW + 10, y + 35);
-    y += 50;
-
-    // Salario Header
-    doc.rect(40, y, doc.page.width - 80, 20).fill('#555555');
-    doc.fillColor('#FFFFFF').text('SALÁRIO E BENEFÍCIOS:', 40, y + 5, { width: doc.page.width - 80, align: 'center' });
-    y += 20;
-
-    doc.fillColor('#000000');
-    doc.rect(40, y, doc.page.width - 80, 40).stroke();
-    doc.font('Helvetica').text(payload.salario_beneficios || '', 45, y + 10);
-    y += 40;
-
-    // Faixa Etaria | Sexo
-    doc.rect(40, y, leftW, 20).fill('#555555');
-    doc.fillColor('#FFFFFF').text('FAIXA ETÁRIA | IDADE', 40, y + 5, { width: leftW, align: 'center' });
-    
-    doc.rect(40 + leftW, y, rightW, 20).fill('#555555');
-    doc.text('SEXO', 40 + leftW, y + 5, { width: rightW, align: 'center' });
-    y += 20;
-
-    doc.fillColor('#000000');
-    doc.rect(40, y, leftW, 30).stroke();
-    doc.font('Helvetica').text(payload.faixa_etaria || '', 45, y + 10);
-
-    doc.rect(40 + leftW, y, rightW, 30).stroke();
-    doc.font('Helvetica').text(payload.sexo || '', 40 + leftW + 10, y + 10);
-    y += 30;
-
-    // Detalhamento Header
-    doc.rect(40, y, doc.page.width - 80, 35).fill('#555555');
-    doc.fillColor('#FFFFFF').font('Helvetica-Bold').text('DETALHAMENTO DO PERFIL / DESCRIÇÃO DE ATIVIDADES', 40, y + 5, { width: doc.page.width - 80, align: 'center' });
-    doc.font('Helvetica').fontSize(8).text('Obs.: Nesse campo o solicitante deve preencher as atividades/responsabilidades do cargo e também detalhar o perfil desejado para que o recrutador atenda a solicitação de forma assertiva.', 45, y + 20, { width: doc.page.width - 90, align: 'center' });
-    y += 35;
-
-    doc.fillColor('#000000').fontSize(10);
-    doc.rect(40, y, doc.page.width - 80, 80).stroke();
-    doc.text(payload.detalhamento_atividades || '', 45, y + 5, { width: doc.page.width - 90 });
-    y += 80;
-
-    // Experiencia | Formacao
-    const halfW = (doc.page.width - 80) / 2;
-    doc.rect(40, y, halfW, 20).fill('#555555');
-    doc.fillColor('#FFFFFF').font('Helvetica-Bold').text('EXPERIÊNCIA', 40, y + 5, { width: halfW, align: 'center' });
-    doc.rect(40 + halfW, y, halfW, 20).fill('#555555');
-    doc.text('FORMAÇÃO', 40 + halfW, y + 5, { width: halfW, align: 'center' });
-    y += 20;
-
-    doc.fillColor('#000000');
-    doc.rect(40, y, halfW, 60).stroke();
-    doc.text(payload.experiencia || '', 45, y + 5, { width: halfW - 10 });
-    doc.rect(40 + halfW, y, halfW, 60).stroke();
-    doc.text(payload.formacao || '', 40 + halfW + 5, y + 5, { width: halfW - 10 });
-    y += 60;
-
-    // Requisitos | Observacao
-    doc.rect(40, y, halfW, 20).fill('#555555');
-    doc.fillColor('#FFFFFF').font('Helvetica-Bold').text('REQUISITOS', 40, y + 5, { width: halfW, align: 'center' });
-    doc.rect(40 + halfW, y, halfW, 20).fill('#555555');
-    doc.text('OBSERVAÇÃO', 40 + halfW, y + 5, { width: halfW, align: 'center' });
-    y += 20;
-
-    doc.fillColor('#000000');
-    doc.rect(40, y, halfW, 60).stroke();
-    doc.text(payload.requisitos || '', 45, y + 5, { width: halfW - 10 });
-    doc.rect(40 + halfW, y, halfW, 60).stroke();
-    doc.text(payload.observacao || '', 40 + halfW + 5, y + 5, { width: halfW - 10 });
-    y += 80; // Extra space
-
-    // Footer Signature
-    doc.font('Helvetica').text('Data: _____/_____/_______', 40, y);
-    doc.moveTo(300, y).lineTo(550, y).stroke();
-    doc.text('Assinatura do responsável', 300, y + 5);
-
-    if (payload.assinatura) {
-        try {
-            const sigBuf = Buffer.from(payload.assinatura.replace(/^data:image\/\w+;base64,/, ''), 'base64');
-            doc.image(sigBuf, 320, y - 50, { fit: [200, 50] });
-        } catch(e) { console.error('Erro img assinatura vaga', e); }
-    }
-
-    doc.end();
-  });
-}
 
 async function enviarEmailComPDF(buffer, filename, payload) {
   const host = process.env.SMTP_HOST;
@@ -879,6 +516,110 @@ async function enviarEmailTaxasRH(payload) {
 }
 
 // --- Rotas API ---
+
+// Gestão de Funcionários (RH)
+app.get('/api/rh/funcionarios', rhAuth, (req, res) => {
+    const funcionarios = readFuncionariosDB();
+    res.json(funcionarios);
+});
+
+app.post('/api/rh/funcionarios/importar', rhAuth, (req, res) => {
+    try {
+        const { funcionarios } = req.body;
+        if (!Array.isArray(funcionarios)) {
+            return res.status(400).json({ ok: false, erro: 'Formato inválido' });
+        }
+
+        const db = readFuncionariosDB();
+        let novos = 0;
+        let atualizados = 0;
+
+        funcionarios.forEach(f => {
+            const idx = db.findIndex(existing => existing.cpf === f.cpf);
+            if (idx >= 0) {
+                // Atualiza existente preservando ID
+                db[idx] = { ...db[idx], ...f };
+                atualizados++;
+            } else {
+                // Cria novo
+                db.push({
+                    id: crypto.randomUUID(),
+                    ...f
+                });
+                novos++;
+            }
+        });
+
+        writeFuncionariosDB(db);
+        res.json({ ok: true, novos, atualizados });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao importar funcionários' });
+    }
+});
+
+app.delete('/api/rh/funcionarios/:id', rhAuth, (req, res) => {
+    try {
+        const db = readFuncionariosDB();
+        const novoDb = db.filter(f => f.id !== req.params.id);
+        
+        if (db.length === novoDb.length) {
+            return res.status(404).json({ ok: false, erro: 'Funcionário não encontrado' });
+        }
+
+        writeFuncionariosDB(novoDb);
+        res.json({ ok: true });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao excluir funcionário' });
+    }
+});
+
+// Gestão de EPIs (RH)
+app.get('/api/rh/epis', rhAuth, (req, res) => {
+    const epis = readEpisDB();
+    res.json(epis);
+});
+
+app.post('/api/rh/epis', rhAuth, (req, res) => {
+    try {
+        const { nome, valor } = req.body;
+        if (!nome || !valor) return res.status(400).json({ ok: false, erro: 'Dados incompletos' });
+
+        const db = readEpisDB();
+        const novoEpi = {
+            id: crypto.randomUUID(),
+            nome,
+            valor: parseFloat(valor),
+            createdAt: new Date().toISOString()
+        };
+        
+        db.push(novoEpi);
+        writeEpisDB(db);
+
+        res.json({ ok: true });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao criar EPI' });
+    }
+});
+
+app.delete('/api/rh/epis/:id', rhAuth, (req, res) => {
+    try {
+        const db = readEpisDB();
+        const idx = db.findIndex(i => i.id == req.params.id); // == to catch string/number
+        if (idx === -1) return res.status(404).json({ ok: false, erro: 'EPI não encontrado' });
+
+        db.splice(idx, 1);
+        writeEpisDB(db);
+
+        res.json({ ok: true });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao remover EPI' });
+    }
+});
+
 app.get('/api/solicitacao/:id', (req, res) => {
     const db = readDB();
     const item = db.find(i => i.id === req.params.id);
@@ -915,7 +656,7 @@ app.get('/api/pdf/:id', async (req, res) => {
         const item = db.find(i => i.id === req.params.id);
         if (!item) return res.status(404).send('Solicitação não encontrada');
         
-        const buffer = await pdfBufferFromData(item);
+        const buffer = await pdfService.pdfBufferFromData(item);
         
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename=Ferias_${item.nome.replace(/\s+/g, '_')}.pdf`);
@@ -1059,7 +800,7 @@ app.post('/api/solicitacao', async (req, res) => {
         return res.json({ ok: true, mensagem: 'Aprovação registrada. Aguardando assinatura.' });
     }
 
-    const pdfBuffer = await pdfBufferFromData(req.body);
+    const pdfBuffer = await pdfService.pdfBufferFromData(req.body);
     const filename = `${req.body.nome.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
     const emailResult = await enviarEmailComPDF(pdfBuffer, filename, req.body);
     
@@ -1286,7 +1027,7 @@ app.get('/api/taxas/pdf/:id', async (req, res) => {
     if (!item) return res.status(404).send('Solicitação não encontrada');
 
     try {
-        const buffer = await pdfBufferFromTaxaData(item);
+        const buffer = await pdfService.pdfBufferFromTaxaData(item);
         res.set({
             'Content-Type': 'application/pdf',
             'Content-Disposition': `inline; filename="taxa-${item.nome_taxa}.pdf"`
@@ -1386,7 +1127,7 @@ app.post('/api/vagas/avaliar', rhAuth, async (req, res) => {
     }
 });
 
-app.post('/api/vagas', async (req, res) => {
+app.post('/api/vagas', rhAuth, async (req, res) => {
     try {
         const payload = req.body;
         if (!payload.cargo || !payload.setor) {
@@ -1507,7 +1248,7 @@ app.get('/api/vagas/pdf/:id', async (req, res) => {
         const item = db.find(i => i.id === req.params.id);
         if (!item) return res.status(404).send('Vaga não encontrada');
         
-        const buffer = await pdfBufferFromVagaData(item);
+        const buffer = await pdfService.pdfBufferFromVagaData(item);
         
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename=Vaga_${item.cargo.replace(/\s+/g, '_')}.pdf`);
@@ -1706,7 +1447,605 @@ app.delete('/api/rh/candidatos/:id', rhAuth, (req, res) => {
 });
 
 
+// --- Rotas Portaria (EPIs) ---
+
+// Buscar funcionário por CPF (Simulação Biometria)
+app.get('/api/portaria/funcionario/:cpf', portariaAuth, (req, res) => {
+    try {
+        const cpf = req.params.cpf.replace(/\D/g, ''); // Remove formatação
+        const funcionarios = readFuncionariosDB();
+        
+        if (!funcionarios || !Array.isArray(funcionarios)) {
+             console.error('Erro DB Funcionarios: ', funcionarios);
+             return res.status(500).json({ ok: false, erro: 'Erro no banco de dados de funcionários' });
+        }
+
+        const func = funcionarios.find(f => f.cpf && f.cpf.replace(/\D/g, '') === cpf);
+
+        if (!func) return res.status(404).json({ ok: false, erro: 'Funcionário não encontrado' });
+
+        // Verificação de pendências financeiras (Termos de Desconto não resolvidos)
+        let descontos = [];
+        try {
+            descontos = readDescontosEpisDB();
+        } catch(e) {
+            descontos = [];
+        }
+
+        const pendencias = descontos.filter(d => 
+            d.cpf_funcionario.replace(/\D/g, '') === cpf && 
+            d.status !== 'resolvido'
+        );
+
+        if (pendencias.length > 0) {
+            return res.status(403).json({ 
+                ok: false, 
+                erro: 'BLOQUEADO: Funcionário possui termo de desconto pendente no RH. Favor comparecer ao DP.',
+                bloqueado: true
+            });
+        }
+
+        // Buscar movimentações abertas (itens que estão com o funcionário)
+        let movimentacoes = [];
+        try {
+            movimentacoes = readMovimentacoesEpisDB();
+            if (!Array.isArray(movimentacoes)) movimentacoes = [];
+        } catch(e) {
+            console.error('Erro ao ler movimentacoes:', e);
+            movimentacoes = [];
+        }
+
+        const itensEmPosse = movimentacoes
+            .filter(m => m.funcionario_id === func.id && m.data_devolucao === null)
+            .map(m => m.epi_id);
+
+        res.json({
+            ok: true,
+            funcionario: {
+                id: func.id,
+                nome: func.nome,
+                cargo: func.cargo,
+                setor: func.setor,
+                cpf: func.cpf
+            },
+            itensEmPosse
+        });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao buscar funcionário' });
+    }
+});
+
+// Listar todos EPIs
+app.get('/api/portaria/epis', portariaAuth, (req, res) => {
+    const epis = readEpisDB();
+    res.json(epis);
+});
+
+// Atualizar Estoque (Adicionar)
+app.post('/api/portaria/estoque', portariaAuth, (req, res) => {
+    try {
+        const { epi_id, quantidade } = req.body;
+        const db = readEpisDB();
+        const idx = db.findIndex(e => e.id === epi_id);
+        
+        if (idx !== -1) {
+            db[idx].estoque = (db[idx].estoque || 0) + parseInt(quantidade);
+            writeEpisDB(db);
+            res.json({ ok: true, novo_estoque: db[idx].estoque });
+        } else {
+            res.status(404).json({ ok: false, erro: 'Item não encontrado' });
+        }
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao atualizar estoque' });
+    }
+});
+
+// Registrar Movimentação (Entrada/Saída)
+app.post('/api/portaria/movimentacao', portariaAuth, (req, res) => {
+    try {
+        const { funcionario_id, itens_retirados, itens_devolvidos } = req.body; // Arrays de IDs de EPIs
+        const db = readMovimentacoesEpisDB();
+        const dbEpis = readEpisDB(); // Carregar EPIs para atualizar estoque
+        const agora = new Date().toISOString();
+
+        // Registrar retiradas
+        if (itens_retirados && itens_retirados.length > 0) {
+            // Validação de estoque primeiro
+            for (const epi_id of itens_retirados) {
+                const epi = dbEpis.find(e => e.id === epi_id);
+                if (!epi) return res.status(400).json({ ok: false, erro: 'Item não encontrado' });
+                if ((epi.estoque || 0) <= 0) {
+                    return res.status(400).json({ 
+                        ok: false, 
+                        erro: `Estoque insuficiente para: ${epi.nome}` 
+                    });
+                }
+            }
+
+            itens_retirados.forEach(epi_id => {
+                db.push({
+                    id: crypto.randomUUID(),
+                    funcionario_id,
+                    epi_id,
+                    data_retirada: agora,
+                    data_devolucao: null,
+                    evidencia_retirada: req.body.evidencia,
+                    tipo_evidencia_retirada: req.body.tipo_evidencia
+                });
+
+                // Baixa no estoque
+                const epiIndex = dbEpis.findIndex(e => e.id === epi_id);
+                if (epiIndex !== -1) {
+                    dbEpis[epiIndex].estoque = (dbEpis[epiIndex].estoque || 0) - 1;
+                }
+            });
+            writeEpisDB(dbEpis);
+        }
+
+        // Registrar devoluções (atualizar registros abertos)
+        if (itens_devolvidos && itens_devolvidos.length > 0) {
+            itens_devolvidos.forEach(epi_id => {
+                // Procura o registro mais antigo aberto deste item para este funcionário
+                const regIndex = db.findIndex(m => 
+                    m.funcionario_id === funcionario_id && 
+                    m.epi_id === epi_id && 
+                    m.data_devolucao === null
+                );
+                
+                if (regIndex !== -1) {
+                    db[regIndex].data_devolucao = agora;
+                    db[regIndex].evidencia_devolucao = req.body.evidencia;
+                    db[regIndex].tipo_evidencia_devolucao = req.body.tipo_evidencia;
+                }
+            });
+        }
+
+        writeMovimentacoesEpisDB(db);
+        res.json({ ok: true });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao registrar movimentação' });
+    }
+});
+
+// Gerar Termo de Desconto
+app.post('/api/portaria/desconto', portariaAuth, async (req, res) => {
+    try {
+        const payload = req.body; // { nome_funcionario, cpf_funcionario, itens: [{nome, valor}], parcelas }
+        
+        // Salvar registro do desconto
+        const db = readDescontosEpisDB();
+        const id = crypto.randomUUID();
+        db.push({ 
+            id, 
+            ...payload, 
+            status: 'pendente_rh', // Novo status
+            createdAt: new Date().toISOString() 
+        });
+        writeDescontosEpisDB(db);
+
+        // Não gera PDF aqui, apenas confirma envio ao RH
+        res.json({ ok: true, id, mensagem: 'Termo enviado para o RH com sucesso.' }); 
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao gerar desconto' });
+    }
+});
+
+app.get('/api/portaria/desconto/:id/pdf', portariaAuth, async (req, res) => {
+    // Mantido caso precise baixar depois, mas o fluxo principal agora é via RH
+    try {
+        const db = readDescontosEpisDB();
+        const item = db.find(i => i.id === req.params.id);
+        if (!item) return res.status(404).send('Desconto não encontrado');
+        
+        const buffer = await pdfService.pdfBufferFromDescontoData(item);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=Desconto_${item.nome_funcionario}.pdf`);
+        res.send(buffer);
+    } catch (e) {
+        res.status(500).send('Erro');
+    }
+});
+
+// --- Rotas RH Descontos ---
+
+app.get('/api/rh/descontos', rhAuth, (req, res) => {
+    const db = readDescontosEpisDB();
+    // Ordenar pendentes primeiro
+    const lista = db.sort((a, b) => {
+        if (a.status === 'pendente_rh' && b.status !== 'pendente_rh') return -1;
+        if (a.status !== 'pendente_rh' && b.status === 'pendente_rh') return 1;
+        return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+    res.json(lista);
+});
+
+app.post('/api/rh/descontos/:id/resolver', rhAuth, (req, res) => {
+    try {
+        const db = readDescontosEpisDB();
+        const idx = db.findIndex(i => i.id === req.params.id);
+        if (idx === -1) return res.status(404).json({ ok: false, erro: 'Termo não encontrado' });
+        
+        db[idx].status = 'resolvido';
+        db[idx].resolvidoEm = new Date().toISOString();
+        writeDescontosEpisDB(db);
+        
+        res.json({ ok: true });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao resolver termo' });
+    }
+});
+
+app.get('/api/rh/descontos/:id/pdf', rhAuth, async (req, res) => {
+    try {
+        const db = readDescontosEpisDB();
+        const item = db.find(i => i.id === req.params.id);
+        if (!item) return res.status(404).send('Desconto não encontrado');
+        
+        const buffer = await pdfService.pdfBufferFromDescontoData(item);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename=Desconto_${item.nome_funcionario}.pdf`);
+        res.send(buffer);
+    } catch (e) {
+        res.status(500).send('Erro');
+    }
+});
+
+app.get('/api/rh/movimentacoes', rhAuth, (req, res) => {
+    try {
+        const db = readMovimentacoesEpisDB();
+        const sorted = db.sort((a, b) => {
+             const dateA = a.data_devolucao || a.data_retirada;
+             const dateB = b.data_devolucao || b.data_retirada;
+             return new Date(dateB) - new Date(dateA);
+        });
+        res.json(sorted);
+    } catch (e) {
+        console.error(e);
+        res.status(500).json([]);
+    }
+});
+
+const readEntrevistasDesligamentoDB = () => {
+    try {
+        const data = fs.readFileSync(path.join(__dirname, 'data', 'entrevistas_desligamento.json'));
+        return JSON.parse(data);
+    } catch (e) { return []; }
+};
+
+const writeEntrevistasDesligamentoDB = (data) => {
+    fs.writeFileSync(path.join(__dirname, 'data', 'entrevistas_desligamento.json'), JSON.stringify(data, null, 2));
+};
+
+
+
+// --- Rotas Entrevistas Desligamento ---
+
+app.get('/api/rh/entrevistas-desligamento', rhAuth, (req, res) => {
+    try {
+        const db = readEntrevistasDesligamentoDB();
+        res.json(db.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao listar entrevistas' });
+    }
+});
+
+app.post('/api/rh/entrevistas-desligamento', rhAuth, (req, res) => {
+    try {
+        const db = readEntrevistasDesligamentoDB();
+        const novo = {
+            id: crypto.randomUUID(),
+            createdAt: new Date().toISOString(),
+            ...req.body
+        };
+        db.push(novo);
+        writeEntrevistasDesligamentoDB(db);
+        res.json({ ok: true, id: novo.id });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao salvar entrevista' });
+    }
+});
+
+app.get('/api/rh/entrevistas-desligamento/:id', rhAuth, (req, res) => {
+    try {
+        const db = readEntrevistasDesligamentoDB();
+        const item = db.find(i => i.id === req.params.id);
+        if (!item) return res.status(404).json({ ok: false, erro: 'Não encontrado' });
+        res.json(item);
+    } catch (e) {
+        res.status(500).json({ ok: false, erro: 'Erro ao buscar' });
+    }
+});
+
+app.get('/api/rh/entrevistas-desligamento/:id/pdf', rhAuth, async (req, res) => {
+    try {
+        const db = readEntrevistasDesligamentoDB();
+        const item = db.find(i => i.id === req.params.id);
+        if (!item) return res.status(404).send('Não encontrado');
+        
+        const buffer = await pdfService.pdfBufferFromEntrevistaDesligamentoData(item);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=Desligamento_${item.nome.replace(/\s+/g, '_')}.pdf`);
+        res.send(buffer);
+    } catch (e) {
+        console.error(e);
+        res.status(500).send('Erro ao gerar PDF');
+    }
+});
+
+app.get('/protected/entrevista-desligamento.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'protected', 'entrevista-desligamento.html'));
+});
+
+// Public POST for interview submission (No RH Auth required)
+app.post('/api/entrevistas-desligamento', (req, res) => {
+    try {
+        const db = readEntrevistasDesligamentoDB();
+        const novo = {
+            id: crypto.randomUUID(),
+            createdAt: new Date().toISOString(),
+            ...req.body
+        };
+        db.push(novo);
+        writeEntrevistasDesligamentoDB(db);
+        res.json({ ok: true, id: novo.id });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao salvar entrevista' });
+    }
+});
+
+app.get('/protected/dashboard-desligamento.html', rhAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, 'protected', 'dashboard-desligamento.html'));
+});
+
+
+const RECRUTAMENTO_DB_PATH = path.join(__dirname, 'data', 'recrutamento_interno.json');
+
+function readRecrutamentoDB() {
+    if (!fs.existsSync(RECRUTAMENTO_DB_PATH)) return [];
+    try {
+        const data = fs.readFileSync(RECRUTAMENTO_DB_PATH, 'utf8');
+        return JSON.parse(data);
+    } catch (e) {
+        return [];
+    }
+}
+
+function writeRecrutamentoDB(data) {
+    fs.writeFileSync(RECRUTAMENTO_DB_PATH, JSON.stringify(data, null, 2));
+}
+
+async function enviarEmailRecrutamento(buffer, filename, payload) {
+    const host = process.env.SMTP_HOST;
+    const port = Number(process.env.SMTP_PORT || 587);
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+    const secure = String(process.env.SMTP_SECURE || 'false') === 'true';
+    const to = process.env.DP_EMAIL;
+    const from = process.env.MAIL_FROM || user;
+
+    const subject = `Recrutamento Interno – ${payload.nome} – ${payload.cargoPretendido}`;
+    const text = `Nova candidatura interna recebida.\n\nNome: ${payload.nome}\nCargo Atual: ${payload.cargoAtual}\nSetor: ${payload.setor}\nCargo Pretendido: ${payload.cargoPretendido}\n\nVeja o PDF anexo.`;
+
+    if (!host || !port || !user || !pass || !to) {
+        console.log('--- EMAIL MOCK (Recrutamento) ---');
+        console.log(`To: ${to}`);
+        console.log(`Subject: ${subject}`);
+        return { ok: true, mock: true };
+    }
+
+    const transporter = nodemailer.createTransport({ host, port, secure, auth: { user, pass } });
+    try {
+        await transporter.sendMail({ from, to, subject, text, attachments: [{ filename, content: buffer }] });
+        return { ok: true };
+    } catch (e) {
+        console.error('Erro ao enviar email recrutamento:', e);
+        return { ok: false, erro: e.message };
+    }
+}
+
+app.post('/api/recrutamento-interno', async (req, res) => {
+    try {
+        const payload = req.body;
+        // Basic validation
+        if (!payload.nome || !payload.cargoPretendido) {
+            return res.status(400).json({ ok: false, erro: 'Campos obrigatórios ausentes' });
+        }
+
+        const db = readRecrutamentoDB();
+        const novo = {
+            id: crypto.randomUUID(),
+            createdAt: new Date().toISOString(),
+            ...payload
+        };
+        
+        db.push(novo);
+        writeRecrutamentoDB(db);
+
+        // Generate PDF
+        try {
+            const buffer = await pdfService.pdfBufferFromRecrutamentoInternoData(novo);
+            const filename = `Recrutamento_${novo.nome.replace(/\s+/g, '_')}.pdf`;
+            
+            // Send Email
+            await enviarEmailRecrutamento(buffer, filename, novo);
+        } catch (pdfErr) {
+            console.error('Erro ao gerar/enviar PDF Recrutamento:', pdfErr);
+            // Não falha a requisição se o PDF falhar, mas loga
+        }
+
+        res.json({ ok: true, id: novo.id });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao processar recrutamento' });
+    }
+});
+
+// --- On The Job ---
+
+const ON_THE_JOB_DB_PATH = path.join(__dirname, 'data', 'onthejob.json');
+
+function readOnTheJobDB() {
+    if (!fs.existsSync(ON_THE_JOB_DB_PATH)) return [];
+    try {
+        const data = fs.readFileSync(ON_THE_JOB_DB_PATH, 'utf8');
+        return JSON.parse(data);
+    } catch (e) {
+        return [];
+    }
+}
+
+function writeOnTheJobDB(data) {
+    fs.writeFileSync(ON_THE_JOB_DB_PATH, JSON.stringify(data, null, 2));
+}
+
+async function enviarEmailOnTheJob(buffer, filename, payload) {
+    const host = process.env.SMTP_HOST;
+    const port = Number(process.env.SMTP_PORT || 587);
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+    const secure = String(process.env.SMTP_SECURE || 'false') === 'true';
+    const to = process.env.DP_EMAIL;
+    const from = process.env.MAIL_FROM || user;
+
+    const subject = `On The Job – ${payload.colaborador}`;
+    const text = `Nova solicitação de On The Job recebida.\n\nColaborador: ${payload.colaborador}\nEmpresa: ${payload.empresa}\nCargo Atual: ${payload.comparativo?.cargo?.atual || ''}\nCargo Proposto: ${payload.comparativo?.cargo?.proposta || ''}\n\nVeja o PDF anexo.`;
+
+    if (!host || !port || !user || !pass || !to) {
+        console.log('--- EMAIL MOCK (On The Job) ---');
+        console.log(`To: ${to}`);
+        console.log(`Subject: ${subject}`);
+        return { ok: true, mock: true };
+    }
+
+    const transporter = nodemailer.createTransport({ host, port, secure, auth: { user, pass } });
+    try {
+        await transporter.sendMail({ from, to, subject, text, attachments: [{ filename, content: buffer }] });
+        return { ok: true };
+    } catch (e) {
+        console.error('Erro ao enviar email On The Job:', e);
+        return { ok: false, erro: e.message };
+    }
+}
+
+app.post('/api/on-the-job', async (req, res) => {
+    try {
+        const payload = req.body;
+        // Basic validation
+        if (!payload.colaborador) {
+            return res.status(400).json({ ok: false, erro: 'Campos obrigatórios ausentes' });
+        }
+
+        const db = readOnTheJobDB();
+        const novo = {
+            id: crypto.randomUUID(),
+            createdAt: new Date().toISOString(),
+            ...payload
+        };
+        
+        db.push(novo);
+        writeOnTheJobDB(db);
+
+        // Generate PDF
+        try {
+            const buffer = await pdfService.pdfBufferFromOnTheJobData(novo);
+            const filename = `OnTheJob_${novo.colaborador.replace(/\s+/g, '_')}.pdf`;
+            
+            // Send Email
+            await enviarEmailOnTheJob(buffer, filename, novo);
+        } catch (pdfErr) {
+            console.error('Erro ao gerar/enviar PDF On The Job:', pdfErr);
+        }
+
+        res.json({ ok: true, id: novo.id });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao processar On The Job' });
+    }
+});
+
+// --- Rotas RH Recrutamento Interno ---
+
+app.get('/api/rh/recrutamento-interno', rhAuth, (req, res) => {
+    try {
+        const db = readRecrutamentoDB();
+        res.json(db.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao listar recrutamento interno' });
+    }
+});
+
+app.get('/api/rh/recrutamento-interno/:id', rhAuth, (req, res) => {
+    try {
+        const db = readRecrutamentoDB();
+        const item = db.find(i => i.id === req.params.id);
+        if (!item) return res.status(404).json({ ok: false, erro: 'Não encontrado' });
+        res.json(item);
+    } catch (e) {
+        res.status(500).json({ ok: false, erro: 'Erro ao buscar' });
+    }
+});
+
+app.get('/api/rh/recrutamento-interno/:id/pdf', rhAuth, async (req, res) => {
+    try {
+        const db = readRecrutamentoDB();
+        const item = db.find(i => i.id === req.params.id);
+        if (!item) return res.status(404).send('Não encontrado');
+        
+        const buffer = await pdfService.pdfBufferFromRecrutamentoInternoData(item);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=Recrutamento_${item.nome.replace(/\s+/g, '_')}.pdf`);
+        res.send(buffer);
+    } catch (e) {
+        console.error(e);
+        res.status(500).send('Erro ao gerar PDF');
+    }
+});
+
+app.get('/protected/dashboard-recrutamento.html', rhAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, 'protected', 'dashboard-recrutamento.html'));
+});
+
 // Final do arquivo
+// --- Rotas RH On The Job ---
+
+app.get('/api/rh/on-the-job', rhAuth, (req, res) => {
+    const db = readOnTheJobDB();
+    db.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    res.json(db);
+});
+
+app.get('/api/rh/on-the-job/:id', rhAuth, (req, res) => {
+    const db = readOnTheJobDB();
+    const item = db.find(i => i.id === req.params.id);
+    if (!item) return res.status(404).json({ ok: false, erro: 'Não encontrado' });
+    res.json(item);
+});
+
+app.get('/api/rh/on-the-job/:id/pdf', rhAuth, async (req, res) => {
+    try {
+        const db = readOnTheJobDB();
+        const item = db.find(i => i.id === req.params.id);
+        if (!item) return res.status(404).send('Não encontrado');
+        
+        const buffer = await pdfService.pdfBufferFromOnTheJobData(item);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=OnTheJob_${item.colaborador.replace(/\s+/g, '_')}.pdf`);
+        res.send(buffer);
+    } catch (e) {
+        console.error(e);
+        res.status(500).send('Erro ao gerar PDF');
+    }
+});
+
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);

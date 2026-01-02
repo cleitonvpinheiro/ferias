@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard RH - Funcionários</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="/rh-styles.css">
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <style>
+      .actions-panel {
+          background: white;
+          padding: 20px;
+          border-radius: 8px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          margin-bottom: 20px;
+          display: flex;
+          gap: 20px;
+          align-items: center;
+          flex-wrap: wrap;
+      }
+      .upload-box {
+          border: 2px dashed #cbd5e1;
+          padding: 20px;
+          border-radius: 8px;
+          text-align: center;
+          flex: 1;
+          cursor: pointer;
+          transition: border-color 0.2s;
+      }
+      .upload-box:hover {
+          border-color: var(--accent);
+      }
+      .func-table {
+          width: 100%;
+          border-collapse: collapse;
+          background: white;
+          border-radius: 8px;
+          overflow: hidden;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+      .func-table th, .func-table td {
+          padding: 12px 16px;
+          text-align: left;
+          border-bottom: 1px solid #e2e8f0;
+      }
+      .func-table th {
+          background-color: #f8fafc;
+          font-weight: 600;
+          color: var(--text-primary);
+      }
+      .btn-sm {
+          padding: 4px 8px;
+          font-size: 0.75rem;
+      }
+  </style>
+</head>
+<body>
+  <nav class="rh-navbar">
+      <a href="/protected/index.html" class="rh-navbar-brand">
+          <span>🏠</span> Portal RH
+      </a>
+      <div class="rh-navbar-menu">
+          <a href="/protected/dashboard-rh.html" class="rh-nav-link">Férias</a>
+          <a href="/protected/dashboard-taxas.html" class="rh-nav-link">Taxas</a>
+          <a href="/protected/dashboard-candidatos.html" class="rh-nav-link">Candidatos</a>
+          <a href="/protected/dashboard-vagas.html" class="rh-nav-link">Vagas</a>
+          <a href="/protected/dashboard-epis.html" class="rh-nav-link">EPIs</a>
+          <a href="/protected/dashboard-funcionarios.html" class="rh-nav-link active">Funcionários</a>
+          <a href="/protected/dashboard-desligamento.html" class="rh-nav-link">Desligamento</a>
+      </div>
+  </nav>
+
+  <main class="dashboard-container">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Gestão de Funcionários</h1>
+            <p class="page-subtitle">Importe a base de dados para validação de biometria e cadastro</p>
+        </div>
+        <button class="btn btn-outline" onclick="downloadTemplate()">
+            📥 Baixar Modelo Excel
+        </button>
+    </div>
+
+    <div class="actions-panel">
+        <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+            <div style="font-size: 2rem; margin-bottom: 10px;">📂</div>
+            <p style="margin: 0; color: var(--text-secondary);">Clique para importar Excel/CSV</p>
+            <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" style="display: none" onchange="handleFile(this)">
+        </div>
+        
+        <div style="flex: 2;">
+            <h3 style="margin-top: 0;">Instruções</h3>
+            <ul style="color: var(--text-secondary); font-size: 0.9rem; padding-left: 20px;">
+                <li>O arquivo deve conter as colunas: <strong>Nome, CPF, Cargo, Setor, Data Admissão</strong>.</li>
+                <li>O CPF deve conter apenas números ou pontuação padrão.</li>
+                <li>Esta importação <strong>substitui/atualiza</strong> a base existente.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table class="func-table" id="tabelaFuncionarios">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>CPF</th>
+                    <th>Cargo</th>
+                    <th>Setor</th>
+                    <th>Admissão</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="listaFuncionarios">
+                <tr><td colspan="6" style="text-align: center;">Carregando...</td></tr>
+            </tbody>
+        </table>
+    </div>
+  </main>
+
+  <script>
+      async function carregarFuncionarios() {
+          try {
+              const res = await fetch('/api/rh/funcionarios');
+              const funcionarios = await res.json();
+              
+              const tbody = document.getElementById('listaFuncionarios');
+              tbody.innerHTML = '';
+
+              if (funcionarios.length === 0) {
+                  tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 30px;">Nenhum funcionário cadastrado. Importe uma planilha.</td></tr>';
+                  return;
+              }
+
+              funcionarios.forEach(f => {
+                  const tr = document.createElement('tr');
+                  tr.innerHTML = `
+                      <td>${f.nome}</td>
+                      <td>${f.cpf}</td>
+                      <td>${f.cargo || '-'}</td>
+                      <td>${f.setor || '-'}</td>
+                      <td>${f.data_admissao || '-'}</td>
+                      <td>
+                          <button class="btn btn-danger btn-sm" onclick="removerFuncionario('${f.id}')">Excluir</button>
+                      </td>
+                  `;
+                  tbody.appendChild(tr);
+              });
+          } catch (e) {
+              console.error(e);
+              alert('Erro ao carregar lista de funcionários');
+          }
+      }
+
+      function downloadTemplate() {
+          const ws = XLSX.utils.json_to_sheet([
+              { "Nome": "João da Silva", "CPF": "123.456.789-00", "Cargo": "Operador", "Setor": "Produção", "Data Admissão": "2023-01-01" },
+              { "Nome": "Maria Oliveira", "CPF": "999.888.777-66", "Cargo": "Assistente", "Setor": "RH", "Data Admissão": "2023-05-15" }
+          ]);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "Funcionarios");
+          XLSX.writeFile(wb, "Modelo_Importacao_Funcionarios.xlsx");
+      }
+
+      async function handleFile(input) {
+          const file = input.files[0];
+          if (!file) return;
+
+          const reader = new FileReader();
+          reader.onload = async (e) => {
+              const data = new Uint8Array(e.target.result);
+              const workbook = XLSX.read(data, { type: 'array' });
+              const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+              const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+              if (jsonData.length === 0) {
+                  alert('Arquivo vazio ou formato inválido.');
+                  return;
+              }
+
+              // Mapear colunas (flexível para maiúsculas/minúsculas)
+              const funcionarios = jsonData.map(row => {
+                  // Tenta encontrar chaves ignorando case
+                  const getVal = (key) => {
+                      const foundKey = Object.keys(row).find(k => k.toLowerCase().includes(key.toLowerCase()));
+                      return foundKey ? row[foundKey] : '';
+                  };
+
+                  return {
+                      nome: getVal('nome'),
+                      cpf: String(getVal('cpf')).replace(/\D/g, ''), // Limpa CPF
+                      cargo: getVal('cargo'),
+                      setor: getVal('setor'),
+                      data_admissao: getVal('admissão') || getVal('admissao')
+                  };
+              }).filter(f => f.nome && f.cpf); // Filtra linhas inválidas
+
+              if (confirm(`Foram encontrados ${funcionarios.length} registros válidos. Deseja importar?`)) {
+                  await enviarImportacao(funcionarios);
+              }
+              
+              input.value = ''; // Reset input
+          };
+          reader.readAsArrayBuffer(file);
+      }
+
+      async function enviarImportacao(dados) {
+          try {
+              const res = await fetch('/api/rh/funcionarios/importar', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ funcionarios: dados })
+              });
+              
+              const resultado = await res.json();
+              if (resultado.ok) {
+                  alert('Importação concluída com sucesso!');
+                  carregarFuncionarios();
+              } else {
+                  alert('Erro na importação: ' + resultado.erro);
+              }
+          } catch (e) {
+              console.error(e);
+              alert('Erro ao enviar dados para o servidor.');
+          }
+      }
+
+      async function removerFuncionario(id) {
+          if (!confirm('Tem certeza que deseja remover este funcionário?')) return;
+          
+          try {
+              const res = await fetch(`/api/rh/funcionarios/${id}`, { method: 'DELETE' });
+              if (res.ok) {
+                  carregarFuncionarios();
+              } else {
+                  alert('Erro ao excluir');
+              }
+          } catch (e) {
+              console.error(e);
+          }
+      }
+
+      // Iniciar
+      carregarFuncionarios();
+  </script>
+</body>
+</html>

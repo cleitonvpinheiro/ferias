@@ -7,25 +7,114 @@
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="stylesheet" href="./styles.css">
   <style>
-      .hero {
-          text-align: center;
+      .navbar {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 20px 0;
           margin-bottom: 40px;
       }
-      .rh-links {
-          margin-top: 60px;
-          text-align: center;
-          border-top: 1px solid var(--border);
-          padding-top: 32px;
-      }
-      .rh-links a {
-          color: #64748b;
+      .btn-login {
+          background: transparent;
+          border: 1px solid var(--border);
+          padding: 10px 20px;
+          border-radius: 99px;
+          color: var(--text);
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
           text-decoration: none;
-          font-size: 0.875rem;
-          margin: 0 12px;
-          transition: color 0.2s;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
       }
-      .rh-links a:hover {
+      .btn-login:hover {
+          background: white;
+          border-color: var(--accent);
           color: var(--accent);
+          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+      }
+      
+      .hero {
+          text-align: center;
+          margin-bottom: 60px;
+          padding: 40px 20px;
+          background: white;
+          border-radius: 24px;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+          border: 1px solid rgba(0,0,0,0.05);
+      }
+      
+      .hero h1 {
+          font-size: 2.5rem;
+          margin: 20px 0 10px;
+          background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+      }
+      
+      /* Modal Styles */
+      .modal-overlay {
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(0,0,0,0.5);
+          backdrop-filter: blur(4px);
+          display: none;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          opacity: 0;
+          transition: opacity 0.3s;
+      }
+      .modal-overlay.active {
+          display: flex;
+          opacity: 1;
+      }
+      .login-modal {
+          background: white;
+          padding: 32px;
+          border-radius: 20px;
+          width: 90%;
+          max-width: 400px;
+          transform: translateY(20px);
+          transition: transform 0.3s;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      }
+      .modal-overlay.active .login-modal {
+          transform: translateY(0);
+      }
+      .login-options {
+          display: grid;
+          gap: 16px;
+          margin-top: 24px;
+      }
+      .login-btn {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 16px;
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          text-decoration: none;
+          color: var(--text);
+          font-weight: 600;
+          transition: all 0.2s;
+      }
+      .login-btn:hover {
+          border-color: var(--accent);
+          background: #eff6ff;
+          color: var(--accent);
+          transform: translateY(-2px);
+      }
+      .login-icon {
+          font-size: 24px;
+          background: #f1f5f9;
+          width: 48px;
+          height: 48px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 10px;
       }
   </style>
 </head>
@@ -33,13 +122,22 @@
 
   <main class="container">
      
-   <div class="brand-inner">
-      <img class="brand-logo" src="/assets/logo.png" alt="Logo Família Madalosso">
-      <div class="brand-title">Portal de Formulários</div>
-    </div>
+    <nav class="navbar">
+        <div style="font-weight: 700; font-size: 1.2rem; color: #1e293b; display: flex; align-items: center; gap: 10px;">
+            <img src="/assets/logo.png" alt="Logo" style="height: 40px;">
+            <span>Portal Interno</span>
+        </div>
+        <button class="btn-login" onclick="toggleModal()">
+            🔒 Área Restrita
+        </button>
+    </nav>
     
     <div class="hero">
-        <p style="color: #64748b;">Selecione o formulário que deseja preencher:</p>
+        <img class="brand-logo" src="/assets/logo.png" alt="Logo Família Madalosso" style="height: 120px; margin: 0 auto;">
+        <h1>Bem-vindo ao Portal</h1>
+        <p style="color: #64748b; font-size: 1.1rem; max-width: 600px; margin: 0 auto;">
+            Acesse abaixo os formulários de solicitação ou utilize o botão de acesso restrito para áreas administrativas.
+        </p>
     </div>
 
     <div class="menu-grid">
@@ -66,18 +164,61 @@
             <div class="menu-title">Trabalhe Conosco</div>
             <div class="menu-desc">Formulário para envio de currículo e cadastro no banco de talentos.</div>
         </a>
-    </div>
 
-    <div class="rh-links">
-        <p style="margin-bottom: 16px; font-weight: 600; color: #333;">Acesso Administrativo</p>
-        <a href="/rh">🔒 Acesso Portal RH</a>
+        <a href="/recrutamentoInterno.html" class="menu-card">
+            <div class="menu-icon">📋</div>
+            <div class="menu-title">Recrutamento Interno</div>
+            <div class="menu-desc">Formulário para candidatura interna a vagas disponíveis.</div>
+        </a>
+
+        <a href="/onTheJob.html" class="menu-card">
+            <div class="menu-icon">🚀</div>
+            <div class="menu-title">On The Job</div>
+            <div class="menu-desc">Formulário para processo de movimentação e promoção (On The Job).</div>
+        </a>
     </div>
 
   </main>
 
+  <!-- Login Modal -->
+  <div class="modal-overlay" id="loginModal" onclick="if(event.target === this) toggleModal()">
+      <div class="login-modal">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <h2 style="margin: 0; font-size: 1.5rem;">Acesso Restrito</h2>
+              <button onclick="toggleModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #94a3b8;">&times;</button>
+          </div>
+          <p style="color: #64748b; margin: 0;">Selecione o painel que deseja acessar:</p>
+          
+          <div class="login-options">
+              <a href="/rh" class="login-btn">
+                  <div class="login-icon">💼</div>
+                  <div>
+                      <div style="font-size: 1.1rem;">Painel RH</div>
+                      <div style="font-size: 0.85rem; color: #64748b; font-weight: 400;">Gestão de férias e vagas</div>
+                  </div>
+              </a>
+              
+              <a href="/protected/dashboard-portaria.html" class="login-btn">
+                  <div class="login-icon">🦺</div>
+                  <div>
+                      <div style="font-size: 1.1rem;">Painel Portaria</div>
+                      <div style="font-size: 0.85rem; color: #64748b; font-weight: 400;">Controle de EPIs</div>
+                  </div>
+              </a>
+          </div>
+      </div>
+  </div>
+
   <footer style="text-align: center; padding: 40px 0; color: #94a3b8; font-size: 0.875rem;">
     &copy; 2025 Família Madalosso. Todos os direitos reservados.
   </footer>
+
+  <script>
+      function toggleModal() {
+          const modal = document.getElementById('loginModal');
+          modal.classList.toggle('active');
+      }
+  </script>
 
 </body>
 </html>

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel On The Job - RH</title>
+    <link rel="stylesheet" href="/rh-styles.css">
+</head>
+<body>
+    <nav class="rh-navbar">
+        <a href="/protected/index.html" class="rh-navbar-brand">
+            <span>👥</span> Portal RH
+        </a>
+        <div class="rh-navbar-menu">
+            <a href="/protected/dashboard-rh.html" class="rh-nav-link">Férias</a>
+            <a href="/protected/dashboard-taxas.html" class="rh-nav-link">Taxas</a>
+            <a href="/protected/dashboard-candidatos.html" class="rh-nav-link">Candidatos</a>
+            <a href="/protected/dashboard-recrutamento.html" class="rh-nav-link">Recrutamento Interno</a>
+            <a href="/protected/dashboard-onthejob.html" class="rh-nav-link active">On The Job</a>
+            <a href="/protected/dashboard-vagas.html" class="rh-nav-link">Vagas</a>
+            <a href="/protected/dashboard-epis.html" class="rh-nav-link">EPIs</a>
+            <a href="/protected/dashboard-desligamento.html" class="rh-nav-link">Desligamento</a>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <div class="page-header">
+            <h1 class="page-title">On The Job</h1>
+            <p class="page-subtitle">Acompanhe as propostas de movimentação</p>
+        </div>
+
+        <div class="filters-bar">
+            <div class="filter-group">
+                <label>Buscar Colaborador</label>
+                <input type="text" id="searchInput" class="filter-input" placeholder="Nome ou Empresa..." onkeyup="filtrarItens()">
+            </div>
+            <div class="filter-group" style="flex: 0; min-width: auto; align-self: flex-end;">
+                 <div class="last-update" style="white-space: nowrap; padding-bottom: 10px;">
+                    <span id="lastUpdate">Atualizado agora</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="loading" class="loading-state">
+            <div class="loading-icon">⏳</div>
+            <div>Carregando propostas...</div>
+        </div>
+
+        <div class="table-container" id="tableContainer" style="display: none;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Colaborador</th>
+                        <th>Empresa</th>
+                        <th>Cargo Atual</th>
+                        <th>Cargo Proposto</th>
+                        <th>Vigorar em</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- JS generated -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal Detalhes -->
+    <div class="modal-overlay" id="modalDetalhes">
+        <div class="modal">
+            <button class="close-modal" onclick="fecharModal()" style="position: absolute; top: 16px; right: 16px;">&times;</button>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+  <footer style="text-align: center; padding: 40px; color: var(--text-secondary); font-size: 0.875rem;">
+    <p>&copy; 2025 Família Madalosso. Acesso Restrito ao RH.</p>
+  </footer>
+
+    <script>
+        let todosItens = [];
+
+        async function carregarItens() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('tableContainer').style.display = 'none';
+            
+            try {
+                const res = await fetch('/api/rh/on-the-job');
+                todosItens = await res.json();
+                
+                renderTable(todosItens);
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('tableContainer').style.display = 'block';
+            } catch (e) {
+                console.error(e);
+                alert('Erro ao carregar dados.');
+            }
+        }
+
+        function filtrarItens() {
+            const term = document.getElementById('searchInput').value.toLowerCase();
+            
+            const filtrados = todosItens.filter(c => {
+                return c.colaborador.toLowerCase().includes(term) || 
+                       c.empresa.toLowerCase().includes(term);
+            });
+            
+            renderTable(filtrados);
+        }
+
+        function renderTable(lista) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            if (lista.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px;">Nenhuma proposta encontrada.</td></tr>';
+                return;
+            }
+
+            lista.forEach(c => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${new Date(c.createdAt).toLocaleDateString('pt-BR')}</td>
+                    <td style="font-weight: 500;">${c.colaborador}</td>
+                    <td>${c.empresa}</td>
+                    <td>${c.comparativo?.cargo?.atual || '-'}</td>
+                    <td>
+                        <span class="badge badge-primary">${c.comparativo?.cargo?.proposta || '-'}</span>
+                    </td>
+                    <td>${c.vigorarInicio ? new Date(c.vigorarInicio).toLocaleDateString('pt-BR') : '-'}</td>
+                    <td>
+                        <button class="btn-icon" onclick="abrirDetalhes('${c.id}')" title="Ver Detalhes">👁️</button>
+                        <a href="/api/rh/on-the-job/${c.id}/pdf" target="_blank" class="btn-icon" title="Baixar PDF">📄</a>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function abrirDetalhes(id) {
+            const modal = document.getElementById('modalDetalhes');
+            const content = document.getElementById('modalContent');
+            content.innerHTML = '<div style="padding:40px; text-align:center;">Carregando...</div>';
+            modal.style.display = 'flex';
+
+            try {
+                const res = await fetch(`/api/rh/on-the-job/${id}`);
+                const c = await res.json();
+                renderModalContent(c);
+            } catch (e) {
+                content.innerHTML = '<div style="color:red; text-align:center;">Erro ao carregar detalhes.</div>';
+            }
+        }
+
+        function renderModalContent(c) {
+            const content = document.getElementById('modalContent');
+            
+            const html = `
+                <div class="modal-header">
+                    <div class="modal-title">
+                        <h2>${c.colaborador}</h2>
+                        <div class="modal-meta">
+                            On The Job - <strong>${c.empresa}</strong>
+                        </div>
+                    </div>
+                    <div>
+                        <a href="/api/rh/on-the-job/${c.id}/pdf" target="_blank" class="btn btn-primary">📄 Baixar PDF Completo</a>
+                    </div>
+                </div>
+
+                <div class="modal-content-wrapper">
+                    <div class="modal-grid">
+                        <div>
+                            <h3 class="section-title">Dados Gerais</h3>
+                            <div class="detail-group">
+                                <div class="detail-label">Data Proposta</div>
+                                <div class="detail-value">${c.dataProposta ? new Date(c.dataProposta).toLocaleDateString('pt-BR') : '-'}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Vigência</div>
+                                <div class="detail-value">
+                                    ${c.vigorarInicio ? new Date(c.vigorarInicio).toLocaleDateString('pt-BR') : '-'} até 
+                                    ${c.vigorarFim ? new Date(c.vigorarFim).toLocaleDateString('pt-BR') : '-'}
+                                </div>
+                            </div>
+                            
+                            <h3 class="section-title" style="margin-top: 20px;">Movimentação</h3>
+                            <div class="detail-group">
+                                <div class="detail-label">Nível</div>
+                                <div class="detail-value">${c.movimentacao?.nivel || '-'}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Processo</div>
+                                <div class="detail-value">${c.movimentacao?.processo || '-'}</div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="section-title">Comparativo</h3>
+                            <table class="data-table" style="font-size: 0.9rem;">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Atual</th>
+                                        <th>Proposta</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Cargo</td>
+                                        <td>${c.comparativo?.cargo?.atual || ''}</td>
+                                        <td>${c.comparativo?.cargo?.proposta || ''}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Horário</td>
+                                        <td>${c.comparativo?.horario?.atual || ''}</td>
+                                        <td>${c.comparativo?.horario?.proposta || ''}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Setor</td>
+                                        <td>${c.comparativo?.setor?.atual || ''}</td>
+                                        <td>${c.comparativo?.setor?.proposta || ''}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 24px;">
+                        <h3 class="section-title">Salários</h3>
+                        <table class="data-table" style="font-size: 0.9rem; margin-bottom: 20px;">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>De (Atual)</th>
+                                    <th>Para (Proposta)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${(c.salarios || []).map(s => `
+                                    <tr>
+                                        <td>${s.data ? new Date(s.data).toLocaleDateString('pt-BR') : '-'}</td>
+                                        <td>R$ ${s.de || ''}</td>
+                                        <td>R$ ${s.para || ''}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+
+                        <h3 class="section-title">Benefícios</h3>
+                        <ul style="list-style: disc; margin-left: 20px; color: var(--text);">
+                            ${(c.beneficios || []).map(b => `
+                                <li><strong>${b.beneficio}</strong> (Imediato: ${b.imediato}, 90d: ${b.apos90}, 180d: ${b.apos180})</li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                </div>
+            `;
+            
+            content.innerHTML = html;
+        }
+
+        function fecharModal() {
+            document.getElementById('modalDetalhes').style.display = 'none';
+        }
+
+        // Close modal on outside click
+        document.getElementById('modalDetalhes').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('modalDetalhes')) fecharModal();
+        });
+
+        // Start
+        carregarItens();
+    </script>
+</body>
+</html>

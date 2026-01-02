@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard RH - Entrevistas de Desligamento</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="/rh-styles.css">
+  <style>
+      .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
+      .form-full { grid-column: 1 / -1; }
+      .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+      .form-label { font-weight: 600; font-size: 0.9rem; color: #374151; }
+      .form-input { 
+          width: 100%; 
+          padding: 0.625rem 0.875rem; 
+          border: 1px solid #d1d5db; 
+          border-radius: 6px; 
+          font-size: 0.95rem; 
+          transition: border-color 0.2s, box-shadow 0.2s;
+          box-sizing: border-box;
+          background-color: #f9fafb;
+      }
+      .form-input:focus { 
+          outline: none; 
+          border-color: #2563eb; 
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); 
+          background-color: #fff;
+      }
+      textarea.form-input { resize: vertical; min-height: 100px; }
+      
+      .radio-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }
+      .radio-item { 
+          display: flex; 
+          align-items: center; 
+          gap: 0.5rem; 
+          padding: 0.5rem;
+          border-radius: 4px;
+          cursor: pointer;
+      }
+      .radio-item:hover { background-color: #f3f4f6; }
+      
+      .table-eval th, .table-eval td { border: 1px solid #e5e7eb; padding: 0.75rem; text-align: center; }
+      .table-eval th { background-color: #f9fafb; font-weight: 600; color: #374151; }
+      .table-eval td:first-child { text-align: left; font-weight: 500; }
+      
+      /* Modal Styles */
+      .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto; }
+      .modal.active { display: flex; justify-content: center; align-items: flex-start; padding-top: 2rem; }
+      .modal-content { background: white; padding: 2rem; border-radius: 8px; width: 90%; max-width: 900px; margin-bottom: 2rem; }
+      .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+      .close-modal { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+      
+      .section-title { 
+          font-weight: 700; 
+          margin-top: 2rem; 
+          margin-bottom: 1rem; 
+          padding-bottom: 0.5rem; 
+          border-bottom: 2px solid #e5e7eb; 
+          color: #1f2937;
+          font-size: 1.1rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+      }
+  </style>
+</head>
+<body>
+  <nav class="rh-navbar">
+      <a href="/protected/index.html" class="rh-navbar-brand">
+          <span>🏠</span> Portal RH
+      </a>
+      <div class="rh-navbar-menu">
+          <a href="/protected/dashboard-rh.html" class="rh-nav-link">Férias</a>
+          <a href="/protected/dashboard-taxas.html" class="rh-nav-link">Taxas</a>
+          <a href="/protected/dashboard-candidatos.html" class="rh-nav-link">Candidatos</a>
+          <a href="/protected/dashboard-vagas.html" class="rh-nav-link">Vagas</a>
+          <a href="/protected/dashboard-epis.html" class="rh-nav-link">EPIs</a>
+          <a href="/protected/dashboard-desligamento.html" class="rh-nav-link active">Desligamento</a>
+      </div>
+  </nav>
+
+  <main class="dashboard-container">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Entrevistas de Desligamento</h1>
+            <p class="page-subtitle">Gerencie e visualize as entrevistas de saída</p>
+        </div>
+        <div class="action-buttons">
+            <a href="/protected/entrevista-desligamento.html" target="_blank" class="btn btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+                🔗 Abrir Formulário para Colaborador
+            </a>
+        </div>
+    </div>
+
+    <div id="history-container" class="table-container" style="display: block;">
+        <h2>Histórico de Entrevistas</h2>
+        <div class="table-wrapper">
+            <table id="tabela-entrevistas">
+                <thead>
+                    <tr>
+                        <th>Colaborador</th>
+                        <th>Data</th>
+                        <th>Tipo</th>
+                        <th>Motivo</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="lista-corpo">
+                    <!-- JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+  </main>
+
+  <script>
+      // Avaliações Config - REMOVIDO POIS O FORMULÁRIO ESTÁ EM OUTRA PÁGINA
+      function renderEvaluations() { /* Not needed in dashboard */ }
+
+      async function carregarEntrevistas() {
+          try {
+              const res = await fetch('/api/rh/entrevistas-desligamento');
+              const data = await res.json();
+              const tbody = document.getElementById('lista-corpo');
+              tbody.innerHTML = '';
+              
+              if (!data.length) {
+                  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 2rem;">Nenhuma entrevista registrada</td></tr>';
+                  return;
+              }
+
+              data.forEach(item => {
+                  const tr = document.createElement('tr');
+                  tr.innerHTML = `
+                      <td>${item.nome}</td>
+                      <td>${new Date(item.createdAt).toLocaleDateString()}</td>
+                      <td>${item.tipo_desligamento}</td>
+                      <td>${item.motivo_desligamento || '-'}</td>
+                      <td>
+                          <button class="btn btn-sm btn-outline" onclick="window.open('/api/rh/entrevistas-desligamento/${item.id}/pdf', '_blank')">
+                              📄 PDF
+                          </button>
+                      </td>
+                  `;
+                  tbody.appendChild(tr);
+              });
+          } catch (e) {
+              console.error(e);
+          }
+      }
+
+      // Init
+      carregarEntrevistas();
+  </script>
+</body>
+</html>

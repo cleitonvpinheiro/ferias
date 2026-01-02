@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portaria - Controle de EPIs</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/rh-styles.css">
+    <style>
+        :root {
+            --primary-portaria: #2563eb;
+            --bg-portaria: #f8fafc;
+        }
+
+        body {
+            background-color: var(--bg-portaria);
+        }
+
+        button, input, select {
+            touch-action: manipulation; /* Melhora resposta ao toque e evita zoom duplo toque */
+        }
+
+        /* Prevent auto-zoom on inputs in iOS */
+        input, select {
+            font-size: 16px !important; 
+        }
+
+        /* Kiosk Mode Layout */
+        .kiosk-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .kiosk-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .employee-info h2 {
+            margin: 0;
+            color: #1e293b;
+            font-size: 1.5rem;
+        }
+
+        .employee-info p {
+            margin: 5px 0 0;
+            color: #64748b;
+        }
+
+        .kiosk-content {
+            display: flex;
+            gap: 20px;
+            flex: 1;
+            overflow: hidden; /* For inner scrolling */
+        }
+
+        .panel {
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 15px;
+            background: #f1f5f9;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 600;
+            color: #334155;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        .panel-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background: #f8fafc;
+        }
+
+        /* Grid Layout */
+        .epi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px;
+            padding: 5px;
+        }
+
+        /* Modern Card Style */
+        .epi-card {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            user-select: none;
+        }
+
+        .epi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border-color: #cbd5e1;
+        }
+
+        /* Selection States */
+        .epi-card.selected {
+            border-color: var(--primary-portaria);
+            background-color: #eff6ff;
+            box-shadow: 0 0 0 2px var(--primary-portaria);
+        }
+
+        /* Return Flow Styles */
+        .epi-card.return-item {
+            border-color: #fbbf24; /* Amber base for items in possession */
+        }
+
+        .epi-card.return-item.selected {
+            border-color: #ef4444; /* Red when selected to return */
+            background-color: #fef2f2;
+            box-shadow: 0 0 0 2px #ef4444;
+        }
+
+        /* Card Content */
+        .epi-name {
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 1rem;
+            margin-bottom: 8px;
+            line-height: 1.4;
+            padding-right: 25px; /* Space for indicator */
+        }
+
+        .epi-footer {
+            margin-top: auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .stock-badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #f1f5f9;
+            color: #64748b;
+        }
+
+        .stock-badge.low {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .stock-badge.good {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        /* Selection Indicator (Radio/Checkbox look) */
+        .selection-indicator {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 2px solid #cbd5e1;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .selected .selection-indicator {
+            background: var(--primary-portaria);
+            border-color: var(--primary-portaria);
+        }
+
+        .return-item.selected .selection-indicator {
+            background: #ef4444;
+            border-color: #ef4444;
+        }
+
+        .selected .selection-indicator::after {
+            content: "✓";
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .return-item.selected .selection-indicator::after {
+            content: "✕"; /* Cross for return/remove */
+        }
+
+        /* Stock Modal List Improvements */
+        .stock-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .stock-item:hover {
+            border-color: #cbd5e1;
+            background: #f8fafc;
+        }
+
+        .kiosk-footer {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+        }
+
+        .btn-large {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-cancel {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        .btn-confirm {
+            background: var(--primary-portaria);
+            color: white;
+        }
+
+        /* Keypad Overlay */
+        #keypad-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #f8fafc;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .keypad-container {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 400px;
+        }
+
+        .display-screen {
+            background: #f1f5f9;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: #334155;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .display-screen.active {
+            border-color: var(--primary-portaria);
+            background: white;
+        }
+
+        .display-screen::after {
+            content: '|';
+            animation: blink 1s step-end infinite;
+            color: var(--primary-portaria);
+            margin-left: 4px;
+            font-weight: 100;
+        }
+
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .keys-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .key {
+            background: white;
+            border: 1px solid #e2e8f0;
+            padding: 20px;
+            font-size: 1.5rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.1s;
+            color: #334155;
+            font-weight: 600;
+        }
+
+        .key:active {
+            background: #f1f5f9;
+        }
+
+        .key.enter {
+            background: var(--primary-portaria);
+            color: white;
+            grid-column: span 3;
+        }
+        
+        .key.clear {
+            color: #ef4444;
+        }
+
+        /* Modal Desconto */
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #475569;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+        }
+
+        .tab-btn.active {
+            background: var(--primary-portaria) !important;
+            color: white;
+            border-color: var(--primary-portaria) !important;
+        }
+
+        /* Toast Notification */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .toast {
+            background: white;
+            border-left: 4px solid #3b82f6;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            min-width: 300px;
+            animation: slideIn 0.3s ease;
+            font-size: 0.95rem;
+        }
+        
+        .toast.success { border-left-color: #22c55e; }
+        .toast.error { border-left-color: #ef4444; }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Keypad Overlay (Simulação Biometria) -->
+    <div id="keypad-overlay">
+        <div style="position: absolute; top: 20px; right: 20px;">
+            <button class="btn-cancel" onclick="abrirModalEstoque()">📦 Gestão de Estoque</button>
+        </div>
+        <div class="keypad-container">
+            <h2 style="margin-bottom: 20px; color: #1e293b;">Ponto / EPI</h2>
+            <p style="margin-bottom: 20px; color: #64748b;">Digite o CPF ou Matrícula</p>
+            
+            <div class="display-screen" id="display"></div>
+            
+            <div class="keys-grid">
+                <button class="key" onclick="pressKey('1')">1</button>
+                <button class="key" onclick="pressKey('2')">2</button>
+                <button class="key" onclick="pressKey('3')">3</button>
+                <button class="key" onclick="pressKey('4')">4</button>
+                <button class="key" onclick="pressKey('5')">5</button>
+                <button class="key" onclick="pressKey('6')">6</button>
+                <button class="key" onclick="pressKey('7')">7</button>
+                <button class="key" onclick="pressKey('8')">8</button>
+                <button class="key" onclick="pressKey('9')">9</button>
+                <button class="key clear" onclick="clearDisplay()">C</button>
+                <button class="key" onclick="pressKey('0')">0</button>
+                <button class="key" onclick="backspace()">&larr;</button>
+                <button class="key enter" onclick="authenticate()">ENTRAR</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Estoque -->
+    <div id="modal-estoque" class="modal-overlay" style="display: none;">
+        <div class="modal" style="width: 800px; max-width: 95%;">
+            <div class="modal-header">
+                <h2>Gestão de Estoque - Portaria</h2>
+                <button class="close-modal" onclick="fecharModalEstoque()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="lista-estoque" style="max-height: 400px; overflow-y: auto;">
+                    <!-- Items injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div class="kiosk-container" id="main-interface" style="display: none;">
+        <div class="kiosk-header">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <img src="/assets/logo.png" alt="Madalosso" style="height: 50px;">
+                <div class="employee-info">
+                    <h2 id="emp-name">Carregando...</h2>
+                    <p id="emp-details">Aguarde a identificação</p>
+                </div>
+            </div>
+            <div class="clock-display" id="clock">00:00</div>
+        </div>
+
+        <div class="kiosk-content">
+            <!-- Panel: Entregar EPIs -->
+            <div class="panel">
+                <div class="panel-header" style="background: #ecfdf5; color: #047857;">
+                    ENTREGAR (Retirada)
+                </div>
+                <div style="padding: 10px; background: white; border-bottom: 1px solid #e2e8f0;">
+                    <input type="text" id="search-epi" placeholder="🔍 Buscar EPI..." style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;" onkeyup="filtrarEpis()">
+                </div>
+                <div class="panel-body" id="list-available">
+                    <!-- Loaded via JS -->
+                </div>
+            </div>
+
+            <!-- Panel: Devolver EPIs -->
+            <div class="panel">
+                <div class="panel-header" style="background: #fff1f2; color: #be123c;">
+                    DEVOLVER (Retorno)
+                </div>
+                <div class="panel-body" id="list-possession">
+                    <!-- Loaded via JS -->
+                </div>
+            </div>
+        </div>
+
+        <div class="kiosk-footer">
+            <button class="btn-large btn-cancel" onclick="logout()">Cancelar</button>
+            <button class="btn-large btn-confirm" onclick="confirmarMovimentacao()">CONFIRMAR</button>
+        </div>
+    </div>
+
+    <!-- Modal Confirmação Biometria -->
+    <div id="modal-confirmacao" class="modal-overlay" style="display: none;">
+        <div class="modal" style="width: 600px; max-width: 90%;">
+            <div class="modal-header">
+                <h2>Confirmação Biométrica</h2>
+                <button class="close-modal" onclick="fecharModalConfirmacao()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Solicite ao funcionário para confirmar a operação.</p>
+                
+                <div class="tabs" style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <button class="tab-btn active" onclick="switchTab('assinatura')" id="btn-tab-assinatura" style="flex:1; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; background: white; cursor: pointer;">Assinatura Digital</button>
+                    <button class="tab-btn" onclick="switchTab('facial')" id="btn-tab-facial" style="flex:1; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; background: white; cursor: pointer;">Reconhecimento Facial</button>
+                </div>
+
+                <!-- Aba Assinatura -->
+                <div id="tab-assinatura" class="tab-content">
+                    <canvas id="signature-pad" width="500" height="200" style="border: 2px dashed #cbd5e1; border-radius: 8px; cursor: crosshair; touch-action: none; background: #fff; width: 100%;"></canvas>
+                    <div style="display: flex; justify-content: space-between; margin-top: 10px;">
+                        <button class="btn-cancel" onclick="clearSignature()" style="padding: 5px 10px; border-radius: 4px; border: none; cursor: pointer;">Limpar</button>
+                        <p style="color: #64748b; font-size: 0.9em;">Assine na área acima</p>
+                    </div>
+                </div>
+
+                <!-- Aba Facial -->
+                <div id="tab-facial" class="tab-content" style="display: none; text-align: center;">
+                    <video id="camera-feed" width="400" height="300" autoplay style="border-radius: 8px; background: #000; max-width: 100%;"></video>
+                    <canvas id="camera-capture" width="400" height="300" style="display: none;"></canvas>
+                    <div style="margin-top: 10px;">
+                        <button class="btn-cancel" onclick="startCamera()" style="padding: 5px 10px; border-radius: 4px; border: none; cursor: pointer;">Ativar Câmera</button>
+                    </div>
+                </div>
+
+                <button class="btn-large btn-confirm" style="width: 100%; margin-top: 20px;" onclick="finalizarComBiometria()">CONFIRMAR OPERAÇÃO</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Desconto -->
+    <div id="modal-desconto" class="modal-overlay" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Gerar Termo de Desconto</h2>
+                <button class="close-modal" onclick="fecharModalDesconto()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Item: <strong id="desc-item-name"></strong></p>
+                <br>
+                <div class="form-group" style="display: none;"> <!-- Oculto conforme solicitação -->
+                    <label>Número de Parcelas:</label>
+                    <select id="desc-parcelas">
+                        <option value="1">1x (À vista)</option>
+                        <option value="2">2x</option>
+                        <option value="3">3x</option>
+                    </select>
+                </div>
+                <p style="color: #64748b; font-size: 0.9em; margin-bottom: 20px;">
+                    Ao confirmar, um termo de responsabilidade será gerado e enviado ao RH. 
+                    O funcionário deverá comparecer ao Departamento Pessoal para assinatura e ciência dos valores.
+                </p>
+                <button class="btn-large btn-confirm" style="width: 100%; margin-top: 10px;" onclick="gerarPDFDesconto()">Gerar Termo</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Keyboard Listener (Physical Keypad Support) ---
+        document.addEventListener('keydown', (e) => {
+            const keypadOverlay = document.getElementById('keypad-overlay');
+            const stockModal = document.getElementById('modal-estoque');
+            
+            // If Keypad Overlay is visible AND Stock Modal is NOT visible
+            if (keypadOverlay && keypadOverlay.style.display !== 'none' && stockModal.style.display === 'none') {
+                // Prevent default behavior for some keys to avoid scrolling/navigating
+                if (['Enter', 'Backspace', 'Escape'].includes(e.key)) {
+                    e.preventDefault();
+                }
+
+                if (e.key >= '0' && e.key <= '9') {
+                    pressKey(e.key);
+                } else if (e.key === 'Backspace') {
+                    backspace();
+                } else if (e.key === 'Enter') {
+                    authenticate();
+                } else if (e.key === 'Escape' || e.key.toLowerCase() === 'c') {
+                    clearDisplay();
+                }
+            }
+        });
+
+        // --- Toast Logic ---
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container') || createToastContainer();
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <div style="flex:1">
+                    <strong style="display:block; margin-bottom:2px; color:#1e293b">${type === 'error' ? 'Erro' : (type === 'success' ? 'Sucesso' : 'Aviso')}</strong>
+                    <span style="color:#64748b">${message}</span>
+                </div>
+            `;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                toast.style.transition = 'all 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function createToastContainer() {
+            const div = document.createElement('div');
+            div.id = 'toast-container';
+            div.className = 'toast-container';
+            document.body.appendChild(div);
+            return div;
+        }
+
+        let currentInput = '';
+        let currentFuncionario = null;
+        let allEpis = [];
+        let itemsInPossessionIds = [];
+        let selectedForPickup = new Set(); // IDs
+        let selectedForReturn = new Set(); // IDs
+        let currentDiscountItem = null;
+
+        function filtrarEpis() {
+            const term = document.getElementById('search-epi').value.toLowerCase();
+            const cards = document.querySelectorAll('#list-available .epi-card');
+            
+            cards.forEach(card => {
+                const name = card.dataset.name || '';
+                const id = card.dataset.id ? card.dataset.id.toString() : '';
+                
+                // Match name or ID (starts with or exact match preferred for ID)
+                if (name.includes(term) || id.includes(term)) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // --- Stock Management ---
+        async function abrirModalEstoque() {
+            document.getElementById('modal-estoque').style.display = 'flex';
+            carregarEstoque();
+        }
+
+        function fecharModalEstoque() {
+            document.getElementById('modal-estoque').style.display = 'none';
+        }
+
+        async function carregarEstoque() {
+            const lista = document.getElementById('lista-estoque');
+            lista.innerHTML = '<p>Carregando...</p>';
+            
+            try {
+                const res = await fetch('/api/portaria/epis');
+                const epis = await res.json();
+                lista.innerHTML = '';
+                
+                if (epis.length === 0) {
+                    lista.innerHTML = '<p>Nenhum item cadastrado.</p>';
+                    return;
+                }
+
+                epis.forEach(epi => {
+                    const div = document.createElement('div');
+                    div.className = 'stock-item';
+                    div.innerHTML = `
+                        <div>
+                            <strong style="font-size: 1.1em; color: #334155;">${epi.nome}</strong>
+                            <div style="font-size: 0.9em; color: #64748b; margin-top: 5px;">
+                                Atual: <strong style="color: ${epi.estoque > 0 ? '#16a34a' : '#dc2626'};">${epi.estoque || 0}</strong>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="number" id="qtd-${epi.id}" placeholder="+ Qtd" style="width: 80px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                            <button class="btn-confirm" style="padding: 8px 15px; font-size: 0.9rem;" onclick="adicionarEstoque(${epi.id})">ADICIONAR</button>
+                        </div>
+                    `;
+                    lista.appendChild(div);
+                });
+            } catch (e) {
+                lista.innerHTML = '<p>Erro ao carregar estoque.</p>';
+            }
+        }
+
+        async function adicionarEstoque(id) {
+            const qtdInput = document.getElementById(`qtd-${id}`);
+            const quantidade = qtdInput.value;
+            if (!quantidade || quantidade <= 0) return showToast('Digite uma quantidade válida', 'error');
+
+            try {
+                const res = await fetch('/api/portaria/estoque', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ epi_id: id, quantidade })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    showToast('Estoque atualizado com sucesso!', 'success');
+                    qtdInput.value = '';
+                    carregarEstoque(); // Refresh list
+                } else {
+                    showToast('Erro: ' + data.erro, 'error');
+                }
+            } catch (e) {
+                showToast('Erro de conexão', 'error');
+            }
+        }
+
+        // --- Keypad Logic ---
+        function pressKey(key) {
+            if (currentInput.length < 11) {
+                currentInput += key;
+                updateDisplay();
+            }
+        }
+
+        function clearDisplay() {
+            currentInput = '';
+            updateDisplay();
+        }
+
+        function backspace() {
+            currentInput = currentInput.slice(0, -1);
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            const el = document.getElementById('display');
+            // Masking like CPF if length > 3
+            el.textContent = currentInput; 
+        }
+
+        async function authenticate() {
+            if (currentInput.length < 3) return showToast('Digite um identificador válido', 'error');
+            
+            const btn = document.querySelector('.key.enter');
+            btn.textContent = 'BUSCANDO...';
+            
+            try {
+                const res = await fetch(`/api/portaria/funcionario/${currentInput}`);
+                const data = await res.json();
+                
+                if (res.status === 403) {
+                    showToast(data.erro, 'error');
+                    clearDisplay();
+                    return;
+                }
+
+                if (data.ok) {
+                    currentFuncionario = data.funcionario;
+                    itemsInPossessionIds = data.itensEmPosse;
+                    loadDashboard();
+                } else {
+                    showToast(data.erro || 'Funcionário não encontrado', 'error');
+                    clearDisplay();
+                }
+            } catch (e) {
+                showToast('Erro de conexão', 'error');
+            } finally {
+                btn.textContent = 'ENTRAR';
+            }
+        }
+
+        // --- Dashboard Logic ---
+        async function loadDashboard() {
+            document.getElementById('keypad-overlay').style.display = 'none';
+            document.getElementById('main-interface').style.display = 'flex';
+            
+            document.getElementById('emp-name').textContent = currentFuncionario.nome;
+            document.getElementById('emp-details').textContent = `${currentFuncionario.cargo} | ${currentFuncionario.setor}`;
+
+            // Load EPIs catalog
+            const res = await fetch('/api/portaria/epis');
+            allEpis = await res.json();
+            
+            renderLists();
+            
+            // Setup Search Input for Barcode/Keypad usage
+            const searchInput = document.getElementById('search-epi');
+            searchInput.value = '';
+            setTimeout(() => searchInput.focus(), 100); // Ensure focus after render
+            
+            searchInput.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    const visibleCards = Array.from(document.querySelectorAll('#list-available .epi-card'))
+                        .filter(c => c.style.display !== 'none');
+                    
+                    if (visibleCards.length === 1) {
+                        visibleCards[0].click(); // Select the item
+                        searchInput.value = ''; // Clear
+                        filtrarEpis(); // Reset list
+                        showToast('Item selecionado!', 'success');
+                    } else if (visibleCards.length > 1) {
+                        // Check for exact ID match
+                        const exactIdMatch = visibleCards.find(c => c.dataset.id === searchInput.value);
+                        if (exactIdMatch) {
+                            exactIdMatch.click();
+                            searchInput.value = '';
+                            filtrarEpis();
+                            showToast('Item selecionado!', 'success');
+                        }
+                    }
+                }
+            };
+        }
+
+        function renderLists() {
+            const listAvailable = document.getElementById('list-available');
+            const listPossession = document.getElementById('list-possession');
+            
+            // Create grid containers
+            const gridAvailable = document.createElement('div');
+            gridAvailable.className = 'epi-grid';
+            
+            const gridPossession = document.createElement('div');
+            gridPossession.className = 'epi-grid';
+            
+            // Available List (All EPIs)
+            allEpis.forEach(epi => {
+                const isSelected = selectedForPickup.has(epi.id);
+                const card = document.createElement('div');
+                card.className = `epi-card ${isSelected ? 'selected' : ''}`;
+                card.dataset.id = epi.id; // Store ID for search
+                card.dataset.name = epi.nome.toLowerCase(); // Store name for search
+                card.onclick = (e) => togglePickup(epi.id, e);
+                
+                const stockClass = (epi.estoque > 0) ? 'good' : 'low';
+                
+                card.innerHTML = `
+                    <div class="selection-indicator"></div>
+                    <div class="epi-name">${epi.nome} <span style="font-size:0.8em; color:#94a3b8; font-weight:normal;">#${epi.id}</span></div>
+                    <div class="epi-footer">
+                        <span class="stock-badge ${stockClass}">Estoque: ${epi.estoque || 0}</span>
+                    </div>
+                `;
+                gridAvailable.appendChild(card);
+            });
+            
+            // Possession List
+            if (itemsInPossessionIds.length === 0) {
+                listPossession.innerHTML = '<p style="text-align:center; color:#64748b; padding:20px;">Nenhum item em posse.</p>';
+            } else {
+                itemsInPossessionIds.forEach(itemId => {
+                    const epi = allEpis.find(e => e.id === itemId);
+                    if (!epi) return;
+
+                    const isSelected = selectedForReturn.has(itemId);
+                    const card = document.createElement('div');
+                    card.className = `epi-card return-item ${isSelected ? 'selected' : ''}`;
+                    
+                    card.onclick = (e) => {
+                        if(!e.target.closest('.btn-loss')) {
+                            toggleReturn(itemId);
+                        }
+                    };
+
+                    card.innerHTML = `
+                        <div class="selection-indicator"></div>
+                        <div class="epi-name">${epi.nome}</div>
+                        <div class="epi-footer">
+                            <span style="font-size:0.8rem; color:#64748b;">Em uso</span>
+                            <button class="btn-loss" onclick="openDiscountModal(${itemId}, event)" style="background:#fee2e2; color:#991b1b; border:none; padding:4px 8px; border-radius:4px; font-size:0.75rem; cursor:pointer; font-weight:600;">REPORTAR PERDA</button>
+                        </div>
+                    `;
+                    gridPossession.appendChild(card);
+                });
+            }
+
+            listAvailable.innerHTML = '';
+            listAvailable.appendChild(gridAvailable);
+            
+            if (itemsInPossessionIds.length > 0) {
+                listPossession.innerHTML = '';
+                listPossession.appendChild(gridPossession);
+            }
+        }
+
+        function togglePickup(id, e) {
+            if (selectedForPickup.has(id)) selectedForPickup.delete(id);
+            else selectedForPickup.add(id);
+            renderLists();
+        }
+
+        function toggleReturn(id) {
+            if (selectedForReturn.has(id)) selectedForReturn.delete(id);
+            else selectedForReturn.add(id);
+            renderLists();
+        }
+
+        function logout() {
+            currentInput = '';
+            currentFuncionario = null;
+            selectedForPickup.clear();
+            selectedForReturn.clear();
+            itemsInPossessionIds = [];
+            document.getElementById('keypad-overlay').style.display = 'flex';
+            document.getElementById('main-interface').style.display = 'none';
+            clearDisplay();
+        }
+
+        function confirmarMovimentacao() {
+            if (selectedForPickup.size === 0 && selectedForReturn.size === 0) {
+                return showToast('Selecione itens para retirar ou devolver.', 'error');
+            }
+            abrirModalConfirmacao();
+        }
+
+        // --- Biometria / Assinatura ---
+        let currentTab = 'assinatura';
+        let cameraStream = null;
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(`tab-${tab}`).style.display = 'block';
+            document.getElementById(`btn-tab-${tab}`).classList.add('active');
+
+            if (tab === 'facial') {
+                startCamera();
+            } else {
+                stopCamera();
+            }
+        }
+
+        function initSignaturePad() {
+            const canvas = document.getElementById('signature-pad');
+            const ctx = canvas.getContext('2d');
+            let isDrawing = false;
+
+            // Ajustar resolução para evitar pixelização se necessário (simples aqui)
+            
+            // Mouse events
+            canvas.onmousedown = (e) => { isDrawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); };
+            canvas.onmousemove = (e) => { if (isDrawing) { ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); } };
+            canvas.onmouseup = () => isDrawing = false;
+            canvas.onmouseleave = () => isDrawing = false;
+            
+            // Touch events (precisa de ajuste de coordenadas relativo ao canvas)
+            const getTouchPos = (canvasDom, touchEvent) => {
+                var rect = canvasDom.getBoundingClientRect();
+                return {
+                    x: touchEvent.touches[0].clientX - rect.left,
+                    y: touchEvent.touches[0].clientY - rect.top
+                };
+            }
+
+            canvas.ontouchstart = (e) => {
+                e.preventDefault();
+                isDrawing = true;
+                const pos = getTouchPos(canvas, e);
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y);
+            };
+            canvas.ontouchmove = (e) => {
+                e.preventDefault();
+                if (isDrawing) {
+                    const pos = getTouchPos(canvas, e);
+                    ctx.lineTo(pos.x, pos.y);
+                    ctx.stroke();
+                }
+            };
+            canvas.ontouchend = () => isDrawing = false;
+        }
+
+        function clearSignature() {
+            const canvas = document.getElementById('signature-pad');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        async function startCamera() {
+            try {
+                const video = document.getElementById('camera-feed');
+                // Prefer front camera on tablets/mobile
+                cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'user' } 
+                });
+                video.srcObject = cameraStream;
+            } catch (e) {
+                console.error("Erro camera", e);
+                // Fallback to default if constraint fails
+                try {
+                    cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    video.srcObject = cameraStream;
+                } catch (e2) {
+                    showToast("Não foi possível acessar a câmera. Verifique permissões.", 'error');
+                }
+            }
+        }
+
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+        }
+
+        function captureCamera() {
+            const video = document.getElementById('camera-feed');
+            const canvas = document.getElementById('camera-capture');
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+            return canvas.toDataURL('image/jpeg');
+        }
+
+        function abrirModalConfirmacao() {
+            document.getElementById('modal-confirmacao').style.display = 'flex';
+            // Delay init slightly to ensure modal is visible for layout
+            setTimeout(initSignaturePad, 100);
+        }
+
+        function fecharModalConfirmacao() {
+            document.getElementById('modal-confirmacao').style.display = 'none';
+            stopCamera();
+        }
+
+        async function finalizarComBiometria() {
+            let evidencia = null;
+            let tipo_evidencia = currentTab;
+
+            if (currentTab === 'assinatura') {
+                const canvas = document.getElementById('signature-pad');
+                // Verifica se está vazio (opcional, mas bom ter)
+                // Vamos apenas pegar o dado
+                evidencia = canvas.toDataURL();
+            } else {
+                evidencia = captureCamera();
+            }
+
+            const payload = {
+                funcionario_id: currentFuncionario.id,
+                itens_retirados: Array.from(selectedForPickup),
+                itens_devolvidos: Array.from(selectedForReturn),
+                evidencia: evidencia,
+                tipo_evidencia: tipo_evidencia
+            };
+
+            try {
+                const res = await fetch('/api/portaria/movimentacao', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    showToast('Movimentação registrada com sucesso!', 'success');
+                    fecharModalConfirmacao();
+                    logout();
+                } else {
+                    showToast('Erro ao salvar: ' + data.erro, 'error');
+                }
+            } catch (e) {
+                showToast('Erro de conexão', 'error');
+                console.error(e);
+            }
+        }
+
+        // --- Discount Logic ---
+        function openDiscountModal(epiId, e) {
+            e.stopPropagation();
+            currentDiscountItem = allEpis.find(ep => ep.id === epiId);
+            if (!currentDiscountItem) return;
+
+            document.getElementById('desc-item-name').textContent = currentDiscountItem.nome;
+            // Removed value display update
+            document.getElementById('desc-parcelas').value = '1';
+            // updateParcelaValue(); // Removed since field is gone
+            
+            document.getElementById('modal-desconto').style.display = 'flex';
+        }
+
+        function fecharModalDesconto() {
+            document.getElementById('modal-desconto').style.display = 'none';
+            currentDiscountItem = null;
+        }
+
+        // document.getElementById('desc-parcelas').onchange = updateParcelaValue; // Removed
+
+        // function updateParcelaValue() { ... } // Removed
+
+        async function gerarPDFDesconto() {
+            if (!currentDiscountItem || !currentFuncionario) return;
+
+            const itemToReturnId = currentDiscountItem.id; // Capture ID before it gets cleared
+
+            const payload = {
+                nome_funcionario: currentFuncionario.nome,
+                cpf_funcionario: currentFuncionario.cpf,
+                itens: [currentDiscountItem],
+                parcelas: parseInt(document.getElementById('desc-parcelas').value)
+            };
+
+            try {
+                const res = await fetch('/api/portaria/desconto', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    fecharModalDesconto();
+                    
+                    // Call movement API to "return" it so it leaves the open list.
+                    await fetch('/api/portaria/movimentacao', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            funcionario_id: currentFuncionario.id,
+                            itens_retirados: [],
+                            itens_devolvidos: [itemToReturnId]
+                        })
+                    });
+                    
+                    showToast('Termo gerado e encaminhado ao RH! O funcionário deve comparecer ao DP para assinar.', 'success');
+                    
+                    // Refresh dashboard or logout (since blocked now)
+                    // Checking if employee is now blocked
+                    const authRes = await fetch(`/api/portaria/funcionario/${currentFuncionario.cpf.replace(/\D/g,'')}`);
+                    if (authRes.status === 403) {
+                        showToast('BLOQUEIO ATIVADO: Funcionário com pendência no RH. Sessão encerrada.', 'error');
+                        logout();
+                    } else {
+                         const authData = await authRes.json();
+                         if (authData.ok) {
+                             itemsInPossessionIds = authData.itensEmPosse;
+                             renderLists();
+                         }
+                    }
+                } else {
+                    showToast('Erro ao gerar termo: ' + data.erro, 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('Erro de conexão', 'error');
+            }
+        }
+    </script>
+</body>
+</html>

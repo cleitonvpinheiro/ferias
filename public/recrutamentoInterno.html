@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Recrutamento Interno</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+ 
+  <main class="container">
+    <div style="margin-bottom: 20px;">
+        <a href="/" style="color: #64748b; text-decoration: none; font-size: 0.9rem;">&larr; Voltar ao Menu</a>
+    </div>
+     
+   <div class="brand-inner">
+      <img class="brand-logo" src="/assets/logo.png" alt="Logo Família Madalosso">
+      <div class="brand-title">Recrutamento Interno</div>
+    </div>
+    
+    <form id="formRecrutamento" novalidate>
+      <h2 class="section-title">Dados da Vaga</h2>
+      <label>
+        Cargo Pretendido
+        <input type="text" id="cargoPretendido" required>
+      </label>
+
+      <h2 class="section-title">Dados do Colaborador</h2>
+      
+      <label>
+        Nome Completo
+        <input type="text" id="nome" required>
+      </label>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <label>
+            Cargo Atual
+            <input type="text" id="cargoAtual" required>
+        </label>
+        <label>
+            Setor
+            <input type="text" id="setor" required>
+        </label>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <label>
+            Data Admissão
+            <input type="date" id="dataAdmissao" required>
+        </label>
+        <label>
+            Tempo no cargo
+            <input type="text" id="tempoCargo" placeholder="Ex: 1 ano e 2 meses" required>
+        </label>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <label>
+            Salário Atual (R$)
+            <input type="number" id="salarioAtual" step="0.01" required>
+        </label>
+        <label>
+            Telefone
+            <input type="tel" id="telefone" required>
+        </label>
+      </div>
+
+      <h2 class="section-title">Formação Acadêmica</h2>
+      <p class="form-note">Anexar cópia dos certificados se necessário (entregar ao RH)</p>
+      <label>
+        Descreva sua formação
+        <textarea id="formacao" rows="4" placeholder="Graduação, Pós-graduação, etc." required></textarea>
+      </label>
+
+      <h2 class="section-title">Cursos Complementares</h2>
+      <p class="form-note">Anexar cópia dos certificados se necessário (entregar ao RH)</p>
+      <label>
+        Descreva seus cursos
+        <textarea id="cursos" rows="4" placeholder="Cursos técnicos, workshops, idiomas, etc." required></textarea>
+      </label>
+
+      <h2 class="section-title">Expectativas</h2>
+      <label>
+        Quais são suas expectativas para o novo cargo?
+        <textarea id="expectativas" rows="4" required></textarea>
+      </label>
+
+      <h2 class="section-title">Disponibilidade</h2>
+      <label>
+        Você tem disponibilidade para trabalhar em qualquer turno?
+        <select id="disponibilidade" required style="margin-top: 8px; width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px;">
+            <option value="">Selecione</option>
+            <option value="sim">Sim</option>
+            <option value="nao">Não</option>
+        </select>
+      </label>
+      
+      <label style="margin-top: 10px;">
+        Por quê? (Justifique se necessário)
+        <input type="text" id="motivoDisponibilidade">
+      </label>
+
+      <button class="enviar" type="submit" id="btnSubmit" style="margin-top: 24px;">Enviar Candidatura</button>
+    </form>
+    <div id="feedback" class="feedback" role="alert" hidden></div>
+  </main>
+
+  <footer class="app-footer">
+    <div class="footer-content">
+      <img src="/assets/logo.png" alt="Logo" class="footer-logo">
+      <p>&copy; 2025 Família Madalosso. Todos os direitos reservados.</p>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('formRecrutamento').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('btnSubmit');
+        const feedback = document.getElementById('feedback');
+        
+        btn.disabled = true;
+        btn.textContent = 'Enviando...';
+        feedback.hidden = true;
+        feedback.className = 'feedback';
+
+        const payload = {
+            cargoPretendido: document.getElementById('cargoPretendido').value,
+            nome: document.getElementById('nome').value,
+            cargoAtual: document.getElementById('cargoAtual').value,
+            setor: document.getElementById('setor').value,
+            dataAdmissao: document.getElementById('dataAdmissao').value,
+            tempoCargo: document.getElementById('tempoCargo').value,
+            salarioAtual: document.getElementById('salarioAtual').value,
+            telefone: document.getElementById('telefone').value,
+            formacao: document.getElementById('formacao').value,
+            cursos: document.getElementById('cursos').value,
+            expectativas: document.getElementById('expectativas').value,
+            disponibilidade: document.getElementById('disponibilidade').value,
+            motivoDisponibilidade: document.getElementById('motivoDisponibilidade').value
+        };
+
+        try {
+            const res = await fetch('/api/recrutamento-interno', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+
+            if (data.ok) {
+                feedback.textContent = 'Candidatura enviada com sucesso!';
+                feedback.classList.add('success');
+                feedback.hidden = false;
+                document.getElementById('formRecrutamento').reset();
+            } else {
+                throw new Error(data.erro || 'Erro ao enviar');
+            }
+        } catch (err) {
+            feedback.textContent = err.message;
+            feedback.classList.add('error');
+            feedback.hidden = false;
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Enviar Candidatura';
+        }
+    });
+  </script>
+  </body>
+  </html>

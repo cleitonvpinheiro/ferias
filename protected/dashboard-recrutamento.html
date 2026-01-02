@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Recrutamento Interno - RH</title>
+    <link rel="stylesheet" href="/rh-styles.css">
+</head>
+<body>
+    <nav class="rh-navbar">
+        <a href="/protected/index.html" class="rh-navbar-brand">
+            <span>👥</span> Portal RH
+        </a>
+        <div class="rh-navbar-menu">
+            <a href="/protected/dashboard-rh.html" class="rh-nav-link">Férias</a>
+            <a href="/protected/dashboard-taxas.html" class="rh-nav-link">Taxas</a>
+            <a href="/protected/dashboard-candidatos.html" class="rh-nav-link">Candidatos</a>
+            <a href="/protected/dashboard-recrutamento.html" class="rh-nav-link active">Recrutamento Interno</a>
+            <a href="/protected/dashboard-vagas.html" class="rh-nav-link">Vagas</a>
+            <a href="/protected/dashboard-epis.html" class="rh-nav-link">EPIs</a>
+            <a href="/protected/dashboard-desligamento.html" class="rh-nav-link">Desligamento</a>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <div class="page-header">
+            <h1 class="page-title">Recrutamento Interno</h1>
+            <p class="page-subtitle">Acompanhe as candidaturas internas</p>
+        </div>
+
+        <div class="filters-bar">
+            <div class="filter-group">
+                <label>Buscar Candidato</label>
+                <input type="text" id="searchInput" class="filter-input" placeholder="Nome ou Cargo Pretendido..." onkeyup="filtrarCandidatos()">
+            </div>
+            <div class="filter-group" style="flex: 0; min-width: auto; align-self: flex-end;">
+                 <div class="last-update" style="white-space: nowrap; padding-bottom: 10px;">
+                    <span id="lastUpdate">Atualizado agora</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="loading" class="loading-state">
+            <div class="loading-icon">⏳</div>
+            <div>Carregando candidaturas...</div>
+        </div>
+
+        <div class="table-container" id="tableContainer" style="display: none;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Colaborador</th>
+                        <th>Setor</th>
+                        <th>Cargo Atual</th>
+                        <th>Cargo Pretendido</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- JS generated -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal Detalhes -->
+    <div class="modal-overlay" id="modalDetalhes">
+        <div class="modal">
+            <button class="close-modal" onclick="fecharModal()" style="position: absolute; top: 16px; right: 16px;">&times;</button>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+  <footer style="text-align: center; padding: 40px; color: var(--text-secondary); font-size: 0.875rem;">
+    <p>&copy; 2025 Família Madalosso. Acesso Restrito ao RH.</p>
+  </footer>
+
+    <script>
+        let todasCandidaturas = [];
+
+        async function carregarCandidaturas() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('tableContainer').style.display = 'none';
+            
+            try {
+                const res = await fetch('/api/rh/recrutamento-interno');
+                todasCandidaturas = await res.json();
+                
+                renderTable(todasCandidaturas);
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('tableContainer').style.display = 'block';
+            } catch (e) {
+                console.error(e);
+                alert('Erro ao carregar dados.');
+            }
+        }
+
+        function filtrarCandidatos() {
+            const term = document.getElementById('searchInput').value.toLowerCase();
+            
+            const filtrados = todasCandidaturas.filter(c => {
+                return c.nome.toLowerCase().includes(term) || 
+                       c.cargoPretendido.toLowerCase().includes(term);
+            });
+            
+            renderTable(filtrados);
+        }
+
+        function renderTable(lista) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            if (lista.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">Nenhuma candidatura encontrada.</td></tr>';
+                return;
+            }
+
+            lista.forEach(c => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${new Date(c.createdAt).toLocaleDateString('pt-BR')}</td>
+                    <td>
+                        <div style="font-weight: 500;">${c.nome}</div>
+                        <div style="font-size: 0.8rem; color: #64748b;">Adm: ${new Date(c.dataAdmissao).toLocaleDateString('pt-BR')}</div>
+                    </td>
+                    <td>${c.setor}</td>
+                    <td>${c.cargoAtual}</td>
+                    <td>
+                        <span class="badge badge-primary">${c.cargoPretendido}</span>
+                    </td>
+                    <td>
+                        <button class="btn-icon" onclick="abrirDetalhes('${c.id}')" title="Ver Detalhes">👁️</button>
+                        <a href="/api/rh/recrutamento-interno/${c.id}/pdf" target="_blank" class="btn-icon" title="Baixar PDF">📄</a>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function abrirDetalhes(id) {
+            const modal = document.getElementById('modalDetalhes');
+            const content = document.getElementById('modalContent');
+            content.innerHTML = '<div style="padding:40px; text-align:center;">Carregando...</div>';
+            modal.style.display = 'flex';
+
+            try {
+                const res = await fetch(`/api/rh/recrutamento-interno/${id}`);
+                const c = await res.json();
+                renderModalContent(c);
+            } catch (e) {
+                content.innerHTML = '<div style="color:red; text-align:center;">Erro ao carregar detalhes.</div>';
+            }
+        }
+
+        function renderModalContent(c) {
+            const content = document.getElementById('modalContent');
+            
+            const html = `
+                <div class="modal-header">
+                    <div class="modal-title">
+                        <h2>${c.nome}</h2>
+                        <div class="modal-meta">
+                            Candidatura para <strong>${c.cargoPretendido}</strong>
+                        </div>
+                    </div>
+                    <div>
+                        <a href="/api/rh/recrutamento-interno/${c.id}/pdf" target="_blank" class="btn btn-primary">📄 Baixar PDF Completo</a>
+                    </div>
+                </div>
+
+                <div class="modal-content-wrapper">
+                    <div class="modal-grid">
+                        <div>
+                            <h3 class="section-title">Dados Atuais</h3>
+                            <div class="detail-group">
+                                <div class="detail-label">Cargo Atual</div>
+                                <div class="detail-value">${c.cargoAtual}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Setor</div>
+                                <div class="detail-value">${c.setor}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Data de Admissão</div>
+                                <div class="detail-value">${new Date(c.dataAdmissao).toLocaleDateString('pt-BR')}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Tempo no Cargo</div>
+                                <div class="detail-value">${c.tempoCargo}</div>
+                            </div>
+                             <div class="detail-group">
+                                <div class="detail-label">Salário Atual</div>
+                                <div class="detail-value">R$ ${c.salarioAtual}</div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="section-title">Qualificações</h3>
+                            <div class="detail-group">
+                                <div class="detail-label">Formação Acadêmica</div>
+                                <div class="detail-value" style="white-space: pre-wrap;">${c.formacao}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Cursos Complementares</div>
+                                <div class="detail-value" style="white-space: pre-wrap;">${c.cursos}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 24px;">
+                        <h3 class="section-title">Informações Adicionais</h3>
+                        <div class="detail-group">
+                            <div class="detail-label">Expectativas</div>
+                            <div class="detail-value" style="white-space: pre-wrap;">${c.expectativas}</div>
+                        </div>
+                        <div class="detail-group">
+                            <div class="detail-label">Disponibilidade de Turno</div>
+                            <div class="detail-value">${c.disponibilidade === 'sim' ? 'Sim' : 'Não'} ${c.motivoDisponibilidade ? `(${c.motivoDisponibilidade})` : ''}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            content.innerHTML = html;
+        }
+
+        function fecharModal() {
+            document.getElementById('modalDetalhes').style.display = 'none';
+        }
+
+        // Close modal on outside click
+        document.getElementById('modalDetalhes').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('modalDetalhes')) fecharModal();
+        });
+
+        // Start
+        carregarCandidaturas();
+    </script>
+</body>
+</html>
