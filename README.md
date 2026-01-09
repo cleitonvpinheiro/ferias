@@ -1,41 +1,62 @@
-# Sistema de Solicitação de Férias 
+# Portal RH - Sistema de Gestão Integrada
 
-Este projeto é uma aplicação web para gerenciamento do fluxo de solicitação de férias, desde o preenchimento pelo colaborador até a validação final pelo RH, incluindo assinaturas eletrônicas via Autentique.
+Este projeto é uma plataforma web completa para o departamento de Recursos Humanos, centralizando diversos processos como solicitação de férias, gestão de EPIs, recrutamento, avaliações e controle de portaria.
 
-## 🚀 Funcionalidades
+## 🚀 Funcionalidades e Módulos
 
-- **Formulário de Solicitação:** Preenchimento de dados do colaborador, períodos de férias e solicitação de 13º salário.
-- **Assinatura do Colaborador:** Assinatura manual feita diretamente na interface web (canvas).
-- **Painel do RH:**
-  - Dashboard protegido por senha para gestão das solicitações.
-  - Visualização de status (Pendente, Aprovado, Reprovado).
-  - Exportação de dados para Excel e PDF.
-  - Estatísticas de solicitações.
-- **Fluxo de Aprovação:**
-  1.  **Colaborador:** Envia a solicitação.
-  2.  **Gestor:** Recebe notificação por e-mail para aprovar ou reprovar. Assinatura realizada via **Autentique**.
-  3.  **RH:** Após aprovação do gestor, recebe notificação para validação. Assinatura realizada via **Autentique**.
-- **Segurança:**
-  - Autenticação Basic Auth para acesso ao painel do RH.
-  - Rate Limiting para proteção contra abusos.
-  - Headers de segurança (Helmet).
-- **Geração de PDF:** Geração automática do formulário em PDF contendo todas as informações e assinaturas.
-- **Notificações por E-mail:** Atualizações de status enviadas via SMTP.
+O sistema é dividido em módulos integrados:
+
+### 1. 🏖️ Gestão de Férias
+- Formulário de solicitação pelo colaborador.
+- Fluxo de aprovação (Gestor -> RH).
+- Assinatura eletrônica via **Autentique**.
+- Geração automática de PDF.
+
+### 2. 🦺 Gestão de EPIs e Uniformes
+- Cadastro e controle de estoque de itens.
+- Dashboard da Portaria para registro de retiradas e devoluções.
+- Termos de responsabilidade gerados automaticamente (PDF).
+- Controle de descontos em folha com status (Pendente/Resolvido).
+- Assinatura digital no ato da retirada.
+
+### 3. 👥 Recrutamento e Seleção
+- **Vagas:** Abertura e gestão de vagas (internas e externas).
+- **Candidatos:** Banco de talentos e triagem de currículos.
+- **Kanban:** Visualização do fluxo de processos seletivos.
+
+### 4. 🚀 Onboarding e Treinamento (On The Job)
+- Listas de verificação para novos colaboradores.
+- Acompanhamento de treinamentos iniciais.
+
+### 5. 📊 Avaliação de Experiência
+- Formulários dinâmicos para avaliação (45 e 90 dias).
+- Dashboards específicos para liderança e RH.
+
+### 6. 🚪 Processo de Desligamento
+- Agendamento e registro de entrevistas de desligamento.
+- Checklist de devolução de ativos.
+
+### 7. 👮 Controle de Portaria
+- Interface dedicada para a portaria.
+- Registro rápido de entrega de EPIs.
+- Consulta de itens autorizados.
 
 ## 🛠️ Tecnologias Utilizadas
 
 - **Backend:** Node.js, Express
-- **Frontend:** HTML5, CSS3, JavaScript (Vanilla)
-- **Segurança:** Helmet, Rate Limit, Basic Auth
-- **PDF:** PDFKit, jsPDF
-- **Excel:** SheetJS (xlsx)
-- **E-mail:** Nodemailer
-- **Assinaturas Digitais:** Integração com API Autentique (GraphQL)
-- **Armazenamento:** Arquivos JSON (local)
+- **Banco de Dados:** SQLite (migração de arquivos JSON para maior robustez)
+- **Frontend:** HTML5, CSS3 (Variáveis CSS, Flexbox/Grid), JavaScript (Vanilla)
+- **Segurança:** 
+  - Autenticação baseada em Sessão/Cookies.
+  - Middlewares de proteção (`helmet`, `rate-limit`).
+  - Controle de acesso por rotas (`rhAuth`, `portariaAuth`).
+- **PDF:** `pdfkit` para geração dinâmica de documentos.
+- **Integrações:** API Autentique (GraphQL) para assinaturas legais.
+- **Outros:** `multer` (upload de arquivos), `xlsx` (importação/exportação Excel).
 
 ## 📋 Pré-requisitos
 
-- [Node.js](https://nodejs.org/) (versão 14 ou superior recomendada)
+- [Node.js](https://nodejs.org/) (versão 18 ou superior recomendada)
 - [NPM](https://www.npmjs.com/)
 
 ## 🔧 Instalação
@@ -52,32 +73,10 @@ Este projeto é uma aplicação web para gerenciamento do fluxo de solicitação
     ```
 
 3.  Configure as variáveis de ambiente:
-    Crie um arquivo `.env` na raiz do projeto (use `.env.example` como base) e configure as chaves:
+    Crie um arquivo `.env` na raiz do projeto (use `.env.example` como base) e configure as chaves necessárias (SMTP, Autentique, Credenciais RH/Portaria).
 
-    ```env
-    # Servidor
-    PORT=8080
-    BASE_URL=http://localhost:8080
-
-    # Configurações de E-mail (SMTP)
-    SMTP_HOST=smtp.exemplo.com.br
-    SMTP_PORT=587
-    SMTP_USER=seu_email@exemplo.com.br
-    SMTP_PASS=sua_senha
-    EMAIL_FROM=seu_email@exemplo.com.br
-
-    # Configurações Autentique
-    AUTENTIQUE_URL=https://api.autentique.com.br/v2
-    AUTENTIQUE_TOKEN=seu_token_autentique
-    AUTENTIQUE_MODE=dev # ou 'prod'
-
-    # E-mail do RH (para assinatura)
-    DP_EMAIL=rh@exemplo.com.br
-
-    # Credenciais de Acesso ao Painel RH
-    RH_USER=rh
-    RH_PASS=sua_senha_segura
-    ```
+4.  Inicialize o banco de dados (se necessário):
+    O sistema cria/migra as tabelas automaticamente ao iniciar (`database/init.js`), mas você pode verificar o schema em `database/schema.sql`.
 
 ## ▶️ Como Executar
 
@@ -87,14 +86,22 @@ Para iniciar o servidor:
 npm start
 ```
 
-A aplicação estará disponível em `http://localhost:8080`.
+A aplicação estará disponível em `http://localhost:8080` (ou a porta definida no `.env`).
 
-- **Formulário:** `/`
-- **Painel RH:** `/dashboard-rh.html` (Requer autenticação)
+### Principais Rotas de Acesso:
+
+- **Portal do Colaborador:** `/` (Menu principal)
+- **Painel do RH:** `/protected/dashboard-rh.html` (Requer login RH)
+- **Painel da Portaria:** `/protected/dashboard-portaria.html` (Requer login Portaria)
+- **Solicitação de Férias:** `/public/ferias.html`
 
 ## 📂 Estrutura do Projeto
 
-- `public/`: Arquivos estáticos (HTML, CSS, JS, imagens).
-- `data/`: Armazenamento de dados (JSON).
-- `assets/`: Recursos como logos e imagens de fundo para o PDF.
-- `server.js`: Ponto de entrada e lógica do servidor.
+- `server.js`: Ponto de entrada da aplicação.
+- `routes/`: Rotas da API separadas por módulo (`epis.js`, `rh.js`, `ferias.js`, etc.).
+- `services/`: Lógica de negócios e serviços externos (`db.js`, `pdfService.js`, `email.js`).
+- `middleware/`: Middlewares de autenticação e upload.
+- `database/`: Scripts de inicialização e definição do banco SQLite.
+- `protected/`: Páginas HTML restritas (Dashboards RH e Portaria).
+- `public/`: Páginas e arquivos estáticos públicos.
+- `data/`: Arquivos JSON (legado/backup).
