@@ -18,16 +18,106 @@ const btnSubmit = document.getElementById('btnSubmit');
 const urlParams = new URLSearchParams(window.location.search);
 const modeRH = urlParams.get('mode') === 'rh';
 const requestId = urlParams.get('id');
+const signatureToken = urlParams.get('token');
 
-if (modeRH) {
+if (signatureToken) {
+    // Signature Mode Logic
+    // Unlock signature, disable everything else
+    
+    // Robust Hide Overlay Function
+    const hideOverlay = () => {
+        const overlay = document.getElementById('signatureOverlay');
+        if (overlay) {
+            overlay.hidden = true;
+            overlay.style.display = 'none';
+            overlay.style.setProperty('display', 'none', 'important');
+        }
+        const btnSubmit = document.getElementById('btnSubmit');
+        if (btnSubmit) btnSubmit.textContent = 'Assinar e Finalizar';
+    };
+
+    // Trigger immediately
+    hideOverlay();
+    // Trigger on load to ensure it overrides any CSS or other scripts
+    window.addEventListener('load', hideOverlay);
+
+    
+    // Change button text
+    if (btnSubmit) btnSubmit.textContent = 'Assinar e Finalizar';
+    
+    // Load data
+    fetch(`/api/solicitacao/token/${signatureToken}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+                window.location.href = '/';
+                return;
+            }
+            fillForm(data);
+            disableFormInputs();
+            hideOverlay(); // Ensure overlay is hidden after form population
+            
+            // Scroll to signature and notify
+            if (canvas) {
+                canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                canvas.style.pointerEvents = 'auto';
+            }
+            showFeedback('Assinatura liberada. Por favor, assine abaixo.', false);
+        })
+        .catch(e => {
+            console.error('Erro ao carregar solicitação', e);
+            alert('Erro ao carregar dados da solicitação.');
+        });
+} else if (modeRH) {
     const backLink = document.querySelector('a[href="/"]');
     if (backLink) {
-        backLink.href = '/dashboard-rh.html';
+        backLink.href = '/protected/dashboard-rh.html';
         backLink.innerHTML = '&larr; Voltar ao Painel RH';
     }
 }
 
-// Canvas RH REMOVED (Autentique)
+function disableFormInputs() {
+    const inputs = document.querySelectorAll('input, select, textarea');
+    inputs.forEach(el => {
+        if (el.id !== 'btnSubmit') { // Keep submit active
+             el.disabled = true;
+        }
+    });
+    // Ensure signature buttons are active
+    if (limparBtn) limparBtn.disabled = false;
+    if (canvas) canvas.style.pointerEvents = 'auto';
+}
+
+function fillForm(data) {
+    // Helper to set values
+    const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val || '';
+    };
+    
+    setVal('nome', data.nome);
+    setVal('setor', data.setor);
+    setVal('inicio', data.inicio);
+    setVal('decimo', data.decimo);
+    setVal('gestorEmail', data.gestorEmail);
+    setVal('nomeGestor', data.nomeGestor);
+    
+    if (tipoGozoEl) {
+        tipoGozoEl.value = data.tipoGozo;
+        tipoGozoEl.dispatchEvent(new Event('change'));
+    }
+    if (data.inicio2) setVal('inicio2', data.inicio2);
+}
+
+// Ensure overlay is present for normal mode
+if (!signatureToken && !modeRH && !requestId) {
+    // New request: signature is locked
+    // Ensure overlay is visible (it is by default in HTML, but check logic)
+} else if (modeRH) {
+    // RH Mode: Signature is readonly anyway or hidden?
+    // Usually RH sees the signature if it was there, but now it won't be there.
+}
 
 function setupCanvas(cvs, ctxVar, isDrawingVar, isSignedVar, limparBtn) {
     const resize = () => {
@@ -84,8 +174,6 @@ function setupCanvas(cvs, ctxVar, isDrawingVar, isSignedVar, limparBtn) {
     return { ctx, resize };
 }
 
-// RH Canvas Setup REMOVED (Autentique)
-
 function renderHistorico(historico) {
     if (!historico || !historico.length) {
         if (historicoContainer) historicoContainer.hidden = true;
@@ -94,272 +182,215 @@ function renderHistorico(historico) {
     if (historicoContainer) historicoContainer.hidden = false;
     if (historicoLista) {
         historicoLista.innerHTML = '';
-        historico.slice().reverse().forEach(item => { // Show newest first
+        historico.slice().reverse().forEach(item => {
             const li = document.createElement('li');
             li.style.cssText = 'padding: 12px; background: white; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);';
             
             const date = new Date(item.data).toLocaleString('pt-BR');
-            const ator = item.ator === 'RH' ? '🔴 RH' : '🔵 Solicitante';
-            const acaoMap = {
-                'reprovado': 'Reprovou / Solicitou Ajuste',
-                'aprovado': 'Aprovou',
-                'reenvio': 'Reenviou solicitação',
-                'pendente_rh': 'Criou solicitação'
+            const statusMap = {
+                'pendente_rh': 'Aguardando RH',
+                'aprovado': 'Aprovado',
+                'reprovado': 'Reprovado',
+                'pendente_assinatura': 'Aguardando Assinatura'
             };
-            const acao = acaoMap[item.acao] || item.acao;
+            const statusLabel = statusMap[item.status] || item.status;
             
-            let html = `<div style="display:flex; justify-content:space-between; margin-bottom:6px; font-weight:600; align-items:center;">
-                <span style="display:flex; align-items:center; gap:6px;">${ator} <span style="font-weight:400; color:#94a3b8;">&bull;</span> ${acao}</span>
-                <span style="color:#64748b; font-size:0.75rem;">${date}</span>
-            </div>`;
-            
-            if (item.justificativa) {
-                html += `<div style="padding: 8px; background: #f1f5f9; border-radius: 4px; color: #334155; line-height: 1.5;">${item.justificativa}</div>`;
-            }
-            
-            li.innerHTML = html;
+            li.innerHTML = `
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                    <strong style="color:#1e293b">${statusLabel}</strong>
+                    <span style="color:#64748b; font-size:0.75rem">${date}</span>
+                </div>
+                ${item.obs ? `<div style="color:#475569; margin-top:4px;">${item.obs}</div>` : ''}
+                ${item.usuario ? `<div style="color:#94a3b8; font-size:0.75rem; margin-top:4px;">Por: ${item.usuario}</div>` : ''}
+            `;
             historicoLista.appendChild(li);
         });
     }
 }
 
-const populateInputs = (data) => {
-    document.getElementById('nome').value = data.nome || '';
-    document.getElementById('setor').value = data.setor || '';
-    document.getElementById('inicio').value = data.inicio ? data.inicio.split('T')[0] : '';
-    document.getElementById('tipoGozo').value = data.tipoGozo || '30';
-    document.getElementById('decimo').value = data.decimo ? 'sim' : 'nao';
-    if (data.gestorEmail) document.getElementById('gestorEmail').value = data.gestorEmail;
-    document.getElementById('nomeGestor').value = data.nomeGestor || '';
-    if (data.inicio2) {
-        document.getElementById('inicio2').value = data.inicio2.split('T')[0];
-        periodoExtra.hidden = false;
-    }
-    
-    // Load Gestor Signature if exists - REMOVED (Autentique)
-    
-    renderHistorico(data.historico);
+function showFeedback(msg, isError = true) {
+    feedback.textContent = msg;
+    feedback.hidden = false;
+    feedback.style.color = isError ? '#dc2626' : '#16a34a';
+    feedback.style.backgroundColor = isError ? '#fef2f2' : '#f0fdf4';
+    feedback.style.borderColor = isError ? '#fecaca' : '#bbf7d0';
+}
 
+// Assinatura Colaborador
+let isDrawing = { val: false };
+let isSigned = { val: false };
+let resizeCanvas = () => {};
+
+if (canvas) {
+    const setup = setupCanvas(canvas, null, isDrawing, isSigned, limparBtn);
+    resizeCanvas = setup.resize;
+}
+
+// Populate (Modo RH)
+function populateAndDisable(data) {
+    document.getElementById('nome').value = data.nome;
+    document.getElementById('setor').value = data.setor;
+    document.getElementById('inicio').value = data.inicio;
+    tipoGozoEl.value = data.tipoGozo;
     tipoGozoEl.dispatchEvent(new Event('change'));
-};
-
-// Função para preencher e desabilitar campos (Modo RH)
-const populateAndDisable = (data) => {
-    populateInputs(data);
     
-    // Desabilita campos
-    ['nome', 'setor', 'inicio', 'tipoGozo', 'decimo', 'gestorEmail', 'inicio2', 'nomeGestor'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.disabled = true;
-    });
-    
-    // Disable Gestor Canvas (se existisse)
-    // canvasGestor.style.pointerEvents = 'none';
-    // limparGestorBtn.hidden = true;
-
-    // Lógica de Estado: Aguardando Assinatura
-    if (data.status === 'aguardando_assinatura') {
-        // Oculta área de aprovação do RH (já foi aprovado)
-        rhApprovalArea.hidden = true;
-        
-        // Remove feedback anterior se houver para evitar duplicidade
-        const existingStatus = document.getElementById('status-feedback-card');
-        if (existingStatus) existingStatus.remove();
-
-        // Exibe feedback visual de status
-        const statusDiv = document.createElement('div');
-        statusDiv.id = 'status-feedback-card';
-        statusDiv.className = 'rh-approval-card';
-        statusDiv.innerHTML = '<h3 class="rh-card-title" style="color: var(--success)">✅ Solicitação Aprovada pelo RH</h3><p>Por favor, colete a assinatura do colaborador abaixo.</p>';
-        form.insertBefore(statusDiv, rhApprovalArea);
-
-        // Habilita Assinatura (Remove overlay e permite interação)
-        const overlay = document.getElementById('signatureOverlay');
-        if (overlay) overlay.hidden = true;
-        
-        canvas.style.pointerEvents = 'auto'; // Habilita
-        document.getElementById('limpar').hidden = false;
-        
-        btnSubmit.textContent = 'Assinar e Finalizar';
-        btnSubmit.hidden = false;
-        
-        // Marca status como aprovado para o envio
-        const inputApprove = document.querySelector('input[name="statusRH"][value="aprovado"]');
-        if(inputApprove) inputApprove.checked = true;
-
-    } else if (data.status === 'concluido') {
-        rhApprovalArea.hidden = true;
-        const existingStatus = document.getElementById('status-feedback-card');
-        if (existingStatus) existingStatus.remove();
-
-        const statusDiv = document.createElement('div');
-        statusDiv.id = 'status-feedback-card';
-        statusDiv.className = 'rh-approval-card';
-        statusDiv.innerHTML = `
-            <h3 class="rh-card-title" style="color: var(--success)">✅ Processo Concluído</h3>
-            <p>Solicitação aprovada e assinada.</p>
-            <a href="/api/pdf/${data.id}" target="_blank" class="enviar" style="display:block; text-align:center; text-decoration:none; margin-top:10px; background-color: #4b5563;">📄 Baixar PDF Assinado</a>
-        `;
-        form.insertBefore(statusDiv, rhApprovalArea);
-        
-        const overlay = document.getElementById('signatureOverlay');
-        if (overlay) overlay.hidden = true;
-        
-        canvas.style.pointerEvents = 'none';
-        document.getElementById('limpar').hidden = true;
-        btnSubmit.hidden = true;
-        
-        // Load signature image
-        if (data.assinatura) {
-            const img = new Image();
-            img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            img.src = data.assinatura;
-            currentSignatureData = data.assinatura;
-        }
-    } else {
-        // Remove feedback se voltar para estado anterior
-        const existingStatus = document.getElementById('status-feedback-card');
-        if (existingStatus) existingStatus.remove();
-
-        // Estado normal ou inicial: Mantém overlay visível e bloqueia
-        const overlay = document.getElementById('signatureOverlay');
-        if (overlay) overlay.hidden = false;
-        
-        canvas.style.pointerEvents = 'none';
-        document.getElementById('limpar').hidden = true;
-        btnSubmit.hidden = false;
-        
-        // RH Signature Logic REMOVED (Autentique)
+    if (data.inicio2) {
+        inicio2El.value = data.inicio2;
     }
-};
+    
+    document.getElementById('decimo').value = data.decimo;
+    if (data.gestorEmail) gestorEmailEl.value = data.gestorEmail;
+    if (data.nomeGestor) document.getElementById('nomeGestor').value = data.nomeGestor;
 
+    // Disable all inputs
+    const inputs = form.querySelectorAll('input, select, button:not(#btnSubmit)');
+    inputs.forEach(el => el.disabled = true);
+    
+    // Show signature if exists
+    if (data.assinatura) {
+        const img = new Image();
+        img.src = data.assinatura;
+        img.onload = () => {
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        };
+    }
+    
+    // Setup RH area
+    if (modeRH && rhApprovalArea) {
+        rhApprovalArea.hidden = false;
+        btnSubmit.textContent = 'Confirmar Avaliação RH';
+        // Enable RH inputs
+        radiosStatus.forEach(r => r.disabled = false);
+        if (sugestaoDataEl) sugestaoDataEl.disabled = false;
+        if (justificativaRHEl) justificativaRHEl.disabled = false;
+        
+        // Show History
+        renderHistorico(data.historico);
+    }
+}
+
+// Load Data if Edit/View Mode
 if (requestId) {
     fetch(`/api/solicitacao/${requestId}`)
-      .then(r => r.json())
-      .then(data => {
-          if (data.ok === false) {
-              showFeedback('Solicitação não encontrada.');
-              return;
-          }
-          if (modeRH) {
-              populateAndDisable(data);
-          } else {
-              populateInputs(data);
-          }
-      })
-      .catch(() => showFeedback('Erro ao carregar dados da solicitação.'));
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok === false) {
+                showFeedback(data.erro);
+            } else {
+                populateAndDisable(data);
+                
+                // If in signature mode, ensure overlay stays hidden after population
+                if (signatureToken) {
+                    const overlay = document.getElementById('signatureOverlay');
+                    if (overlay) {
+                        overlay.hidden = true;
+                        overlay.style.display = 'none';
+                        overlay.style.setProperty('display', 'none', 'important');
+                    }
+                }
+            }
+        })
+        .catch(e => showFeedback('Erro ao carregar solicitação.'));
 }
 
-if (modeRH) {
-  rhApprovalArea.hidden = false;
-  btnSubmit.textContent = 'Finalizar Validação';
-  
-  if (!requestId) {
-    // Modo legado: Popula via URL Params
-    const fields = ['nome', 'setor', 'inicio', 'tipoGozo', 'decimo', 'gestorEmail', 'inicio2'];
-    fields.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-        el.value = urlParams.get(id) || (id === 'decimo' ? (urlParams.get('decimo') === 'true' ? 'sim' : 'nao') : '');
-        el.disabled = true; 
-        }
-    });
-    if (isSplit(urlParams.get('tipoGozo'))) {
-        periodoExtra.hidden = false;
-    }
-  }
-  
-  if (requestId) {
-    // Se tem ID, o fetch cuidará da lógica do overlay dentro de populateAndDisable
-  } else {
-    // Se é nova solicitação (sem ID), garante que o overlay está visível e bloqueado
-    const overlay = document.getElementById('signatureOverlay');
-    if (overlay) overlay.hidden = false;
-    canvas.style.pointerEvents = 'none';
-    document.getElementById('limpar').hidden = true;
-  }
-}
-
-let isDrawing = false;
-let isSigned = false;
-let ctx;
-let currentSignatureData = null;
-
-function resizeCanvas() {
-  const ratio = Math.max(window.devicePixelRatio || 1, 1);
-  const rect = canvas.getBoundingClientRect();
-  canvas.width = rect.width * ratio;
-  canvas.height = rect.height * ratio;
-  ctx = canvas.getContext('2d');
-  ctx.scale(ratio, ratio);
-  ctx.lineWidth = 2;
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = '#111827';
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, rect.width, rect.height);
-  
-  if (currentSignatureData) {
-      const img = new Image();
-      img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      img.src = currentSignatureData;
-  }
-}
-
-function pointerPos(e) {
-  const rect = canvas.getBoundingClientRect();
-  const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
-  const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
-  return { x, y };
-}
-
-canvas.addEventListener('pointerdown', e => {
-  isDrawing = true;
-  isSigned = true;
-  const { x, y } = pointerPos(e);
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-});
-
-canvas.addEventListener('pointermove', e => {
-  if (!isDrawing) return;
-  const { x, y } = pointerPos(e);
-  ctx.lineTo(x, y);
-  ctx.stroke();
-});
-
-canvas.addEventListener('pointerup', () => {
-  isDrawing = false;
-});
-canvas.addEventListener('pointerleave', () => {
-  isDrawing = false;
-});
-
-limparBtn.addEventListener('click', () => {
-  const rect = canvas.getBoundingClientRect();
-  ctx.clearRect(0, 0, rect.width, rect.height);
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, rect.width, rect.height);
-  isSigned = false;
-});
-
-function showFeedback(msg) {
-  feedback.textContent = msg;
-  feedback.hidden = false;
-}
-
-form.addEventListener('submit', async e => {
+form.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const nome = document.getElementById('nome').value.trim();
+  feedback.hidden = true;
+  
+  if (signatureToken) {
+        if (!isSigned.val) {
+            showFeedback('A assinatura é obrigatória para finalizar.');
+            return;
+        }
+        
+        try {
+            const dataURL = canvas.toDataURL('image/png');
+            const r = await fetch('/api/solicitacao/assinar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: signatureToken, assinatura: dataURL })
+            });
+            const j = await r.json();
+            if (j.ok) {
+                showFeedback('Assinado com sucesso! O processo foi finalizado.', false);
+                setTimeout(() => window.location.href = '/', 3000);
+            } else {
+                showFeedback(j.erro || 'Erro ao assinar.');
+            }
+        } catch (e) {
+            console.error(e);
+            showFeedback('Erro de comunicação.');
+        }
+        return;
+    }
+
+    const nome = document.getElementById('nome').value.trim();
   const setor = document.getElementById('setor').value.trim();
   const inicio = document.getElementById('inicio').value;
-  const tipoGozo = document.getElementById('tipoGozo').value;
-  const decimo = document.getElementById('decimo').value === 'sim';
-  const statusRH = document.querySelector('input[name="statusRH"]:checked').value;
-  const sugestaoData = sugestaoDataEl.value;
+  const tipoGozo = tipoGozoEl.value;
+  const decimo = document.getElementById('decimo').value;
+  
+  // RH validation
+  let statusRH = null;
+  let sugestaoData = null;
+  
+  if (modeRH) {
+      const selected = document.querySelector('input[name="statusRH"]:checked');
+      if (!selected) {
+          showFeedback('Selecione uma opção de aprovação.');
+          return;
+      }
+      statusRH = selected.value;
+      
+      if (statusRH === 'reprovado') {
+           sugestaoData = sugestaoDataEl.value;
+           if (!justificativaRHEl || !justificativaRHEl.value.trim()) {
+               showFeedback('Justificativa é obrigatória para reprovação.');
+               return;
+           }
+      }
+      
+      const payload = {
+          id: requestId,
+          statusRH: statusRH,
+          sugestaoData: sugestaoData,
+          justificativa: justificativaRHEl ? justificativaRHEl.value.trim() : ''
+      };
+
+      try {
+          const r = await fetch('/api/solicitacao/rh-aprovar', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+          });
+          const j = await r.json();
+          if (j.ok) {
+              showFeedback('Processado com sucesso!', false);
+              setTimeout(() => window.location.href = '/dashboard-rh.html', 2000);
+          } else {
+              showFeedback(j.erro || 'Erro ao processar.');
+          }
+      } catch (e) {
+          console.error(e);
+          showFeedback('Erro de comunicação.');
+      }
+      return;
+  } else {
+      // Normal validation
+      // Signature is now collected AFTER RH approval
+      /*
+      if (!isSigned.val) {
+        showFeedback('A assinatura do colaborador é obrigatória.');
+        return;
+      }
+      */
+  }
+
   const inicio2 = inicio2El.value;
   const gestorEmail = gestorEmailEl.value.trim();
 
-  if (!nome || !setor || !inicio || !tipoGozo) {
+  if (!modeRH && (!nome || !setor || !inicio || !tipoGozo)) {
     showFeedback('Preencha todos os campos obrigatórios.');
     return;
   }
@@ -370,24 +401,30 @@ form.addEventListener('submit', async e => {
   
   const endpoint = modeRH ? '/api/solicitacao' : '/api/encaminhar';
   
-  const dataURL = isSigned ? canvas.toDataURL('image/png') : null;
-  // rhDataURL REMOVED (Autentique)
+  const dataURL = (isSigned.val) ? canvas.toDataURL('image/png') : null;
 
   try {
     const nomeGestor = document.getElementById('nomeGestor').value.trim();
-    const body = { nome, setor, inicio, inicio2: isSplit(tipoGozo) ? inicio2 : undefined, tipoGozo, decimo, gestorEmail: gestorEmail || undefined, nomeGestor: nomeGestor || undefined };
+    const body = { 
+        nome, 
+        setor, 
+        inicio, 
+        inicio2: isSplit(tipoGozo) ? inicio2 : undefined, 
+        tipoGozo, 
+        decimo, 
+        gestorEmail: gestorEmail || undefined, 
+        nomeGestor: nomeGestor || undefined 
+    };
     if (requestId) body.id = requestId;
-    
-    // Add Gestor Signature to payload (always sent if present)
-    // REMOVED: gestorDataURL variable is not defined because we removed the manual signature canvas logic
-    // if (gestorDataURL) body.assinaturaGestor = gestorDataURL;
     
     if (modeRH) {
        body.statusRH = statusRH;
        body.sugestaoData = statusRH === 'reprovado' ? sugestaoData : undefined;
        body.justificativa = (statusRH === 'reprovado' && justificativaRHEl) ? justificativaRHEl.value : undefined;
+       // Maintain existing signature if not provided (should be readonly anyway)
+       // body.assinatura = dataURL; 
+    } else {
        body.assinatura = dataURL;
-       // body.assinaturaRH REMOVED (Autentique)
     }
 
     const r = await fetch(endpoint, {
@@ -403,33 +440,19 @@ form.addEventListener('submit', async e => {
     
     if (modeRH) {
         const link = j.autentique && j.autentique.link ? ` Link: ${j.autentique.link}` : '';
-        showFeedback(`Validação concluída com sucesso.${link}`);
+        showFeedback(`Validação concluída com sucesso.${link}`, false);
         
-        // Aguarda 2 segundos e redireciona para o painel RH
         setTimeout(() => {
             window.location.href = '/protected/dashboard-rh.html';
         }, 2000);
-
-        // Atualiza a interface para habilitar assinatura se necessário
-        if (requestId) {
-            fetch(`/api/solicitacao/${requestId}`)
-              .then(r => r.json())
-              .then(data => {
-                  if (data.ok !== false) {
-                      populateAndDisable(data);
-                  }
-              })
-              .catch(console.error);
-        }
     } else {
-        showFeedback('Solicitação encaminhada ao RH com sucesso.');
+        showFeedback('Solicitação encaminhada ao RH com sucesso.', false);
+        form.reset();
+        limparBtn.click();
     }
 
-    if (!modeRH) {
-       form.reset();
-       limparBtn.click();
-    }
-  } catch (_) {
+  } catch (err) {
+    console.error(err);
     showFeedback('Erro de comunicação com o servidor.');
   }
 });
@@ -443,7 +466,7 @@ function isSplit(gozo) {
 
 tipoGozoEl.addEventListener('change', () => {
   const val = tipoGozoEl.value;
-  const show = isSplit(val);
+  const show = val === '15+15'; 
   periodoExtra.hidden = !show;
   if (!show) {
     inicio2El.value = '';
@@ -453,7 +476,66 @@ tipoGozoEl.addEventListener('change', () => {
 radiosStatus.forEach(r => {
   r.addEventListener('change', () => {
     const isReprovado = r.value === 'reprovado';
-    areaSugestao.hidden = !isReprovado;
-    if (!isReprovado) sugestaoDataEl.value = '';
+    if(areaSugestao) areaSugestao.hidden = !isReprovado;
+    if (!isReprovado && sugestaoDataEl) sugestaoDataEl.value = '';
   });
 });
+
+// --- Load Funcionarios (Integration) ---
+const selectFuncionario = document.getElementById('select_funcionario');
+
+if (selectFuncionario) {
+    async function loadFuncionarios() {
+        try {
+            const res = await fetch('/api/funcionarios');
+            const funcionarios = await res.json();
+            
+            selectFuncionario.innerHTML = '<option value="">Selecione um colaborador...</option>';
+            // Ordenar por nome
+            funcionarios.sort((a, b) => a.nome.localeCompare(b.nome));
+            
+            funcionarios.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f.id;
+                opt.textContent = f.nome;
+                opt.dataset.dados = JSON.stringify(f);
+                selectFuncionario.appendChild(opt);
+            });
+        } catch (e) {
+            console.error('Erro ao carregar funcionarios', e);
+            selectFuncionario.innerHTML = '<option value="">Erro ao carregar lista</option>';
+        }
+    }
+    loadFuncionarios();
+
+    selectFuncionario.addEventListener('change', () => {
+        const opt = selectFuncionario.selectedOptions[0];
+        
+        if (!opt || !opt.value) return;
+
+        try {
+            const dados = JSON.parse(opt.dataset.dados);
+            
+            const nomeEl = document.getElementById('nome');
+            const setorEl = document.getElementById('setor');
+            
+            if (nomeEl && dados.nome) {
+                nomeEl.value = dados.nome;
+                nomeEl.style.transition = 'background-color 0.3s';
+                nomeEl.style.backgroundColor = '#e0f2fe';
+                setTimeout(() => nomeEl.style.backgroundColor = '', 1000);
+            }
+            
+            const setorValor = dados.setor || dados.departamento;
+            if (setorEl && setorValor) {
+                setorEl.value = setorValor;
+                setorEl.style.transition = 'background-color 0.3s';
+                setorEl.style.backgroundColor = '#e0f2fe';
+                setTimeout(() => setorEl.style.backgroundColor = '', 1000);
+            }
+
+        } catch (e) {
+            console.error('Erro ao preencher dados:', e);
+        }
+    });
+}

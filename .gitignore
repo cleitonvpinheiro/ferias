@@ -6,4 +6,5 @@ node_modules/
 *.zip
 data/*.json
 !data/.gitkeep
-
+*.db
+*.sqlite

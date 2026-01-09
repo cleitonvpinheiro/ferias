@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avaliação de Performance - Operacional</title>
+    <link rel="icon" href="/assets/logo.png" type="image/png">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="avaliacao-styles.css">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 20px;">
+        <a href="/" style="color: #64748b; text-decoration: none; font-size: 0.9rem;">&larr; Voltar ao Menu</a>
+    </div>
+        <div class="header">
+            <img src="/assets/logo.png" alt="Logo" class="logo">
+            <h1>Avaliação de Performance - Operacional</h1>
+            <p>Formulário de avaliação para equipe operacional</p>
+        </div>
+
+        <form id="evaluationForm">
+            <input type="hidden" name="tipo" value="operacional">
+            
+            <div class="form-section">
+                <h2>Dados da Avaliação</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Funcionário(a) Avaliado(a):</label>
+                        <select name="funcionario" id="funcionarioSelect" required>
+                            <option value="">Selecione um funcionário...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Data:</label>
+                        <input type="date" name="data" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Função:</label>
+                        <input type="text" name="funcao" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Setor:</label>
+                        <input type="text" name="setor" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Avaliador (Seu Nome):</label>
+                    <input type="text" name="avaliador" required>
+                </div>
+            </div>
+
+            <div id="questionsContainer">
+                <!-- Questions will be injected here via JS -->
+            </div>
+
+            <div class="form-section">
+                <h2>Avaliação Final e Compromisso</h2>
+
+                <div class="form-group">
+                    <label style="font-size: 1.1rem; margin-bottom: 1rem; display: block;">Assinale o Indicador de Status Profissional:</label>
+                    <div class="status-grid">
+                        <label class="status-card status-desmotivado">
+                            <input type="radio" name="statusProfissional" value="desmotivado" class="hidden-radio" required>
+                            <div class="status-content">
+                                <span class="status-icon">😫</span>
+                                <span class="status-text">DESMOTIVADO</span>
+                            </div>
+                        </label>
+                        <label class="status-card status-pouco">
+                            <input type="radio" name="statusProfissional" value="pouco_motivado" class="hidden-radio">
+                            <div class="status-content">
+                                <span class="status-icon">😟</span>
+                                <span class="status-text">POUCO MOTIVADO</span>
+                            </div>
+                        </label>
+                        <label class="status-card status-neutro">
+                            <input type="radio" name="statusProfissional" value="neutro" class="hidden-radio">
+                            <div class="status-content">
+                                <span class="status-icon">😐</span>
+                                <span class="status-text">NEUTRO</span>
+                            </div>
+                        </label>
+                        <label class="status-card status-motivado">
+                            <input type="radio" name="statusProfissional" value="motivado" class="hidden-radio">
+                            <div class="status-content">
+                                <span class="status-icon">🙂</span>
+                                <span class="status-text">MOTIVADO</span>
+                            </div>
+                        </label>
+                        <label class="status-card status-muito">
+                            <input type="radio" name="statusProfissional" value="muito_motivado" class="hidden-radio">
+                            <div class="status-content">
+                                <span class="status-icon">😁</span>
+                                <span class="status-text">MUITO MOTIVADO</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Por que? Comente:</label>
+                    <textarea name="statusComentario" rows="3" style="width:100%; padding:0.75rem; border-radius:0.5rem; border:1px solid #e2e8f0; font-family:inherit;"></textarea>
+                </div>
+
+                <hr style="margin: 2rem 0; border: 0; border-top: 1px solid #e2e8f0;">
+
+                <div class="commitment-box" style="background:#f8fafc; padding:1.5rem; border-radius:0.5rem; border:1px solid #e2e8f0; margin-bottom:1.5rem; text-align:center;">
+                    <p style="font-weight:600; color:#1e293b; margin-bottom:1rem; line-height:1.5;">
+                        EU, ESTOU CIENTE PELA PONTUAÇÃO E SINALIZAÇÕES ACIMA E ME COMPROMETO(A) A DESENVOLVER E MELHORAR TODOS OS PONTOS ACIMA.
+                    </p>
+                    <label style="display:inline-flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                        <input type="checkbox" name="cienciaCompromisso" required style="width:auto;">
+                        <span style="font-size:0.95rem;">Li e concordo</span>
+                    </label>
+                </div>
+
+                <div class="score-display" style="display:flex; justify-content:space-between; align-items:center; background:#1e293b; color:white; padding:1.5rem; border-radius:0.5rem; margin-bottom:2rem; flex-wrap:wrap; gap:1rem;">
+                    <div style="font-size:0.85rem; opacity:0.8;">OBS.: MÍNIMO PARA PONTUAÇÃO SATISFATÓRIA É DE 80 PONTOS.</div>
+                    <div style="text-align:right;">
+                        <div style="font-size:0.9rem; opacity:0.9;">TOTAL DE PONTUAÇÃO:</div>
+                        <div id="displayTotalScore" style="font-size:2rem; font-weight:800; line-height:1;">0.0</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>01. Após avaliação, cite 02 pontos positivos que lhe destacam como profissional:</label>
+                    <textarea name="pontosPositivos" rows="4" style="width:100%; padding:0.75rem; border-radius:0.5rem; border:1px solid #e2e8f0; font-family:inherit;" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>02. Cite 05 pontos a melhorar:</label>
+                    <textarea name="pontosMelhorar" rows="4" style="width:100%; padding:0.75rem; border-radius:0.5rem; border:1px solid #e2e8f0; font-family:inherit;" required></textarea>
+                </div>
+
+                <hr style="margin: 2rem 0; border: 0; border-top: 1px solid #e2e8f0;">
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Ass. Funcionário:</label>
+                        <input type="text" name="assinaturaFuncionario" required placeholder="Digite seu nome">
+                    </div>
+                    <div class="form-group">
+                        <label>Gestor(a):</label>
+                        <input type="text" name="assinaturaGestor" required placeholder="Digite nome do gestor">
+                    </div>
+                </div>
+                
+                <p style="text-align:center; font-size:0.85rem; color:#64748b;">CONFIRMAM QUE A AVALIAÇÃO ACIMA FOI DISCUTIDA E ACEITA</p>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="submit-btn">Enviar Avaliação</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const questions = [
+            { category: "COMPROMETIMENTO", text: "PROMOVE FORTE APOIO A IDEOLOGIA DA EMPRESA;" },
+            { category: "RESPONSABILIDADE", text: "CUMPRE O HORÁRIO - POSSUI FALTAS E/OU ATRASOS FREQUENTES SEM JUSTIFICATIVAS;" },
+            { category: "CRESCIMENTO E DESENVOLVIMENTO", text: "DEMONSTRA VONTADE DE DESENVOLVER-SE, BUSCANDO MEIOS MELHORES PARA ALCANÇAR OS RESULTADOS;" },
+            { category: "PRO ATIVIDADE", text: "SE DISPÕE A AUXILIAR OS DEMAIS SETORES CONFORME DEMANDA (POLIVALÊNCIA);" },
+            { category: "INICIATIVA", text: "PARTICIPA DAS INICIATIVAS PROPOSTAS PELA EMPRESA;" },
+            { category: "COMPROMETIMENTO", text: "POSSUI OCORRÊNCIAS (ADVERTENCIAS VERBAIS/ESCRITAS E/OU SUSPENSÃO)" },
+            { category: "COMPROMETIMENTO", text: "UNIFORME - MANTEM LIMPO E CONSERVADO" },
+            { category: "RESPONSABILIDADE", text: "CUMPRE AS NORMAS DE SEGURANÇA - UTILIZANDO CORRETAMENTE OS EPI'S" },
+            { category: "ATENÇÃO", text: "SEGUE FIELMENTE AS INSTRUÇÕES OPERACIONAIS DE SALÃO E/OU FICHAS TECNICAS" },
+            { category: "ORGANIZAÇÃO", text: "MANTEM OS POSTOS DE TRABALHO, LIMPOS E ORGANIZADOS" },
+            { category: "COMPROMETIMENTO", text: "DEMONSTRA COMPROMETIMENTO COM A QUALIDADE - SEGUINDO CORRETAMENTE OS PROCEDIMENTOS DE HIGIENE E SEGURANÇA ALIMENTAR" },
+            { category: "RESPONSABILIDADE", text: "ATENDE O PROCEDIMENTO DE DESPERDICIO (COZINHA/SALÃO)" },
+            { category: "FOCO", text: "ATENDE AS METAS ESTABELECIDAS DIARIAMENTE" }
+        ];
+
+        const container = document.getElementById('questionsContainer');
+
+        // Carregar lista de funcionários
+        fetch('/api/funcionarios')
+            .then(r => r.json())
+            .then(funcionarios => {
+                const select = document.getElementById('funcionarioSelect');
+                funcionarios.sort((a, b) => a.nome.localeCompare(b.nome));
+                
+                funcionarios.forEach(f => {
+                    const option = document.createElement('option');
+                    option.value = f.nome;
+                    option.textContent = f.nome;
+                    option.dataset.cargo = f.cargo || '';
+                    option.dataset.setor = f.setor || '';
+                    select.appendChild(option);
+                });
+
+                select.addEventListener('change', (e) => {
+                    const selected = e.target.selectedOptions[0];
+                    if (selected && selected.value) {
+                        const campoFuncao = document.querySelector('input[name="funcao"]');
+                        const campoSetor = document.querySelector('input[name="setor"]');
+                        if (campoFuncao) campoFuncao.value = selected.dataset.cargo;
+                        if (campoSetor) campoSetor.value = selected.dataset.setor;
+                    }
+                });
+            })
+            .catch(err => console.error('Erro ao carregar funcionários:', err));
+
+        questions.forEach((q, index) => {
+            const block = document.createElement('div');
+            block.className = 'evaluation-section';
+            block.innerHTML = `
+                <div class="question-block">
+                    <div class="question-category">${q.category}</div>
+                    <div class="question-text">${q.text}</div>
+                    <div class="options-grid">
+                        <label class="option-card option-success">
+                            <input type="radio" name="q${index}" value="7.7" class="hidden-radio" required>
+                            <div class="option-content">
+                                <span class="option-icon">👍</span>
+                                <span class="option-text">ATENDE as expectativas</span>
+                            </div>
+                        </label>
+                        <label class="option-card option-warning">
+                            <input type="radio" name="q${index}" value="2.3" class="hidden-radio">
+                            <div class="option-content">
+                                <span class="option-icon">⚠️</span>
+                                <span class="option-text">ATENDE PARCIALMENTE</span>
+                            </div>
+                        </label>
+                        <label class="option-card option-danger">
+                            <input type="radio" name="q${index}" value="0" class="hidden-radio">
+                            <div class="option-content">
+                                <span class="option-icon">👎</span>
+                                <span class="option-text">NÃO ATENDE</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            `;
+            container.appendChild(block);
+        });
+
+        // Real-time score update
+        const scoreDisplay = document.getElementById('displayTotalScore');
+        document.getElementById('evaluationForm').addEventListener('change', (e) => {
+            if (e.target.type === 'radio' && e.target.name.startsWith('q')) {
+                const formData = new FormData(document.getElementById('evaluationForm'));
+                let total = 0;
+                for (let [key, value] of formData.entries()) {
+                    if (key.startsWith('q')) {
+                        total += parseFloat(value);
+                    }
+                }
+                scoreDisplay.textContent = total.toFixed(1);
+            }
+        });
+
+        document.getElementById('evaluationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            
+            const answers = [];
+            questions.forEach((q, index) => {
+                answers.push({
+                    category: q.category,
+                    question: q.text,
+                    score: parseFloat(data[`q${index}`])
+                });
+                delete data[`q${index}`];
+            });
+            data.answers = answers;
+
+            const totalScore = answers.reduce((sum, item) => sum + item.score, 0);
+            data.totalScore = totalScore;
+            data.maxScore = answers.length * 7.7;
+
+            try {
+                const response = await fetch('/api/avaliacao', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                if (result.ok) {
+                    alert('Avaliação enviada com sucesso!');
+                    window.location.href = '/index.html';
+                } else {
+                    alert('Erro: ' + result.erro);
+                }
+            } catch (err) {
+                alert('Erro ao enviar formulário');
+            }
+        });
+        
+        document.querySelector('input[name="data"]').valueAsDate = new Date();
+    </script>
+</body>
+</html>

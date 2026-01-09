@@ -22,6 +22,13 @@
     <form id="formFerias" novalidate>
       <h2 class="section-title">Dados do Colaborador</h2>
       
+      <label>
+          Selecione o Colaborador
+          <select id="select_funcionario" style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 0.5rem; margin-bottom: 1rem; background-color: #f8fafc;">
+              <option value="">Carregando lista...</option>
+          </select>
+      </label>
+
       <div id="historicoContainer" style="margin-bottom: 24px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;" hidden>
         <h3 style="margin: 0 0 12px 0; font-size: 1rem; color: #334155; display: flex; align-items: center; gap: 8px;">
             <span>📜</span> Histórico de Alterações
@@ -123,6 +130,11 @@
             <label>
               Sugestão de nova data
               <input type="date" id="sugestaoData" class="rh-input-date">
+            </label>
+            
+            <label style="margin-top: 12px; display: block;">
+              Justificativa da Reprovação
+              <textarea id="justificativaRH" rows="3" placeholder="Descreva o motivo..." style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; margin-top: 4px; font-family: inherit;"></textarea>
             </label>
         </div>
 

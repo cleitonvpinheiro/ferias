@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard RH - Experiência</title>
+    <link rel="icon" href="/assets/logo.png" type="image/png">
+    <link rel="stylesheet" href="/rh-styles.css">
+    <style>
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: white;
+            text-transform: uppercase;
+        }
+        .status-pending { background-color: #f59e0b; color: #fff; }
+        .status-approved { background-color: #10b981; }
+        .status-rejected { background-color: #ef4444; }
+        
+        .btn-action {
+            background: none;
+            border: 1px solid #e2e8f0;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: #475569;
+            text-decoration: none;
+        }
+        .btn-action:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            color: #1e293b;
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar-container"></div>
+    <script src="/rh-navbar.js"></script>
+    <script>renderRHNavbar('experiencia');</script>
+
+    <div class="dashboard-container">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Avaliações de Experiência</h1>
+                <p class="page-subtitle">Acompanhamento de 45 e 90 dias</p>
+            </div>
+            <button class="btn-primary" onclick="window.location.href='/form-avaliacao-experiencia.html'">+ Nova Avaliação</button>
+        </div>
+
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Data Criação</th>
+                        <th>Colaborador</th>
+                        <th>Cargo</th>
+                        <th>Setor</th>
+                        <th>Avaliador</th>
+                        <th>Status 45 Dias</th>
+                        <th>Status 90 Dias</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="lista-corpo">
+                    <!-- Data injected via JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        async function carregarDados() {
+            try {
+                const res = await fetch('/api/avaliacoes');
+                const data = await res.json();
+                
+                // Filter for 'experiencia'
+                const list = data.filter(i => i.tipo === 'experiencia');
+                
+                const tbody = document.getElementById('lista-corpo');
+                tbody.innerHTML = '';
+
+                list.forEach(item => {
+                    const tr = document.createElement('tr');
+                    
+                    const date = new Date(item.createdAt).toLocaleDateString();
+                    
+                    const st45 = item.status45 ? `<span class="status-badge ${getStatusClass(item.status45)}">${item.status45}</span>` : '<span style="color:#999">-</span>';
+                    const st90 = item.status90 ? `<span class="status-badge ${getStatusClass(item.status90)}">${item.status90}</span>` : '<span style="color:#999">-</span>';
+
+                    tr.innerHTML = `
+                        <td>${date}</td>
+                        <td>${item.funcionario || '-'}</td>
+                        <td>${item.cargo || '-'}</td>
+                        <td>${item.setor || '-'}</td>
+                        <td>${item.avaliador || '-'}</td>
+                        <td>${st45}</td>
+                        <td>${st90}</td>
+                        <td>
+                            <a href="/form-avaliacao-experiencia.html?id=${item.id}" class="btn-action">✏️ Abrir/Editar</a>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (e) {
+                console.error(e);
+                alert('Erro ao carregar dados.');
+            }
+        }
+
+        function getStatusClass(status) {
+            if (!status) return '';
+            if (status.includes('aprovado') || status.includes('prorrogado')) return 'status-approved'; // Prorrogado is "continue" usually
+            if (status.includes('reprovado')) return 'status-rejected';
+            return 'status-pending';
+        }
+
+        carregarDados();
+    </script>
+</body>
+</html>

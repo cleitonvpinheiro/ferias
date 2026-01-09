@@ -200,7 +200,7 @@ form.addEventListener('submit', async (e) => {
         // Remover o campo de arquivo original do payload para não enviar lixo JSON
         delete payload.curriculoFile;
 
-        const res = await fetch('/api/candidatos', {
+        const res = await fetch('/api/candidaturas', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)

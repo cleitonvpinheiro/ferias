@@ -232,7 +232,7 @@
 
       <h2 class="section-title">Dados da Taxa</h2>
       <label>
-        Nome da Taxa
+        Nome Completo
         <input type="text" id="nome_taxa" required>
       </label>
       
@@ -434,20 +434,29 @@
       </div>
 
       <label>
-        E-mail do Líder/Gestor (para notificações)
+        E-mail do Líder/Gestor (para aprovação)
         <input type="email" id="email_gestor" required placeholder="gestor@familiamadalosso.com.br">
+      </label>
+
+      <label>
+        Seu E-mail (para notificação)
+        <input type="email" id="email_solicitante" required placeholder="seu.email@familiamadalosso.com.br">
       </label>
 
       <h2 class="section-title">Assinaturas</h2>
       
       <!-- Assinatura Taxa -->
-      <div class="signature-wrapper" style="margin-bottom: 20px;">
+      <div class="signature-wrapper" style="margin-bottom: 20px; position: relative;">
         <div class="signature">
           <div class="signature-header">
             Assinatura do Taxa (Colaborador)
             <button type="button" id="limparTaxa">Limpar</button>
           </div>
           <canvas id="assinaturaTaxa" aria-label="Assinatura Taxa"></canvas>
+        </div>
+        <div id="taxaSignatureOverlay" class="signature-overlay" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; border-radius: 8px;">
+           <span style="font-size: 2rem;">🔒</span>
+           <p style="color: #64748b; font-weight: 500;">A assinatura será solicitada após aprovação do RH</p>
         </div>
       </div>
 
@@ -462,7 +471,10 @@
         </div>
       </div>
 
-      <button class="enviar" type="submit" id="btnSubmit">Enviar Solicitação</button>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button class="enviar" type="submit" id="btnSubmit">Enviar Solicitação</button>
+          <button type="button" id="btnEnviarNovo" class="enviar" style="background-color: #2563eb; display: none;">Enviar e Preencher Outra</button>
+      </div>
     </form>
     <div id="feedback" class="feedback" role="alert" hidden></div>
   </main>

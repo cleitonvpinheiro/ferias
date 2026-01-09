@@ -30,7 +30,9 @@
       
       <label>
         Nome Completo
-        <input type="text" id="nome" required>
+        <select id="nome" required style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; margin-top: 4px;">
+            <option value="">Selecione um colaborador...</option>
+        </select>
       </label>
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
@@ -114,6 +116,34 @@
   </footer>
 
   <script>
+    // Carregar lista de funcionários
+    fetch('/api/funcionarios')
+        .then(r => r.json())
+        .then(funcionarios => {
+            const select = document.getElementById('nome');
+            funcionarios.sort((a, b) => a.nome.localeCompare(b.nome));
+            
+            funcionarios.forEach(f => {
+                const option = document.createElement('option');
+                option.value = f.nome;
+                option.textContent = f.nome;
+                option.dataset.cargo = f.cargo || '';
+                option.dataset.setor = f.setor || '';
+                select.appendChild(option);
+            });
+
+            select.addEventListener('change', (e) => {
+                const selected = e.target.selectedOptions[0];
+                if (selected && selected.value) {
+                    const campoCargo = document.getElementById('cargoAtual');
+                    const campoSetor = document.getElementById('setor');
+                    if (campoCargo) campoCargo.value = selected.dataset.cargo;
+                    if (campoSetor) campoSetor.value = selected.dataset.setor;
+                }
+            });
+        })
+        .catch(err => console.error('Erro ao carregar funcionários:', err));
+
     document.getElementById('formRecrutamento').addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = document.getElementById('btnSubmit');

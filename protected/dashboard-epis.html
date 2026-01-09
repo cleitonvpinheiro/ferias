@@ -71,19 +71,9 @@
   </style>
 </head>
 <body>
-  <nav class="rh-navbar">
-      <a href="/protected/index.html" class="rh-navbar-brand">
-          <span>🏠</span> Portal RH
-      </a>
-      <div class="rh-navbar-menu">
-          <a href="/protected/dashboard-rh.html" class="rh-nav-link">Férias</a>
-          <a href="/protected/dashboard-taxas.html" class="rh-nav-link">Taxas</a>
-          <a href="/protected/dashboard-candidatos.html" class="rh-nav-link">Candidatos</a>
-          <a href="/protected/dashboard-vagas.html" class="rh-nav-link">Vagas</a>
-          <a href="/protected/dashboard-epis.html" class="rh-nav-link active">EPIs</a>
-          <a href="/protected/dashboard-desligamento.html" class="rh-nav-link">Desligamento</a>
-      </div>
-  </nav>
+  <div id="navbar-container"></div>
+  <script src="/rh-navbar.js"></script>
+  <script>renderRHNavbar('epis');</script>
 
   <main class="dashboard-container">
     <div class="page-header">
@@ -126,7 +116,21 @@
             <label>Valor (R$)</label>
             <input type="number" id="novoValor" placeholder="0.00" step="0.01">
         </div>
-        <button class="btn btn-primary" onclick="adicionarEPI()">Adicionar EPI</button>
+        <div class="form-group">
+            <label>Estoque Inicial</label>
+            <input type="number" id="novoEstoque" placeholder="0" step="1" min="0">
+        </div>
+        <div class="form-group">
+            <label>Validade do CA</label>
+            <input type="date" id="novoCA">
+        </div>
+        <div style="display: flex; gap: 10px; align-items: flex-end;">
+            <button class="btn btn-primary" onclick="adicionarEPI()">Adicionar EPI</button>
+            <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()" style="background-color: #10b981; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer;">
+                📄 Importar Excel
+            </button>
+            <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;" onchange="uploadExcel(this)">
+        </div>
     </div>
 
     <div class="epi-list" id="listaEpis">
@@ -189,11 +193,13 @@
                   const estoque = epi.estoque || 0;
                   const estoqueClass = estoque <= 5 ? 'color: #ef4444; font-weight: bold;' : 'color: var(--text-secondary);';
 
+                  const caStatus = epi.ca_validade ? new Date(epi.ca_validade) < new Date() ? '<span style="color:#ef4444; font-weight:600;">CA vencido</span>' : `<span style="color:#16a34a; font-weight:600;">CA válido até ${new Date(epi.ca_validade).toLocaleDateString('pt-BR')}</span>` : '<span style="color:#64748b;">CA não informado</span>';
                   div.innerHTML = `
                       <div class="epi-info">
                           <h3>${epi.nome}</h3>
                           <p>Valor Unit.: R$ ${epi.valor.toFixed(2)}</p>
                           <p style="${estoqueClass}">Estoque: ${estoque} unidades</p>
+                          <p>${caStatus}</p>
                       </div>
                       <button class="btn-danger" onclick="removerEPI('${epi.id}')">Remover</button>
                   `;
@@ -223,11 +229,18 @@
                   div.className = 'epi-item'; // Reusing style
                   
                   // Se status for undefined, trata como pendente (legado)
-                  const isPendente = d.status === 'pendente_rh' || !d.status;
+                  const isPendente = d.status === 'pendente' || d.status === 'pendente_rh' || !d.status;
                   const isResolvido = d.status === 'resolvido';
 
                   let statusColor = isPendente ? '#eab308' : '#22c55e';
                   let statusText = isPendente ? 'Pendente Assinatura' : 'Resolvido';
+                  
+                  let actionBtn = '';
+                  if (isPendente) {
+                      actionBtn = `<button class="btn btn-primary" style="background: var(--success);" onclick="alterarStatusDesconto('${d.id}', 'resolvido')">✅ Resolvido</button>`;
+                  } else if (isResolvido) {
+                      actionBtn = `<button class="btn btn-primary" style="background: #eab308;" onclick="alterarStatusDesconto('${d.id}', 'pendente')">⏳ Pendente</button>`;
+                  }
 
                   div.innerHTML = `
                       <div class="epi-info">
@@ -238,8 +251,7 @@
                       </div>
                       <div style="display: flex; gap: 10px;">
                           <a href="/api/rh/descontos/${d.id}/pdf" target="_blank" class="btn btn-primary" style="text-decoration: none; display: flex; align-items: center;">📄 Imprimir</a>
-                          ${isPendente ? 
-                              `<button class="btn btn-primary" style="background: var(--success);" onclick="resolverDesconto('${d.id}')">✅ Assinado</button>` : ''}
+                          ${actionBtn}
                       </div>
                   `;
                   lista.appendChild(div);
@@ -296,11 +308,19 @@
           }
       }
 
-      async function resolverDesconto(id) {
-          if (!confirm('Confirmar que o funcionário assinou o termo? Isso irá liberar o acesso na portaria.')) return;
+      async function alterarStatusDesconto(id, novoStatus) {
+          const msg = novoStatus === 'resolvido' 
+              ? 'Confirmar que o termo está resolvido? Isso irá liberar o acesso na portaria.' 
+              : 'Deseja marcar como pendente novamente?';
+              
+          if (!confirm(msg)) return;
           
           try {
-              const res = await fetch(`/api/rh/descontos/${id}/resolver`, { method: 'POST' });
+              const res = await fetch(`/api/rh/descontos/${id}/status`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ status: novoStatus })
+              });
               const data = await res.json();
               if (data.ok) {
                   carregarDescontos();
@@ -309,7 +329,7 @@
               }
           } catch (e) {
               console.error(e);
-              alert('Erro ao resolver desconto');
+              alert('Erro ao atualizar status');
           }
       }
 
@@ -324,13 +344,15 @@
               const res = await fetch('/api/rh/epis', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ nome, valor })
+                  body: JSON.stringify({ nome, valor, estoque: document.getElementById('novoEstoque').value || 0, ca_validade: document.getElementById('novoCA').value || null })
               });
 
               const data = await res.json();
               if (data.ok) {
                   document.getElementById('novoNome').value = '';
                   document.getElementById('novoValor').value = '';
+                  document.getElementById('novoEstoque').value = '';
+                  document.getElementById('novoCA').value = '';
                   carregarEpis();
               } else {
                   alert('Erro: ' + data.erro);
@@ -339,6 +361,35 @@
               console.error(e);
               alert('Erro ao adicionar EPI');
           }
+      }
+
+      async function uploadExcel(input) {
+          const file = input.files[0];
+          if (!file) return;
+
+          const formData = new FormData();
+          formData.append('file', file);
+
+          try {
+              const res = await fetch('/api/rh/epis/import', {
+                  method: 'POST',
+                  body: formData
+              });
+
+              const result = await res.json();
+              if (result.ok) {
+                  alert(`Importação concluída! ${result.count} itens importados.`);
+                  carregarEpis();
+              } else {
+                  alert('Erro na importação: ' + (result.erro || 'Erro desconhecido'));
+              }
+          } catch (e) {
+              console.error(e);
+              alert('Erro de conexão ao enviar arquivo.');
+          }
+          
+          // Clear input so same file can be selected again if needed
+          input.value = '';
       }
 
       async function removerEPI(id) {

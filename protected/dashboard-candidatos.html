@@ -7,19 +7,9 @@
     <link rel="stylesheet" href="/rh-styles.css">
 </head>
 <body>
-    <nav class="rh-navbar">
-        <a href="/protected/index.html" class="rh-navbar-brand">
-            <span>👥</span> Portal RH
-        </a>
-        <div class="rh-navbar-menu">
-            <a href="/protected/dashboard-rh.html" class="rh-nav-link">Férias</a>
-            <a href="/protected/dashboard-taxas.html" class="rh-nav-link">Taxas</a>
-            <a href="/protected/dashboard-candidatos.html" class="rh-nav-link active">Candidatos</a>
-            <a href="/protected/dashboard-vagas.html" class="rh-nav-link">Vagas</a>
-          <a href="/protected/dashboard-epis.html" class="rh-nav-link">EPIs</a>
-          <a href="/protected/dashboard-desligamento.html" class="rh-nav-link">Desligamento</a>
-      </div>
-  </nav>
+    <div id="navbar-container"></div>
+    <script src="/rh-navbar.js"></script>
+    <script>renderRHNavbar('candidatos');</script>
 
     <div class="dashboard-container">
         <div class="page-header">
@@ -70,9 +60,11 @@
     <script>
         let todosCandidatos = [];
         const colunas = [
-            { id: 'novo', title: 'Novos', color: '#3b82f6' },
+            { id: 'recebido', title: 'Novos', color: '#3b82f6' },
+            { id: 'novo', title: 'Novos (Legacy)', color: '#3b82f6' }, // Fallback
             { id: 'visto', title: 'Em Análise', color: '#64748b' },
             { id: 'entrevista', title: 'Entrevista', color: '#f59e0b' },
+            { id: 'entrevista_agendada', title: 'Entrevista Agendada', color: '#d97706' },
             { id: 'contratado', title: 'Contratados', color: '#10b981' },
             { id: 'rejeitado', title: 'Arquivados', color: '#ef4444' }
         ];
@@ -127,8 +119,22 @@
             const board = document.getElementById('kanbanBoard');
             board.innerHTML = '';
             
-            colunas.forEach(col => {
-                const items = lista.filter(c => (c.status || 'novo') === col.id);
+            // Colunas visíveis
+            const displayCols = [
+                { id: 'recebido', title: 'Novos', color: '#3b82f6' },
+                { id: 'visto', title: 'Em Análise', color: '#64748b' },
+                { id: 'entrevista_agendada', title: 'Entrevista', color: '#f59e0b' },
+                { id: 'contratado', title: 'Contratados', color: '#10b981' },
+                { id: 'rejeitado', title: 'Arquivados', color: '#ef4444' }
+            ];
+
+            displayCols.forEach(col => {
+                // Mapeia status agrupados se necessário
+                const items = lista.filter(c => {
+                    if (col.id === 'recebido') return c.status === 'recebido' || c.status === 'novo';
+                    if (col.id === 'entrevista_agendada') return c.status === 'entrevista' || c.status === 'entrevista_agendada';
+                    return c.status === col.id;
+                });
                 
                 const colDiv = document.createElement('div');
                 colDiv.className = 'kanban-column';

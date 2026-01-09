@@ -11,19 +11,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
-  <nav class="rh-navbar">
-      <a href="/protected/index.html" class="rh-navbar-brand">
-          <span>🏠</span> Portal RH
-      </a>
-      <div class="rh-navbar-menu">
-          <a href="/protected/dashboard-rh.html" class="rh-nav-link">Férias</a>
-          <a href="/protected/dashboard-taxas.html" class="rh-nav-link active">Taxas</a>
-          <a href="/protected/dashboard-candidatos.html" class="rh-nav-link">Candidatos</a>
-          <a href="/protected/dashboard-vagas.html" class="rh-nav-link">Vagas</a>
-          <a href="/protected/dashboard-epis.html" class="rh-nav-link">EPIs</a>
-          <a href="/protected/dashboard-desligamento.html" class="rh-nav-link">Desligamento</a>
-      </div>
-  </nav>
+  <div id="navbar-container"></div>
+  <script src="/rh-navbar.js"></script>
+  <script>renderRHNavbar('taxas');</script>
 
   <main class="dashboard-container">
     <div class="page-header">
@@ -176,6 +166,23 @@
                         actionBtn = '';
                 }
 
+                // Add Edit Button for Pending items (or all? usually pending/approved need fixes before payment)
+                // Let's allow for all non-rejected, or maybe all.
+                // But generally only pending needs fixing before approval.
+                // If approved, editing might be needed if bank info is wrong.
+                
+                const editBtn = `<button onclick="editarTaxa('${item.id}')" class="btn btn-sm btn-primary" style="background-color: #f59e0b; border-color: #f59e0b;" title="Editar">✏️</button>`;
+                
+                // Prepend edit button
+                if (item.status !== 'reprovado') {
+                     if (actionBtn) {
+                         // Insert inside the div
+                         actionBtn = actionBtn.replace('<div style="display: flex; gap: 6px;">', '<div style="display: flex; gap: 6px;">' + editBtn);
+                     } else {
+                         actionBtn = `<div style="display: flex; gap: 6px;">${editBtn} <a href="/api/taxas/pdf/${item.id}" target="_blank" class="btn btn-sm btn-outline">PDF</a></div>`;
+                     }
+                }
+
                 const total = item.valores?.total_geral || '0.00';
 
                 tr.innerHTML = `
@@ -260,6 +267,133 @@
 
     // Carrega ao iniciar
     document.addEventListener('DOMContentLoaded', carregarSolicitacoes);
+  </script>
+  <!-- Modal de Edição -->
+  <div id="modal-edicao" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5);">
+      <div class="modal-content" style="background-color: #fefefe; margin: 5% auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 600px; border-radius: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+              <h2 style="margin: 0; color: var(--primary);">Editar Taxa</h2>
+              <span onclick="fecharModalEdicao()" style="color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+          </div>
+          
+          <form id="form-edicao" onsubmit="salvarEdicao(event)">
+              <input type="hidden" id="edit-id">
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                  <div class="form-group">
+                      <label>Nome da Taxa / Beneficiário</label>
+                      <input type="text" id="edit-nome" class="form-control" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                  </div>
+                  <div class="form-group">
+                      <label>CPF</label>
+                      <input type="text" id="edit-cpf" class="form-control" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                  </div>
+                  <div class="form-group">
+                      <label>Banco</label>
+                      <input type="text" id="edit-banco" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                  </div>
+                  <div class="form-group">
+                      <label>Agência</label>
+                      <input type="text" id="edit-agencia" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                  </div>
+                  <div class="form-group">
+                      <label>Conta</label>
+                      <input type="text" id="edit-conta" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                  </div>
+                  <div class="form-group">
+                      <label>Tipo Conta</label>
+                      <select id="edit-tipo-conta" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                          <option value="corrente">Corrente</option>
+                          <option value="poupanca">Poupança</option>
+                      </select>
+                  </div>
+                  <div class="form-group">
+                      <label>Chave PIX</label>
+                      <input type="text" id="edit-pix" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                  </div>
+                  <div class="form-group">
+                      <label>Valor Total (R$)</label>
+                      <input type="text" id="edit-valor" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                  </div>
+              </div>
+
+              <div style="margin-top: 20px; text-align: right;">
+                  <button type="button" onclick="fecharModalEdicao()" class="btn btn-outline" style="margin-right: 10px;">Cancelar</button>
+                  <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+              </div>
+          </form>
+      </div>
+  </div>
+
+  <script>
+    function editarTaxa(id) {
+        const item = globalData.find(i => i.id === id);
+        if (!item) return;
+
+        document.getElementById('edit-id').value = item.id;
+        document.getElementById('edit-nome').value = item.nome_taxa || '';
+        document.getElementById('edit-cpf').value = item.cpf || '';
+        document.getElementById('edit-banco').value = item.banco || '';
+        document.getElementById('edit-agencia').value = item.agencia || '';
+        document.getElementById('edit-conta').value = item.conta || '';
+        document.getElementById('edit-tipo-conta').value = item.tipo_conta || 'corrente';
+        document.getElementById('edit-pix').value = item.chave_pix || item.pix || ''; // Handle inconsistency if any
+        document.getElementById('edit-valor').value = item.valores?.total_geral || '';
+
+        document.getElementById('modal-edicao').style.display = 'block';
+    }
+
+    function fecharModalEdicao() {
+        document.getElementById('modal-edicao').style.display = 'none';
+    }
+
+    async function salvarEdicao(e) {
+        e.preventDefault();
+        
+        const id = document.getElementById('edit-id').value;
+        const item = globalData.find(i => i.id === id);
+        
+        const payload = {
+            nome_taxa: document.getElementById('edit-nome').value,
+            cpf: document.getElementById('edit-cpf').value,
+            banco: document.getElementById('edit-banco').value,
+            agencia: document.getElementById('edit-agencia').value,
+            conta: document.getElementById('edit-conta').value,
+            tipo_conta: document.getElementById('edit-tipo-conta').value,
+            chave_pix: document.getElementById('edit-pix').value,
+            valores: {
+                ...item.valores,
+                total_geral: document.getElementById('edit-valor').value
+            }
+        };
+
+        try {
+            const res = await fetch(`/api/rh/taxas/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            if (res.ok) {
+                alert('Dados atualizados com sucesso!');
+                fecharModalEdicao();
+                carregarSolicitacoes();
+            } else {
+                alert('Erro ao atualizar.');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Erro de conexão.');
+        }
+    }
+
+    // Close on click outside
+    window.onclick = function(event) {
+        const modal = document.getElementById('modal-edicao');
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
   </script>
 </body>
 </html>

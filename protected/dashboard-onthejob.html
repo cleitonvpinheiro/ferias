@@ -7,21 +7,9 @@
     <link rel="stylesheet" href="/rh-styles.css">
 </head>
 <body>
-    <nav class="rh-navbar">
-        <a href="/protected/index.html" class="rh-navbar-brand">
-            <span>👥</span> Portal RH
-        </a>
-        <div class="rh-navbar-menu">
-            <a href="/protected/dashboard-rh.html" class="rh-nav-link">Férias</a>
-            <a href="/protected/dashboard-taxas.html" class="rh-nav-link">Taxas</a>
-            <a href="/protected/dashboard-candidatos.html" class="rh-nav-link">Candidatos</a>
-            <a href="/protected/dashboard-recrutamento.html" class="rh-nav-link">Recrutamento Interno</a>
-            <a href="/protected/dashboard-onthejob.html" class="rh-nav-link active">On The Job</a>
-            <a href="/protected/dashboard-vagas.html" class="rh-nav-link">Vagas</a>
-            <a href="/protected/dashboard-epis.html" class="rh-nav-link">EPIs</a>
-            <a href="/protected/dashboard-desligamento.html" class="rh-nav-link">Desligamento</a>
-        </div>
-    </nav>
+    <div id="navbar-container"></div>
+    <script src="/rh-navbar.js"></script>
+    <script>renderRHNavbar('onthejob');</script>
 
     <div class="dashboard-container">
         <div class="page-header">

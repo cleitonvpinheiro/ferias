@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard RH - Avaliações de Performance</title>
+    <link rel="icon" href="/assets/logo.png" type="image/png">
+    <link rel="stylesheet" href="/rh-styles.css">
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .score-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            color: white;
+        }
+        .score-high { background-color: #28a745; }
+        .score-medium { background-color: #ffc107; color: #333; }
+        .score-low { background-color: #dc3545; }
+        
+        .modal-body {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .detail-question {
+            flex: 1;
+            padding-right: 20px;
+        }
+        .detail-score {
+            font-weight: bold;
+        }
+
+        .score-val-high { color: #10b981; }
+        .score-val-med { color: #f59e0b; }
+        .score-val-low { color: #ef4444; }
+
+        .filters-bar {
+            background: white;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            gap: 16px;
+            align-items: flex-end;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .filter-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #64748b;
+        }
+
+        .filter-input, .filter-select {
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            min-width: 200px;
+        }
+
+        .btn-action {
+            background: none;
+            border: 1px solid #e2e8f0;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: #475569;
+        }
+        .btn-action:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            color: #1e293b;
+        }
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .overview-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+        .overview-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin: 8px 0;
+        }
+        .overview-label {
+            color: #64748b;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        .chart-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .chart-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar-container"></div>
+    <script src="/rh-navbar.js"></script>
+    <script>renderRHNavbar('avaliacoes');</script>
+
+    <div class="dashboard-container">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Avaliações de Performance</h1>
+                <p class="page-subtitle">Acompanhe as avaliações de Liderança, ADM e Operacional</p>
+            </div>
+            <div class="last-update">
+                <span id="lastUpdate">Atualizado agora</span>
+            </div>
+        </div>
+
+        <div class="filters-bar">
+            <div class="filter-group">
+                <label>Buscar Funcionário</label>
+                <input type="text" id="searchInput" class="filter-input" placeholder="Nome..." onkeyup="filtrarAvaliacoes()">
+            </div>
+            <div class="filter-group">
+                <label>Tipo de Avaliação</label>
+                <select id="typeFilter" class="filter-select" onchange="filtrarAvaliacoes()">
+                    <option value="">Todos</option>
+                    <option value="lideranca">Liderança</option>
+                    <option value="adm">Administrativo</option>
+                    <option value="operacional">Operacional</option>
+                </select>
+            </div>
+            <button class="btn-primary" onclick="exportarExcel()">📥 Exportar Excel</button>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="stats-overview">
+            <div class="overview-card">
+                <div class="overview-label">Total de Avaliações</div>
+                <div class="overview-value" id="totalCount">0</div>
+            </div>
+            <div class="overview-card">
+                <div class="overview-label">Média Geral</div>
+                <div class="overview-value" id="avgScore">0.0</div>
+            </div>
+            <div class="overview-card">
+                <div class="overview-label">Aprovados (>80%)</div>
+                <div class="overview-value" id="approvedCount" style="color: #10b981;">0</div>
+            </div>
+            <div class="overview-card">
+                <div class="overview-label">Em Atenção (<50%)</div>
+                <div class="overview-value" id="attentionCount" style="color: #ef4444;">0</div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-container">
+            <div class="chart-card">
+                <div class="chart-title">Distribuição por Tipo</div>
+                <canvas id="typeChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">Média de Pontuação por Tipo</div>
+                <canvas id="scoreChart"></canvas>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Funcionário</th>
+                        <th>Função</th>
+                        <th>Tipo</th>
+                        <th>Avaliador</th>
+                        <th>Pontuação</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="lista-corpo">
+                    <!-- Data injected via JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal Detalhes -->
+    <div class="modal-overlay" id="modalDetalhes">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Detalhes da Avaliação</h2>
+                <button class="close-modal" onclick="fecharModal()">×</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Details injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allAvaliacoes = [];
+        let typeChartInstance = null;
+        let scoreChartInstance = null;
+
+        async function carregarAvaliacoes() {
+            try {
+                const response = await fetch('/api/avaliacoes');
+                const data = await response.json();
+                // Filter out 'experiencia' type as it has a separate dashboard
+                allAvaliacoes = data.filter(i => i.tipo !== 'experiencia');
+                
+                renderizarStats(allAvaliacoes);
+                renderizarCharts(allAvaliacoes);
+                renderizarTabela(allAvaliacoes);
+                
+                document.getElementById('lastUpdate').textContent = 'Atualizado em: ' + new Date().toLocaleTimeString();
+            } catch (error) {
+                console.error('Erro ao carregar avaliações:', error);
+                alert('Erro ao carregar dados.');
+            }
+        }
+
+        function renderizarStats(data) {
+            // Total
+            document.getElementById('totalCount').innerText = data.length;
+
+            // Average Score (in %)
+            const totalSum = data.reduce((acc, curr) => acc + (curr.totalScore / curr.maxScore), 0);
+            const avg = data.length ? (totalSum / data.length) * 100 : 0;
+            document.getElementById('avgScore').innerText = avg.toFixed(1) + '%';
+
+            // Counts by status
+            const approved = data.filter(i => (i.totalScore / i.maxScore) >= 0.8).length;
+            const attention = data.filter(i => (i.totalScore / i.maxScore) < 0.5).length;
+            
+            document.getElementById('approvedCount').innerText = approved;
+            document.getElementById('attentionCount').innerText = attention;
+        }
+
+        function renderizarCharts(data) {
+            // Data prep for Type Chart
+            const types = { 'lideranca': 0, 'adm': 0, 'operacional': 0 };
+            const typeScores = { 'lideranca': {sum:0, count:0}, 'adm': {sum:0, count:0}, 'operacional': {sum:0, count:0} };
+
+            data.forEach(item => {
+                // Count by type
+                if (types[item.tipo] !== undefined) types[item.tipo]++;
+                
+                // Sum scores by type
+                if (typeScores[item.tipo]) {
+                    typeScores[item.tipo].sum += (item.totalScore / item.maxScore) * 100;
+                    typeScores[item.tipo].count++;
+                }
+            });
+
+            // Destroy existing charts if update
+            if (typeChartInstance) typeChartInstance.destroy();
+            if (scoreChartInstance) scoreChartInstance.destroy();
+
+            // 1. Pie Chart - Distribution
+            const ctxType = document.getElementById('typeChart').getContext('2d');
+            typeChartInstance = new Chart(ctxType, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Liderança', 'Administrativo', 'Operacional'],
+                    datasets: [{
+                        data: [types.lideranca, types.adm, types.operacional],
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+
+            // 2. Bar Chart - Average Score
+            const avgLideranca = typeScores.lideranca.count ? (typeScores.lideranca.sum / typeScores.lideranca.count) : 0;
+            const avgAdm = typeScores.adm.count ? (typeScores.adm.sum / typeScores.adm.count) : 0;
+            const avgOperacional = typeScores.operacional.count ? (typeScores.operacional.sum / typeScores.operacional.count) : 0;
+
+            const ctxScore = document.getElementById('scoreChart').getContext('2d');
+            scoreChartInstance = new Chart(ctxScore, {
+                type: 'bar',
+                data: {
+                    labels: ['Liderança', 'Administrativo', 'Operacional'],
+                    datasets: [{
+                        label: 'Média de Pontuação (%)',
+                        data: [avgLideranca, avgAdm, avgOperacional],
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b'],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { beginAtZero: true, max: 100 }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        function renderizarTabela(data) {
+            const tbody = document.getElementById('lista-corpo');
+            tbody.innerHTML = '';
+
+            data.forEach(item => {
+                const tr = document.createElement('tr');
+                
+                // Format date
+                const dataFormatada = new Date(item.createdAt).toLocaleDateString();
+                
+                // Format type
+                const tipoMap = {
+                    'lideranca': 'Liderança',
+                    'adm': 'Administrativo',
+                    'operacional': 'Operacional'
+                };
+                const tipoFormatado = tipoMap[item.tipo] || item.tipo;
+
+                // Score badge
+                const percentage = (item.totalScore / item.maxScore) * 100;
+                let badgeClass = 'score-low';
+                if (percentage >= 80) badgeClass = 'score-high';
+                else if (percentage >= 50) badgeClass = 'score-medium';
+
+                tr.innerHTML = `
+                    <td>${dataFormatada}</td>
+                    <td>${item.funcionario}</td>
+                    <td>${item.funcao}</td>
+                    <td>${tipoFormatado}</td>
+                    <td>${item.avaliador}</td>
+                    <td><span class="score-badge ${badgeClass}">${item.totalScore.toFixed(1)} / ${item.maxScore.toFixed(1)}</span></td>
+                    <td>
+                        <button class="btn-action" onclick='verDetalhes(${JSON.stringify(item)})'>👁️ Ver</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filtrarAvaliacoes() {
+            const termo = document.getElementById('searchInput').value.toLowerCase();
+            const tipo = document.getElementById('typeFilter').value;
+
+            const filtrados = allAvaliacoes.filter(item => {
+                const matchTermo = item.funcionario.toLowerCase().includes(termo) || 
+                                   item.avaliador.toLowerCase().includes(termo);
+                const matchTipo = tipo ? item.tipo === tipo : true;
+                return matchTermo && matchTipo;
+            });
+
+            renderizarTabela(filtrados);
+        }
+
+        function verDetalhes(item) {
+            const modalBody = document.getElementById('modalBody');
+            
+            let answersHtml = '<div class="answers-list">';
+            item.answers.forEach(ans => {
+                let scoreClass = ans.score > 5 ? 'score-val-high' : (ans.score > 0 ? 'score-val-med' : 'score-val-low');
+                let icon = ans.score > 5 ? '👍' : (ans.score > 0 ? '⚠️' : '👎');
+                
+                answersHtml += `
+                    <div class="answer-item">
+                        <div class="answer-content">
+                            <div class="answer-category">${ans.category}</div>
+                            <div class="answer-text">${ans.question}</div>
+                        </div>
+                        <div class="answer-score ${scoreClass}">
+                            ${icon} ${ans.score}
+                        </div>
+                    </div>
+                `;
+            });
+            answersHtml += '</div>';
+
+            const percentage = (item.totalScore / item.maxScore) * 100;
+            let totalClass = 'score-val-low';
+            if (percentage >= 80) totalClass = 'score-val-high';
+            else if (percentage >= 50) totalClass = 'score-val-med';
+
+            modalBody.innerHTML = `
+                <div class="info-card">
+                    <div class="info-item">
+                        <label>Funcionário</label>
+                        <span>${item.funcionario}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Avaliador</label>
+                        <span>${item.avaliador}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Setor</label>
+                        <span>${item.setor}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Data</label>
+                        <span>${new Date(item.data).toLocaleDateString()}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Pontuação Total</label>
+                        <span class="${totalClass}" style="font-size: 1.2rem;">${item.totalScore.toFixed(1)} / ${item.maxScore.toFixed(1)}</span>
+                    </div>
+                </div>
+                <h3 style="margin-bottom: 16px; color: #1e293b;">Respostas Detalhadas</h3>
+                ${answersHtml}
+            `;
+            
+            document.getElementById('modalDetalhes').style.display = 'flex';
+        }
+
+        function fecharModal() {
+            document.getElementById('modalDetalhes').style.display = 'none';
+        }
+
+        function exportarExcel() {
+            const ws = XLSX.utils.json_to_sheet(allAvaliacoes.map(item => ({
+                Data: new Date(item.createdAt).toLocaleDateString(),
+                Funcionario: item.funcionario,
+                Funcao: item.funcao,
+                Setor: item.setor,
+                Tipo: item.tipo,
+                Avaliador: item.avaliador,
+                Pontos: item.totalScore,
+                Maximo: item.maxScore
+            })));
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Avaliacoes");
+            XLSX.writeFile(wb, "Avaliacoes_Performance.xlsx");
+        }
+
+        // Close modal on outside click
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('modalDetalhes')) {
+                fecharModal();
+            }
+        }
+
+        carregarAvaliacoes();
+    </script>
+</body>
+</html>

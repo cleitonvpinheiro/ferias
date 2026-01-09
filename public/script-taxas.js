@@ -5,6 +5,88 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectFuncionario = document.getElementById('select_funcionario');
     const draftIdInput = document.getElementById('taxa_id_draft');
 
+    // --- Check for Signature Token ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const signatureToken = urlParams.get('token');
+    
+    if (signatureToken) {
+        // Signature Mode - Force hide overlay immediately if possible
+        const hideOverlay = () => {
+            const overlay = document.getElementById('taxaSignatureOverlay');
+            if (overlay) {
+                overlay.hidden = true;
+                overlay.style.display = 'none';
+                overlay.style.setProperty('display', 'none', 'important');
+            }
+            const btnSubmit = document.getElementById('btnSubmit');
+            if (btnSubmit) btnSubmit.textContent = 'Assinar e Finalizar';
+            
+            const btnNovo = document.getElementById('btnEnviarNovo');
+            if (btnNovo) btnNovo.style.display = 'none';
+        };
+        
+        // Attempt to hide immediately
+        hideOverlay();
+        // And on load to be sure
+        window.addEventListener('load', hideOverlay);
+        
+        // Load data
+        fetch(`/api/taxas/dados-assinatura?token=${signatureToken}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    window.location.href = '/';
+                    return;
+                }
+                
+                // Ensure overlay is hidden again after any rendering
+                hideOverlay();
+                
+                // Populate form (Read-only)
+                const fill = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        el.value = val || '';
+                        el.disabled = true; // Disable inputs
+                    }
+                };
+                
+                fill('nome_taxa', data.nome_taxa);
+                fill('cpf', data.cpf);
+                fill('funcao', data.funcao);
+                fill('departamento', data.departamento);
+                fill('email_gestor', data.email_gestor);
+                fill('email_solicitante', data.email_solicitante);
+                
+                // Disable all other inputs
+                document.querySelectorAll('input, select, button').forEach(el => {
+                   if (el.id !== 'btnSubmit' && el.id !== 'assinaturaTaxa' && el.id !== 'limparTaxa') {
+                       el.disabled = true;
+                   }
+                });
+                
+                // Scroll to signature and notify
+                const canvas = document.getElementById('assinaturaTaxa');
+                if (canvas) {
+                    canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Ensure canvas is interactable
+                    canvas.style.pointerEvents = 'auto';
+                }
+                
+                const feedback = document.getElementById('feedback');
+                if (feedback) {
+                    feedback.textContent = 'Assinatura liberada. Por favor, assine abaixo.';
+                    feedback.className = 'feedback';
+                    feedback.hidden = false;
+                }
+            })
+            .catch(e => {
+                console.error('Erro ao carregar dados para assinatura:', e);
+                alert('Erro ao carregar solicitação.');
+            });
+    }
+
     // --- Load Funcionarios ---
     async function loadFuncionarios() {
         try {
@@ -117,8 +199,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Signatures (only if not blank, to avoid huge empty payloads in draft if not signed)
         const canvasTaxa = document.getElementById('assinaturaTaxa');
         const canvasGestor = document.getElementById('assinaturaGestor');
-        const sigTaxa = !isCanvasBlank(canvasTaxa) ? canvasTaxa.toDataURL() : '';
-        const sigGestor = !isCanvasBlank(canvasGestor) ? canvasGestor.toDataURL() : '';
+        // Use null for submit validation checks, but empty string is fine for drafts.
+        // Let's use logic that satisfies both or check later.
+        // Original logic used empty string for drafts.
+        const sigTaxa = !isCanvasBlank(canvasTaxa) ? canvasTaxa.toDataURL() : null;
+        const sigGestor = !isCanvasBlank(canvasGestor) ? canvasGestor.toDataURL() : null;
 
         return {
             id: draftIdInput.value || undefined, // Send ID if exists
@@ -149,6 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             dias_trabalhados: dates,
             email_gestor: getVal('email_gestor'),
+            email_solicitante: getVal('email_solicitante'),
             assinatura_taxa: sigTaxa,
             assinatura_gestor: sigGestor
         };
@@ -375,82 +461,96 @@ document.addEventListener('DOMContentLoaded', () => {
         return !pixelBuffer.some(color => color !== 0);
     }
 
-    // --- Submit ---
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
+    // --- Motive Selection Watcher ---
+    const motiveCheckboxes = document.querySelectorAll('input[name="motivo"]');
+    const btnEnviarNovo = document.getElementById('btnEnviarNovo');
+    
+    function checkMotives() {
+        const selected = Array.from(motiveCheckboxes)
+            .filter(cb => cb.checked)
+            .map(cb => cb.value);
+        const special = ['aumento_demanda', 'vaga_aberta'];
+        const hasSpecial = selected.some(m => special.includes(m));
+        
+        if (hasSpecial) {
+            btnEnviarNovo.style.display = 'inline-block';
+        } else {
+            btnEnviarNovo.style.display = 'none';
+        }
+    }
+    
+    motiveCheckboxes.forEach(cb => cb.addEventListener('change', checkMotives));
+
+    // --- Submit Logic ---
+    const submitForm = async (resetAfter = false) => {
         feedback.hidden = true;
         feedback.className = 'feedback';
         btnSubmit.disabled = true;
         btnSubmit.textContent = 'Enviando...';
+        if (btnEnviarNovo) btnEnviarNovo.disabled = true;
 
-        // Collect Data
-        const getVal = (id) => document.getElementById(id).value;
-        const getChecked = (name) => Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value);
-
-        // Dates
-        const dates = [];
-        document.querySelectorAll('.date-row').forEach(row => {
-            const d = row.querySelector('.input-date-worked').value;
-            const w = row.querySelector('.select-day-week').value;
-            if (d || w) dates.push({ data: d, dia: w });
-        });
-
-        // Signatures
-        const canvasTaxa = document.getElementById('assinaturaTaxa');
-        const canvasGestor = document.getElementById('assinaturaGestor');
-
-        if (isCanvasBlank(canvasTaxa)) {
-            feedback.textContent = 'A assinatura do Taxa é obrigatória.';
+        const payload = collectPayload();
+        
+        // Basic Validation
+        if (!payload.nome_taxa || !payload.motivo.length || !payload.email_gestor || !payload.email_solicitante) {
+            feedback.textContent = 'Preencha os campos obrigatórios (Nome, Motivo, Emails).';
             feedback.className = 'feedback error';
             feedback.hidden = false;
             btnSubmit.disabled = false;
             btnSubmit.textContent = 'Enviar Solicitação';
+            if (btnEnviarNovo) btnEnviarNovo.disabled = false;
             return;
         }
-        if (isCanvasBlank(canvasGestor)) {
+
+        if (signatureToken) {
+            if (!payload.assinatura_taxa) {
+                feedback.textContent = 'A assinatura é obrigatória.';
+                feedback.className = 'feedback error';
+                feedback.hidden = false;
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = 'Assinar e Finalizar';
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/taxas/assinar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: signatureToken, assinatura: payload.assinatura_taxa })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert('Assinado com sucesso!');
+                    window.location.href = '/';
+                } else {
+                    throw new Error(data.error || 'Erro ao assinar');
+                }
+            } catch (e) {
+                feedback.textContent = e.message;
+                feedback.className = 'feedback error';
+                feedback.hidden = false;
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = 'Assinar e Finalizar';
+            }
+            return;
+        }
+
+        // Normal Mode: Skip Taxa Signature validation (collected later)
+        /* 
+        if (!payload.assinatura_taxa) {
+             // Removed validation
+        } 
+        */
+
+        if (!payload.assinatura_gestor) {
             feedback.textContent = 'A assinatura do Gestor é obrigatória.';
             feedback.className = 'feedback error';
             feedback.hidden = false;
             btnSubmit.disabled = false;
             btnSubmit.textContent = 'Enviar Solicitação';
+            if (btnEnviarNovo) btnEnviarNovo.disabled = false;
             return;
         }
-
-        const formaPagamentoVal = getVal('forma_pagamento');
-        const payload = {
-            nome_taxa: getVal('nome_taxa'),
-            cpf: getVal('cpf'),
-            funcao: getVal('funcao'),
-            forma_pagamento: formaPagamentoVal,
-            banco: (formaPagamentoVal === 'transferencia') ? getVal('banco') : '',
-            agencia: (formaPagamentoVal === 'transferencia') ? getVal('agencia') : '',
-            conta: (formaPagamentoVal === 'transferencia') ? getVal('conta') : '',
-            tipo_conta: (formaPagamentoVal === 'transferencia') ? document.querySelector('input[name="tipo_conta"]:checked')?.value : '',
-            pix: (formaPagamentoVal === 'pix') ? getVal('pix') : '',
-            departamento: getVal('departamento'),
-            motivo: getChecked('motivo'),
-            antecessor: getVal('antecessor'),
-            
-            valores: {
-                taxa: {
-                    valor: getVal('valor_taxa'),
-                    qtd: getVal('qtd_taxa'),
-                    total: getVal('total_taxa')
-                },
-                vt: {
-                    valor: getVal('valor_vt'),
-                    qtd: getVal('qtd_vt'),
-                    total: getVal('total_vt')
-                },
-                total_geral: getVal('total_geral')
-            },
-            
-            dias_trabalhados: dates,
-            email_gestor: getVal('email_gestor'),
-            
-            assinatura_taxa: canvasTaxa.toDataURL(),
-            assinatura_gestor: canvasGestor.toDataURL()
-        };
 
         try {
             const res = await fetch('/api/taxas', {
@@ -458,43 +558,122 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
+
             const data = await res.json();
 
             if (res.ok) {
-                feedback.textContent = 'Solicitação enviada com sucesso! O RH foi notificado.';
+                feedback.textContent = data.message;
                 feedback.className = 'feedback success';
                 feedback.hidden = false;
-                form.reset();
-                // Clear canvases
-                const ctxT = canvasTaxa.getContext('2d');
-                ctxT.clearRect(0, 0, canvasTaxa.width, canvasTaxa.height);
-                const ctxG = canvasGestor.getContext('2d');
-                ctxG.clearRect(0, 0, canvasGestor.width, canvasGestor.height);
                 
-                // Reset dynamic fields
-                antecessorArea.hidden = true;
-                if(formaPagamento) {
-                    formaPagamento.dispatchEvent(new Event('change'));
-                }
-                // Keep one date row? Default is 4. Reset to 4.
-                datesContainer.innerHTML = ''; // Rebuild default 4 rows
-                for(let i=0; i<4; i++) {
-                   btnAddDate.click(); 
-                }
+                // Clear draft
+                localStorage.removeItem('form_taxas_draft');
 
-                // Reload funcionarios list to include the newly saved one
-                loadFuncionarios();
+                if (resetAfter) {
+                    // Reset form but keep some fields like Manager Email/Requester Email/Department if desired
+                    const savedEmails = {
+                        gestor: document.getElementById('email_gestor').value,
+                        solicitante: document.getElementById('email_solicitante').value,
+                        departamento: document.getElementById('departamento').value
+                    };
+                    
+                    form.reset();
+                    
+                    // Restore common fields
+                    document.getElementById('email_gestor').value = savedEmails.gestor;
+                    document.getElementById('email_solicitante').value = savedEmails.solicitante;
+                    document.getElementById('departamento').value = savedEmails.departamento;
+                    
+                    // Clear signatures
+                    const canvasTaxa = document.getElementById('assinaturaTaxa');
+                    const canvasGestor = document.getElementById('assinaturaGestor');
+                    const ctxT = canvasTaxa.getContext('2d');
+                    ctxT.clearRect(0, 0, canvasTaxa.width, canvasTaxa.height);
+                    const ctxG = canvasGestor.getContext('2d');
+                    ctxG.clearRect(0, 0, canvasGestor.width, canvasGestor.height);
+                    
+                    // Reset dynamic fields
+                    const antecessorArea = document.getElementById('antecessorArea');
+                    if(antecessorArea) antecessorArea.hidden = true;
+                    
+                    const formaPagamento = document.getElementById('forma_pagamento');
+                    if(formaPagamento) {
+                        formaPagamento.dispatchEvent(new Event('change'));
+                    }
+                    
+                    // Reset date rows (default 4)
+                    const datesContainer = document.getElementById('datesContainer');
+                    const btnAddDate = document.getElementById('btnAddDate');
+                    datesContainer.innerHTML = '';
+                    for(let i=0; i<4; i++) {
+                       if(btnAddDate) btnAddDate.click(); 
+                    }
+                    
+                    // Reset Checkbox display
+                    checkMotives();
+                    
+                    // Reload funcionarios list
+                    if(typeof loadFuncionarios === 'function') loadFuncionarios();
+
+                    setTimeout(() => {
+                        feedback.hidden = true;
+                    }, 3000);
+
+                } else {
+                    form.reset();
+                    // Clear canvases
+                    const canvasTaxa = document.getElementById('assinaturaTaxa');
+                    const canvasGestor = document.getElementById('assinaturaGestor');
+                    const ctxT = canvasTaxa.getContext('2d');
+                    ctxT.clearRect(0, 0, canvasTaxa.width, canvasTaxa.height);
+                    const ctxG = canvasGestor.getContext('2d');
+                    ctxG.clearRect(0, 0, canvasGestor.width, canvasGestor.height);
+                    
+                    // Reset dynamic fields
+                    const antecessorArea = document.getElementById('antecessorArea');
+                    if(antecessorArea) antecessorArea.hidden = true;
+                    const formaPagamento = document.getElementById('forma_pagamento');
+                    if(formaPagamento) {
+                        formaPagamento.dispatchEvent(new Event('change'));
+                    }
+                    // Keep one date row? Default is 4. Reset to 4.
+                    const datesContainer = document.getElementById('datesContainer');
+                    const btnAddDate = document.getElementById('btnAddDate');
+                    datesContainer.innerHTML = ''; 
+                    for(let i=0; i<4; i++) {
+                       if(btnAddDate) btnAddDate.click(); 
+                    }
+
+                    // Reload funcionarios list
+                    if(typeof loadFuncionarios === 'function') loadFuncionarios();
+                }
 
             } else {
                 throw new Error(data.message || 'Erro ao enviar.');
             }
-        } catch (err) {
-            feedback.textContent = err.message;
+        } catch (e) {
+            feedback.textContent = e.message;
             feedback.className = 'feedback error';
             feedback.hidden = false;
         } finally {
             btnSubmit.disabled = false;
             btnSubmit.textContent = 'Enviar Solicitação';
+            if (btnEnviarNovo) btnEnviarNovo.disabled = false;
         }
+    };
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        submitForm(false);
     });
+
+    if (btnEnviarNovo) {
+        btnEnviarNovo.addEventListener('click', (e) => {
+            e.preventDefault();
+            submitForm(true);
+        });
+    }
+
+    // Initialize state
+    checkMotives();
 });

@@ -346,7 +346,9 @@
       <div class="form-grid grid-2">
         <label>
           Colaborador
-          <input type="text" id="colaborador" required placeholder="Nome completo">
+          <select id="colaborador" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; background-color: #fff; font-size: 0.95rem; color: var(--text-main);">
+              <option value="">Selecione um colaborador...</option>
+          </select>
         </label>
         <label>
           Empresa
@@ -539,6 +541,34 @@
   </footer>
 
   <script>
+    // Carregar lista de funcionários
+    fetch('/api/funcionarios')
+        .then(r => r.json())
+        .then(funcionarios => {
+            const select = document.getElementById('colaborador');
+            funcionarios.sort((a, b) => a.nome.localeCompare(b.nome));
+            
+            funcionarios.forEach(f => {
+                const option = document.createElement('option');
+                option.value = f.nome;
+                option.textContent = f.nome;
+                option.dataset.cargo = f.cargo || '';
+                option.dataset.setor = f.setor || '';
+                select.appendChild(option);
+            });
+
+            select.addEventListener('change', (e) => {
+                const selected = e.target.selectedOptions[0];
+                if (selected && selected.value) {
+                    const campoCargo = document.getElementById('cargoAtual');
+                    const campoSetor = document.getElementById('setorAtual');
+                    if (campoCargo) campoCargo.value = selected.dataset.cargo;
+                    if (campoSetor) campoSetor.value = selected.dataset.setor;
+                }
+            });
+        })
+        .catch(err => console.error('Erro ao carregar funcionários:', err));
+
     document.getElementById('formOnTheJob').addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = document.getElementById('btnSubmit');

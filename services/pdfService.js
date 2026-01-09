@@ -714,16 +714,6 @@ function pdfBufferFromEntrevistaDesligamentoData(payload) {
     });
 }
 
-module.exports = {
-    pdfBufferFromData,
-    pdfBufferFromDescontoData,
-    pdfBufferFromTaxaData,
-    pdfBufferFromVagaData,
-    pdfBufferFromEntrevistaDesligamentoData,
-    pdfBufferFromRecrutamentoInternoData,
-    pdfBufferFromOnTheJobData
-};
-
 function pdfBufferFromOnTheJobData(payload) {
     const doc = new PDFDocument({ size: 'A4', margin: 30 });
     const chunks = [];
@@ -929,7 +919,7 @@ function pdfBufferFromRecrutamentoInternoData(payload) {
         
         // Header Box
         doc.rect(40, 40, doc.page.width - 80, 50).fillAndStroke('#333333', '#000000');
-        doc.fillColor('#FFFFFF').fontSize(16).text(titulo, 40, 50, { width: doc.page.width - 80, align: 'center' });
+        doc.fillColor('#FFFFFF').fontSize(16).text(titulo, 40, 58, { width: doc.page.width - 80, align: 'center' });
         
         // Header Info (Right side)
         doc.fontSize(8).text('Código: FORM-RH-029', doc.page.width - 150, 45, { width: 100, align: 'right' });
@@ -945,80 +935,336 @@ function pdfBufferFromRecrutamentoInternoData(payload) {
             doc.font('Helvetica').text(value || '', x + 5, y + 20);
         };
 
-        // Cargo Pretendido
-        doc.rect(40, y, doc.page.width - 80, 20).fill('#555555');
-        doc.fillColor('#FFFFFF').font('Helvetica-Bold').text('CARGO PRETENDIDO:', 45, y + 5);
-        y += 20;
-        doc.fillColor('#000000').rect(40, y, doc.page.width - 80, 30).stroke();
-        doc.font('Helvetica').text(payload.cargoPretendido || '', 45, y + 10);
+        const wFull = doc.page.width - 80;
+        const wHalf = wFull / 2;
+
+        drawBox('NOME DO CANDIDATO:', payload.nome, 40, y, wFull, 40);
         y += 40;
 
-        // Dados do Colaborador
-        drawBox('Nome Completo:', payload.nome, 40, y, doc.page.width - 80, 40);
+        drawBox('CARGO ATUAL:', payload.cargo_atual, 40, y, wHalf, 40);
+        drawBox('SETOR:', payload.setor, 40 + wHalf, y, wHalf, 40);
         y += 40;
 
-        const wHalf = (doc.page.width - 80) / 2;
-        drawBox('Cargo Atual:', payload.cargoAtual, 40, y, wHalf, 40);
-        drawBox('Setor:', payload.setor, 40 + wHalf, y, wHalf, 40);
+        drawBox('CARGO PRETENDIDO:', payload.cargo_pretendido, 40, y, wHalf, 40);
+        drawBox('GESTOR ATUAL:', payload.gestor_atual, 40 + wHalf, y, wHalf, 40);
         y += 40;
 
-        drawBox('Data Admissão:', payload.dataAdmissao ? new Date(payload.dataAdmissao).toLocaleDateString('pt-BR') : '', 40, y, wHalf, 40);
-        drawBox('Tempo no cargo:', payload.tempoCargo, 40 + wHalf, y, wHalf, 40);
-        y += 40;
-
-        drawBox('Salário Atual (R$):', payload.salarioAtual, 40, y, wHalf, 40);
-        drawBox('Telefone:', payload.telefone, 40 + wHalf, y, wHalf, 40);
+        drawBox('DATA DA SOLICITAÇÃO:', new Date(payload.created_at || payload.createdAt).toLocaleDateString('pt-BR'), 40, y, wFull, 40);
         y += 50;
 
-        // Formação Acadêmica
-        doc.rect(40, y, doc.page.width - 80, 20).fill('#555555');
-        doc.fillColor('#FFFFFF').font('Helvetica-Bold').text('FORMAÇÃO ACADÊMICA (Anexar cópia dos certificados)', 45, y + 5);
+        // RH Evaluation Section
+        doc.font('Helvetica-Bold').fontSize(12).text('AVALIAÇÃO DO RH', 40, y);
         y += 20;
-        doc.fillColor('#000000').rect(40, y, doc.page.width - 80, 60).stroke();
-        doc.font('Helvetica').text(payload.formacao || '', 45, y + 5, { width: doc.page.width - 90 });
-        y += 70;
 
-        // Cursos Complementares
-        doc.rect(40, y, doc.page.width - 80, 20).fill('#555555');
-        doc.fillColor('#FFFFFF').font('Helvetica-Bold').text('CURSO COMPLEMENTARES (Anexar cópia dos certificados)', 45, y + 5);
+        doc.font('Helvetica-Bold').fontSize(10).text('Status:', 40, y);
+        doc.font('Helvetica').text(payload.status || 'Pendente', 100, y);
         y += 20;
-        doc.fillColor('#000000').rect(40, y, doc.page.width - 80, 60).stroke();
-        doc.font('Helvetica').text(payload.cursos || '', 45, y + 5, { width: doc.page.width - 90 });
-        y += 70;
 
-        // Expectativas
-        doc.rect(40, y, doc.page.width - 80, 20).fill('#555555');
-        doc.fillColor('#FFFFFF').font('Helvetica-Bold').text('QUAIS SÃO SUAS EXPECTATIVAS PARA O NOVO CARGO?', 45, y + 5, { align: 'center', width: doc.page.width - 80 });
-        y += 20;
-        doc.fillColor('#000000').rect(40, y, doc.page.width - 80, 60).stroke();
-        doc.font('Helvetica').text(payload.expectativas || '', 45, y + 5, { width: doc.page.width - 90 });
-        y += 70;
+        doc.font('Helvetica-Bold').text('Observações:', 40, y);
+        y += 15;
+        doc.rect(40, y, wFull, 100).stroke();
+        doc.font('Helvetica').text(payload.observacao_rh || '', 45, y + 5, { width: wFull - 10 });
+        y += 110;
 
-        // Disponibilidade
-        doc.rect(40, y, doc.page.width - 80, 20).fill('#555555');
-        doc.fillColor('#FFFFFF').font('Helvetica-Bold').text('VOCÊ TEM DISPONIBILIDADE PARA TRABALHAR EM QUALQUER TURNO?', 45, y + 5, { align: 'center', width: doc.page.width - 80 });
-        y += 20;
-        
-        doc.fillColor('#000000').rect(40, y, doc.page.width - 80, 40).stroke();
-        const simCheck = payload.disponibilidade === 'sim' ? '( X )' : '(   )';
-        const naoCheck = payload.disponibilidade === 'nao' ? '( X )' : '(   )';
-        
-        doc.font('Helvetica-Bold').text(`${simCheck} Sim`, 60, y + 15);
-        doc.text(`${naoCheck} Não`, 250, y + 15);
-        doc.text(`Por quê? ${payload.motivoDisponibilidade || ''}`, 400, y + 15);
-        
-        y += 50;
-        
-        // Rodapé / Assinatura
-        doc.moveDown(2);
-        doc.text('Declaro serem verdadeiras as informações acima.', 40, y);
-        y += 40;
-        
-        doc.moveTo(40, y).lineTo(doc.page.width - 40, y).stroke();
-        doc.text('Assinatura do Colaborador', 40, y + 5, { align: 'center', width: doc.page.width - 80 });
-        doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 40, y + 20, { align: 'right', width: doc.page.width - 80 });
+        // Signatures
+        y += 30;
+        const sigW = wFull / 3;
+
+        doc.moveTo(40, y).lineTo(40 + sigW - 10, y).stroke();
+        doc.text('Candidato', 40, y + 5, { width: sigW - 10, align: 'center' });
+
+        doc.moveTo(40 + sigW, y).lineTo(40 + sigW * 2 - 10, y).stroke();
+        doc.text('Gestor Atual', 40 + sigW, y + 5, { width: sigW - 10, align: 'center' });
+
+        doc.moveTo(40 + sigW * 2, y).lineTo(doc.page.width - 40, y).stroke();
+        doc.text('RH', 40 + sigW * 2, y + 5, { width: sigW, align: 'center' });
 
         doc.end();
     });
 }
+
+function pdfBufferFromAvaliacaoData(payload) {
+    const doc = new PDFDocument({ size: 'A4', margin: 40 });
+    const chunks = [];
+    doc.on('data', c => chunks.push(c));
+    return new Promise(resolve => {
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+        if (fs.existsSync(LOGO_PATH)) {
+            doc.image(LOGO_PATH, 40, 10, { width: 50 });
+        }
+
+        const titulo = 'RELATÓRIO DE AVALIAÇÃO DE DESEMPENHO';
+        
+        doc.rect(40, 40, doc.page.width - 80, 50).fillAndStroke('#333333', '#000000');
+        doc.fillColor('#FFFFFF').fontSize(16).text(titulo, 40, 58, { width: doc.page.width - 80, align: 'center' });
+        
+        doc.fillColor('#000000').fontSize(10);
+        let y = 100;
+
+        const wFull = doc.page.width - 80;
+        
+        doc.font('Helvetica-Bold').text(`Avaliado: ${payload.avaliado}`, 40, y);
+        y += 15;
+        doc.text(`Avaliador: ${payload.avaliador}`, 40, y);
+        y += 15;
+        doc.text(`Data: ${new Date(payload.createdAt).toLocaleDateString('pt-BR')}`, 40, y);
+        y += 15;
+        doc.text(`Tipo: ${payload.tipo}`, 40, y);
+        y += 30;
+
+        // Scores
+        if (payload.notas) {
+            doc.font('Helvetica-Bold').fontSize(12).text('Notas por Competência', 40, y);
+            y += 20;
+            
+            doc.font('Helvetica').fontSize(10);
+            Object.entries(payload.notas).forEach(([key, val]) => {
+                doc.text(`${key}: ${val}`, 40, y);
+                y += 15;
+            });
+            y += 10;
+        }
+
+        // Comments
+        if (payload.comentarios) {
+            doc.font('Helvetica-Bold').fontSize(12).text('Comentários', 40, y);
+            y += 20;
+            doc.font('Helvetica').fontSize(10);
+            doc.text(payload.comentarios, 40, y, { width: wFull });
+            y += doc.heightOfString(payload.comentarios, { width: wFull }) + 20;
+        }
+
+        doc.end();
+    });
+}
+
+function pdfBufferFromMovimentacao(payload) {
+    const doc = new PDFDocument({ size: 'A4', margin: 40 });
+    const chunks = [];
+    doc.on('data', c => chunks.push(c));
+    return new Promise(resolve => {
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        
+        if (fs.existsSync(LOGO_PATH)) {
+            doc.image(LOGO_PATH, 40, 10, { width: 50 });
+        }
+
+        const titulo = 'SOLICITAÇÃO DE MOVIMENTAÇÃO DE PESSOAL';
+        doc.rect(40, 40, doc.page.width - 80, 50).fillAndStroke('#333333', '#000000');
+        doc.fillColor('#FFFFFF').fontSize(16).text(titulo, 40, 58, { width: doc.page.width - 80, align: 'center' });
+        
+        doc.fillColor('#000000').fontSize(10);
+        let y = 100;
+        const wFull = doc.page.width - 80;
+
+        // Common fields
+        const fields = [
+            { label: 'Nome do Colaborador', value: payload.nome || payload.nome_colaborador || payload.colaborador },
+            { label: 'Data da Solicitação', value: new Date(payload.createdAt).toLocaleDateString('pt-BR') },
+            { label: 'Tipo de Movimentação', value: payload.tipo_movimentacao || payload.tipo || 'N/A' },
+            { label: 'Empresa', value: payload.empresa },
+            { label: 'Filial', value: payload.filial },
+            { label: 'Centro de Custo', value: payload.centro_custo },
+        ];
+
+        fields.forEach(f => {
+            if (f.value) {
+                doc.font('Helvetica-Bold').text(`${f.label}:`, 40, y);
+                doc.font('Helvetica').text(String(f.value), 180, y);
+                y += 20;
+            }
+        });
+
+        y += 20;
+        doc.font('Helvetica-Bold').fontSize(12).text('Detalhes da Movimentação', 40, y);
+        y += 20;
+        doc.font('Helvetica').fontSize(10);
+
+        // Dynamic fields for "De" -> "Para"
+        const changes = [
+            { label: 'Cargo', from: payload.cargo_atual, to: payload.novo_cargo },
+            { label: 'Setor', from: payload.setor_atual, to: payload.novo_setor },
+            { label: 'Salário', from: payload.salario_atual, to: payload.novo_salario },
+            { label: 'Horário', from: payload.horario_atual, to: payload.novo_horario },
+            { label: 'Gestor', from: payload.gestor_atual, to: payload.novo_gestor },
+        ];
+
+        changes.forEach(c => {
+            if (c.from || c.to) {
+                doc.font('Helvetica-Bold').text(c.label, 40, y);
+                y += 15;
+                doc.font('Helvetica').text(`Atual: ${c.from || '-'}`, 60, y);
+                doc.text(`Novo: ${c.to || '-'}`, 300, y);
+                y += 20;
+            }
+        });
+
+        if (payload.justificativa) {
+            y += 20;
+            doc.font('Helvetica-Bold').text('Justificativa:', 40, y);
+            y += 15;
+            doc.font('Helvetica').text(payload.justificativa, 40, y, { width: wFull });
+            y += doc.heightOfString(payload.justificativa, { width: wFull }) + 20;
+        }
+
+        // Signatures
+        y += 50;
+        if (y > doc.page.height - 100) {
+            doc.addPage();
+            y = 50;
+        }
+
+        const sigW = wFull / 3;
+        doc.moveTo(40, y).lineTo(40 + sigW - 10, y).stroke();
+        doc.text('Solicitante', 40, y + 5, { width: sigW - 10, align: 'center' });
+
+        doc.moveTo(40 + sigW, y).lineTo(40 + sigW * 2 - 10, y).stroke();
+        doc.text('Gerência', 40 + sigW, y + 5, { width: sigW - 10, align: 'center' });
+
+        doc.moveTo(40 + sigW * 2, y).lineTo(doc.page.width - 40, y).stroke();
+        doc.text('RH', 40 + sigW * 2, y + 5, { width: sigW, align: 'center' });
+
+        doc.end();
+    });
+}
+
+function pdfBufferFromUniformeData(payload) {
+    const doc = new PDFDocument({ size: 'A4', margin: 40 });
+    const chunks = [];
+    doc.on('data', c => chunks.push(c));
+    return new Promise(resolve => {
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+        if (fs.existsSync(LOGO_PATH)) {
+            doc.image(LOGO_PATH, 40, 10, { width: 50 });
+        }
+
+        const titulo = 'RECIBO DE ENTREGA DE UNIFORMES';
+        doc.rect(40, 40, doc.page.width - 80, 50).fillAndStroke('#333333', '#000000');
+        doc.fillColor('#FFFFFF').fontSize(16).text(titulo, 40, 58, { width: doc.page.width - 80, align: 'center' });
+        
+        doc.fillColor('#000000').fontSize(10);
+        let y = 100;
+        const wFull = doc.page.width - 80;
+
+        doc.font('Helvetica-Bold').text(`Colaborador: ${payload.nome}`, 40, y);
+        y += 20;
+        doc.text(`Data da Solicitação: ${new Date(payload.createdAt).toLocaleDateString('pt-BR')}`, 40, y);
+        y += 20;
+        doc.text(`Setor: ${payload.setor || 'N/A'}`, 40, y);
+        y += 20;
+        doc.text(`Cargo: ${payload.cargo || 'N/A'}`, 40, y);
+        y += 40;
+
+        doc.font('Helvetica-Bold').fontSize(12).text('Itens Solicitados', 40, y);
+        y += 20;
+        doc.font('Helvetica').fontSize(10);
+
+        if (Array.isArray(payload.itens)) {
+            payload.itens.forEach(item => {
+                doc.circle(50, y + 5, 2).fill();
+                doc.text(typeof item === 'string' ? item : `${item.item} (Qtd: ${item.quantidade || 1}) - Tam: ${item.tamanho || 'U'}`, 60, y);
+                y += 20;
+            });
+        } else if (typeof payload.itens === 'string') {
+             doc.text(payload.itens, 40, y, { width: wFull });
+             y += 30;
+        }
+
+        y += 30;
+        doc.font('Helvetica-Oblique').fontSize(8).text('Declaro que recebi os uniformes acima descritos em perfeito estado de conservação e me comprometo a utilizá-los conforme as normas da empresa.', 40, y, { width: wFull });
+        
+        y += 60;
+        
+        // Signatures
+        const sigW = wFull / 2;
+        doc.moveTo(40, y).lineTo(40 + sigW - 20, y).stroke();
+        doc.text('Colaborador', 40, y + 5, { width: sigW - 20, align: 'center' });
+
+        doc.moveTo(40 + sigW, y).lineTo(doc.page.width - 40, y).stroke();
+        doc.text('Responsável Entrega', 40 + sigW, y + 5, { width: sigW, align: 'center' });
+
+        doc.end();
+    });
+}
+
+function pdfBufferFromCandidato(payload) {
+    const doc = new PDFDocument({ size: 'A4', margin: 40 });
+    const chunks = [];
+    doc.on('data', c => chunks.push(c));
+    return new Promise(resolve => {
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        
+        if (fs.existsSync(LOGO_PATH)) {
+            doc.image(LOGO_PATH, 40, 10, { width: 50 });
+        }
+
+        const titulo = 'FICHA DE CANDIDATO';
+        doc.rect(40, 40, doc.page.width - 80, 50).fillAndStroke('#333333', '#000000');
+        doc.fillColor('#FFFFFF').fontSize(16).text(titulo, 40, 58, { width: doc.page.width - 80, align: 'center' });
+        
+        doc.fillColor('#000000').fontSize(10);
+        let y = 100;
+        const wFull = doc.page.width - 80;
+
+        doc.font('Helvetica-Bold').text('Nome:', 40, y);
+        doc.font('Helvetica').text(payload.nome, 100, y);
+        y += 20;
+
+        doc.font('Helvetica-Bold').text('Email:', 40, y);
+        doc.font('Helvetica').text(payload.email, 100, y);
+        y += 20;
+
+        doc.font('Helvetica-Bold').text('Telefone:', 40, y);
+        doc.font('Helvetica').text(payload.telefone, 100, y);
+        y += 20;
+
+        if (payload.vaga_interesse) {
+             doc.font('Helvetica-Bold').text('Vaga:', 40, y);
+             doc.font('Helvetica').text(payload.vaga_interesse, 100, y);
+             y += 20;
+        }
+
+        doc.font('Helvetica-Bold').text('Data Cadastro:', 40, y);
+        doc.font('Helvetica').text(new Date(payload.createdAt).toLocaleDateString('pt-BR'), 140, y);
+        y += 20;
+
+        doc.font('Helvetica-Bold').text('Status:', 40, y);
+        doc.font('Helvetica').text(payload.status, 100, y);
+        y += 40;
+
+        if (payload.historico && payload.historico.length > 0) {
+            doc.font('Helvetica-Bold').fontSize(12).text('Histórico', 40, y);
+            y += 20;
+            doc.font('Helvetica').fontSize(10);
+            
+            payload.historico.forEach(h => {
+                doc.text(`${new Date(h.data).toLocaleDateString('pt-BR')} - ${h.acao}: ${h.detalhe}`, 40, y, { width: wFull });
+                y += 20;
+                if (h.observacao) {
+                    doc.font('Helvetica-Oblique').text(`Obs: ${h.observacao}`, 60, y, { width: wFull - 20 });
+                    y += 20;
+                    doc.font('Helvetica');
+                }
+            });
+        }
+
+        doc.end();
+    });
+}
+
+module.exports = {
+    pdfBufferFromData,
+    pdfBufferFromDescontoData,
+    pdfBufferFromTaxaData,
+    pdfBufferFromVagaData,
+    pdfBufferFromEntrevistaDesligamentoData,
+    pdfBufferFromRecrutamentoInternoData,
+    pdfBufferFromOnTheJobData,
+    pdfBufferFromAvaliacaoData,
+    pdfBufferFromMovimentacao,
+    pdfBufferFromUniformeData,
+    pdfBufferFromCandidato
+};
 

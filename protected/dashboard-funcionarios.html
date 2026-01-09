@@ -56,20 +56,9 @@
   </style>
 </head>
 <body>
-  <nav class="rh-navbar">
-      <a href="/protected/index.html" class="rh-navbar-brand">
-          <span>🏠</span> Portal RH
-      </a>
-      <div class="rh-navbar-menu">
-          <a href="/protected/dashboard-rh.html" class="rh-nav-link">Férias</a>
-          <a href="/protected/dashboard-taxas.html" class="rh-nav-link">Taxas</a>
-          <a href="/protected/dashboard-candidatos.html" class="rh-nav-link">Candidatos</a>
-          <a href="/protected/dashboard-vagas.html" class="rh-nav-link">Vagas</a>
-          <a href="/protected/dashboard-epis.html" class="rh-nav-link">EPIs</a>
-          <a href="/protected/dashboard-funcionarios.html" class="rh-nav-link active">Funcionários</a>
-          <a href="/protected/dashboard-desligamento.html" class="rh-nav-link">Desligamento</a>
-      </div>
-  </nav>
+  <div id="navbar-container"></div>
+  <script src="/rh-navbar.js"></script>
+  <script>renderRHNavbar('funcionarios');</script>
 
   <main class="dashboard-container">
     <div class="page-header">
@@ -77,9 +66,14 @@
             <h1 class="page-title">Gestão de Funcionários</h1>
             <p class="page-subtitle">Importe a base de dados para validação de biometria e cadastro</p>
         </div>
-        <button class="btn btn-outline" onclick="downloadTemplate()">
-            📥 Baixar Modelo Excel
-        </button>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-primary" onclick="syncQuestor()" style="background-color: #6366f1; border-color: #6366f1;">
+                🔄 Sincronizar Questor
+            </button>
+            <button class="btn btn-outline" onclick="downloadTemplate()">
+                📥 Baixar Modelo Excel
+            </button>
+        </div>
     </div>
 
     <div class="actions-panel">
@@ -119,6 +113,35 @@
   </main>
 
   <script>
+      async function syncQuestor() {
+          if (!confirm('Deseja iniciar a sincronização com o sistema Questor? Isso pode levar alguns segundos.')) return;
+
+          const btn = document.querySelector('button[onclick="syncQuestor()"]');
+          const originalText = btn.textContent;
+          btn.disabled = true;
+          btn.textContent = 'Sincronizando...';
+
+          try {
+              const res = await fetch('/api/rh/funcionarios/sync-questor', {
+                  method: 'POST'
+              });
+              const data = await res.json();
+
+              if (res.ok) {
+                  alert(`Sincronização concluída!\nNovos: ${data.novos}\nAtualizados: ${data.atualizados}`);
+                  carregarFuncionarios();
+              } else {
+                  throw new Error(data.erro || 'Erro desconhecido');
+              }
+          } catch (e) {
+              console.error(e);
+              alert('Erro ao sincronizar: ' + e.message);
+          } finally {
+              btn.disabled = false;
+              btn.textContent = originalText;
+          }
+      }
+
       async function carregarFuncionarios() {
           try {
               const res = await fetch('/api/rh/funcionarios');
@@ -171,35 +194,54 @@
               const data = new Uint8Array(e.target.result);
               const workbook = XLSX.read(data, { type: 'array' });
               const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-              const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+              const jsonData = XLSX.utils.sheet_to_json(firstSheet, { raw: false });
 
               if (jsonData.length === 0) {
                   alert('Arquivo vazio ou formato inválido.');
                   return;
               }
 
-              // Mapear colunas (flexível para maiúsculas/minúsculas)
-              const funcionarios = jsonData.map(row => {
-                  // Tenta encontrar chaves ignorando case
-                  const getVal = (key) => {
-                      const foundKey = Object.keys(row).find(k => k.toLowerCase().includes(key.toLowerCase()));
-                      return foundKey ? row[foundKey] : '';
-                  };
+              const sinonimos = {
+                  nome: ['nome', 'funcionario', 'colaborador', 'empregado', 'employee'],
+                  cpf: ['cpf', 'documento', 'cadastro'],
+                  cargo: ['cargo', 'funcao', 'função', 'ocupacao', 'ocupação', 'job'],
+                  setor: ['setor', 'departamento', 'depto', 'area', 'área', 'centro de custo'],
+                  admissao: ['admissao', 'admissão', 'entrada', 'inicio', 'contratacao', 'data'],
+                  matricula: ['matricula', 'matrícula', 'codigo', 'registro', 'id']
+              };
 
+              const getVal = (row, targetField) => {
+                  const possibleKeys = sinonimos[targetField];
+                  const rowKeys = Object.keys(row);
+                  const foundKey = rowKeys.find(k => 
+                      possibleKeys.some(term => k.toLowerCase().includes(term))
+                  );
+                  return foundKey ? row[foundKey] : '';
+              };
+
+              const funcionarios = jsonData.map(row => {
+                  const rawCpf = getVal(row, 'cpf');
                   return {
-                      nome: getVal('nome'),
-                      cpf: String(getVal('cpf')).replace(/\D/g, ''), // Limpa CPF
-                      cargo: getVal('cargo'),
-                      setor: getVal('setor'),
-                      data_admissao: getVal('admissão') || getVal('admissao')
+                      nome: getVal(row, 'nome'),
+                      cpf: rawCpf ? String(rawCpf).replace(/\D/g, '') : null,
+                      cargo: getVal(row, 'cargo'),
+                      setor: getVal(row, 'setor'),
+                      data_admissao: getVal(row, 'admissao'),
+                      matricula: getVal(row, 'matricula')
                   };
-              }).filter(f => f.nome && f.cpf); // Filtra linhas inválidas
+              }).filter(f => f.nome);
+
+              if (funcionarios.length === 0) {
+                  alert('Nenhum registro válido encontrado. Verifique se a planilha possui uma coluna de "Nome".');
+                  input.value = '';
+                  return;
+              }
 
               if (confirm(`Foram encontrados ${funcionarios.length} registros válidos. Deseja importar?`)) {
                   await enviarImportacao(funcionarios);
               }
               
-              input.value = ''; // Reset input
+              input.value = '';
           };
           reader.readAsArrayBuffer(file);
       }

@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avaliação de Experiência (45/90 Dias)</title>
+    <link rel="icon" href="/assets/logo.png" type="image/png">
+    <!-- Google Fonts for a more professional look -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #1e293b; /* Slate 800 */
+            --primary-light: #334155; /* Slate 700 */
+            --accent-color: #2563eb; /* Blue 600 */
+            --accent-hover: #1d4ed8; /* Blue 700 */
+            --success-color: #10b981; /* Emerald 500 */
+            --warning-color: #f59e0b; /* Amber 500 */
+            --danger-color: #ef4444; /* Red 500 */
+            --bg-color: #f8fafc; /* Slate 50 */
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0; /* Slate 200 */
+            --text-main: #0f172a; /* Slate 900 */
+            --text-secondary: #64748b; /* Slate 500 */
+            --table-header-bg: #f1f5f9; /* Slate 100 */
+            --input-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            padding: 50px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Header Styles */
+        .header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 30px;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .logo {
+            max-height: 80px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            margin: 0 0 10px 0;
+            letter-spacing: -0.025em;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin: 0;
+            font-weight: 500;
+        }
+
+        .meta-info {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 15px;
+            padding: 5px 15px;
+            background: var(--bg-color);
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        /* Form Grid - Employee Info */
+        .header-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+            background: #f8fafc;
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .form-control {
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            color: var(--text-main);
+            background-color: var(--input-bg);
+            transition: all 0.2s ease;
+            width: 100%;
+            box-sizing: border-box; /* Fix width issues */
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-control[readonly], .form-control:disabled {
+            background-color: #f1f5f9;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        /* Status Section Cards */
+        .status-section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-section-title::before {
+            content: '';
+            display: block;
+            width: 6px;
+            height: 24px;
+            background: var(--accent-color);
+            border-radius: 3px;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .status-box {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .status-box h4 {
+            margin: 0 0 20px 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .status-radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .status-radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.95rem;
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .status-radio-group label:hover {
+            background: #f8fafc;
+        }
+
+        .status-radio-group input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent-color);
+        }
+
+        /* Active/Inactive States for Status Boxes */
+        .status-box.active {
+            border-color: var(--accent-color);
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.1);
+        }
+        
+        .status-box.active h4 {
+            color: var(--accent-color);
+        }
+
+        /* Table Styling */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 40px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .evaluation-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+
+        .evaluation-table th {
+            background-color: var(--table-header-bg);
+            color: var(--primary-color);
+            font-weight: 700;
+            padding: 15px 20px;
+            text-align: left;
+            border-bottom: 2px solid var(--border-color);
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
+        }
+
+        .evaluation-table td {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+
+        .evaluation-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .evaluation-table tr:hover td {
+            background-color: #f8fafc;
+        }
+
+        .category-header {
+            background-color: #e2e8f0 !important;
+            color: var(--primary-color);
+            font-weight: 700;
+            font-size: 0.9rem;
+            padding: 12px 20px !important;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        select.score-select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: #fff;
+            cursor: pointer;
+            font-size: 0.9rem;
+            text-align: center;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 16px;
+            padding-right: 35px;
+        }
+
+        select.score-select:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        select.score-select:disabled {
+            background-color: #f1f5f9;
+            color: #cbd5e1;
+            cursor: not-allowed;
+            border-color: #f1f5f9;
+        }
+
+        /* Legend */
+        .legend-box {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            color: #0369a1;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #fff;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        /* Submit Button */
+        .form-actions {
+            margin-top: 40px;
+            text-align: right;
+            border-top: 1px solid var(--border-color);
+            padding-top: 30px;
+        }
+
+        .submit-btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .submit-btn:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.3);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            .header-info {
+                grid-template-columns: 1fr;
+            }
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+            .evaluation-table th, .evaluation-table td {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 20px;">
+        <a href="/" style="color: #64748b; text-decoration: none; font-size: 0.9rem;">&larr; Voltar ao Menu</a>
+    </div>
+    
+        <div class="header">
+            <img src="/assets/logo.png" alt="Logo" class="logo">
+            <h1>AVALIAÇÃO DE EXPERIÊNCIA</h1>
+            <p>Acompanhamento de 45 e 90 dias</p>
+           
+        </div>
+
+        <form id="experienciaForm">
+            <input type="hidden" name="id" id="formId">
+            <input type="hidden" name="tipo" value="experiencia">
+            <input type="hidden" name="etapa" id="etapaAtual" value="45">
+
+            <div class="header-info">
+                <div class="form-group">
+                    <label>Colaborador</label>
+                    <select name="funcionario" id="funcionarioSelect" class="form-control" required>
+                        <option value="">Selecione...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Avaliador</label>
+                    <input type="text" name="avaliador" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Cargo</label>
+                    <input type="text" name="cargo" id="cargoField" class="form-control" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Setor</label>
+                    <input type="text" name="setor" id="setorField" class="form-control" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Data Admissão</label>
+                    <input type="date" name="dataAdmissao" class="form-control" required>
+                </div>
+            </div>
+
+            <!-- Status Section -->
+            <div class="form-section">
+                <div class="status-section-title">Parecer da Avaliação</div>
+                <div class="status-grid">
+                    <div class="status-box active" id="status45Box">
+                        <h4>45 DIAS</h4>
+                        <div class="status-radio-group">
+                            <label><input type="radio" name="status45" value="reprovado"> REPROVADO</label>
+                            <label><input type="radio" name="status45" value="prorrogado"> PRORROGADO/APROVADO</label>
+                        </div>
+                    </div>
+                    <div class="status-box" id="status90Box" style="opacity: 0.6; pointer-events: none; background: #f8fafc;">
+                        <h4>90 DIAS</h4>
+                        <div class="status-radio-group">
+                            <label><input type="radio" name="status90" value="aprovado"> APROVADO</label>
+                            <label><input type="radio" name="status90" value="reprovado"> REPROVADO</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="legend-box">
+                <span style="font-weight: 700; margin-right: 10px;">Legenda:</span>
+                <span class="legend-item">N - Não se aplica</span>
+                <span class="legend-item">NA - Não atende</span>
+                <span class="legend-item">M - Melhorar</span>
+                <span class="legend-item">R - Regular</span>
+                <span class="legend-item">B - Bom</span>
+                <span class="legend-item">E - Excelente</span>
+            </div>
+
+            <div class="table-container">
+                <table class="evaluation-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 50%;">Critérios de Avaliação</th>
+                            <th style="width: 25%; text-align: center;">45 Dias</th>
+                            <th style="width: 25%; text-align: center;">90 Dias</th>
+                        </tr>
+                    </thead>
+                    <tbody id="criteriaBody">
+                        <!-- JS will populate -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="form-section" style="margin-top: 40px;">
+                <div class="status-section-title">Metas e Desenvolvimento</div>
+                
+                <div class="form-group" style="margin-bottom: 25px;">
+                    <label>Metas: Conhecimentos e habilidades a serem desenvolvidas e/ou aperfeiçoadas</label>
+                    <textarea name="metas" rows="4" class="form-control"></textarea>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 25px;">
+                    <label>Indicação de treinamento para suprir as necessidades indicadas</label>
+                    <textarea name="treinamentos" rows="3" class="form-control"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Comentários (Opcional)</label>
+                    <textarea name="comentarios" rows="3" class="form-control"></textarea>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    <span>💾 Salvar Avaliação (45 Dias)</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const categories = [
+            {
+                name: "1. COMPROMETIMENTO",
+                items: [
+                    "Comprimento de regras",
+                    "Realização de atividades estipuladas pela liderança",
+                    "Pontualidade",
+                    "Resolução de problemas"
+                ]
+            },
+            {
+                name: "2. COMUNICAÇÃO",
+                items: [
+                    "Comunicação com colegas, líderes e demais envolvidos",
+                    "Comunicação escrita",
+                    "Entendimento sobre preocupações e necessidades",
+                    "Objetividade",
+                    "Profissionalismo",
+                    "Adaptação a diferentes ambientes",
+                    "Simpatia"
+                ]
+            },
+            {
+                name: "3. ORGANIZAÇÃO E PLANEJAMENTO",
+                items: [
+                    "Organização com execução de atividades",
+                    "Planejamento de atividades, com definição e gerenciamento de prioridades"
+                ]
+            },
+            {
+                name: "4. RELACIONAMENTO INTERPESSOAL",
+                items: [
+                    "Relacionamento interpessoal (colegas e líderes)",
+                    "Mantém ambiente favorável ao convívio e à execução do trabalho"
+                ]
+            },
+            {
+                name: "5. TRABALHO EM EQUIPE",
+                items: [
+                    "Cooperação e interação com os demais membros da equipe",
+                    "Sabe ouvir e respeitar posições contrárias",
+                    "Estabelecimento de credibilidade ao interagir com funcionários, clientes internos e externos"
+                ]
+            },
+            {
+                name: "6. CONHECIMENTO TÉCNICO",
+                items: [
+                    "Aplicação de conhecimento técnico com necessidade de supervisão",
+                    "Aplicação de conhecimento técnico sem necessidade de supervisão"
+                ]
+            },
+            {
+                name: "7. DESENVOLVIMENTO PROFISSIONAL",
+                items: [
+                    "Proativo com atividades não designadas",
+                    "Busca aperfeiçoamento de competências por meio de treinamentos",
+                    "Busca constante de desenvolvimento pessoal e profissional"
+                ]
+            },
+            {
+                name: "8. DISCIPLINA",
+                items: [
+                    "Demonstra ser disciplinado com regras ou ordens",
+                    "Cumprimento regras e respeita as diretrizes",
+                    "Perfil receptivo, entendendo a necessidade do direcionamento e das regras",
+                    "Aceita bem as regras, recebe com presteza as orientações"
+                ]
+            },
+            {
+                name: "9. HÁBITOS DE SEGURANÇA",
+                items: [
+                    "Respeita as normas de segurança e utilização dos EPIS",
+                    "Conhecimento com as normas básicas de segurança e age de forma a evitar acidentes"
+                ]
+            },
+            {
+                name: "10. SOLUÇÃO DE PROBLEMAS",
+                items: [
+                    "Identificação de problemas",
+                    "Apresentação de ideias para solução de problemas",
+                    "Apresentação de novas ideias e recursos para aprimorar técnicas"
+                ]
+            }
+        ];
+
+        const options = [
+            { val: "N", label: "N - Não se aplica" },
+            { val: "NA", label: "NA - Não atende" },
+            { val: "M", label: "M - Melhorar" },
+            { val: "R", label: "R - Regular" },
+            { val: "B", label: "B - Bom" },
+            { val: "E", label: "E - Excelente" }
+        ];
+
+        function createSelect(name, disabled = false) {
+            let html = `<select name="${name}" class="score-select" ${disabled ? 'disabled' : ''}>`;
+            html += `<option value="">-</option>`;
+            options.forEach(o => {
+                html += `<option value="${o.val}">${o.val}</option>`;
+            });
+            html += `</select>`;
+            return html;
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('criteriaBody');
+            let html = '';
+            
+            categories.forEach((cat, catIndex) => {
+                html += `<tr><td colspan="3" class="category-header">${cat.name}</td></tr>`;
+                cat.items.forEach((item, itemIndex) => {
+                    const fieldName45 = `q_${catIndex}_${itemIndex}_45`;
+                    const fieldName90 = `q_${catIndex}_${itemIndex}_90`;
+                    
+                    html += `
+                        <tr>
+                            <td>${item}</td>
+                            <td class="center-text">${createSelect(fieldName45)}</td>
+                            <td class="center-text">${createSelect(fieldName90, true)}</td>
+                        </tr>
+                    `;
+                });
+            });
+            
+            tbody.innerHTML = html;
+        }
+
+        // Load employees
+        async function loadFuncionarios() {
+            try {
+                const res = await fetch('/api/funcionarios');
+                const funcionarios = await res.json();
+                const select = document.getElementById('funcionarioSelect');
+                
+                funcionarios.sort((a, b) => a.nome.localeCompare(b.nome));
+                funcionarios.forEach(f => {
+                    const opt = document.createElement('option');
+                    opt.value = f.nome;
+                    opt.textContent = f.nome;
+                    opt.dataset.cargo = f.cargo || '';
+                    opt.dataset.setor = f.setor || '';
+                    select.appendChild(opt);
+                });
+
+                select.addEventListener('change', async (e) => {
+                    const selected = e.target.selectedOptions[0];
+                    if (selected && selected.value) {
+                        document.getElementById('cargoField').value = selected.dataset.cargo;
+                        document.getElementById('setorField').value = selected.dataset.setor;
+
+                        // Check for existing evaluation
+                        try {
+                            const params = new URLSearchParams({
+                                funcionario: selected.value,
+                                tipo: 'experiencia'
+                            });
+                            const checkRes = await fetch(`/api/avaliacao/buscar/recente?${params}`);
+                            if (checkRes.ok) {
+                                const existingData = await checkRes.json();
+                                if (confirm(`Encontrada uma avaliação de experiência anterior para ${selected.value}. Deseja carregá-la?`)) {
+                                    // Update URL without reload to be clean, or just load data
+                                    // Ideally we want to be in "edit mode" for that ID
+                                    window.location.href = `?id=${existingData.id}`;
+                                }
+                            }
+                        } catch (err) {
+                            console.error('Erro ao verificar avaliação existente:', err);
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function loadEvaluation(id) {
+            try {
+                const res = await fetch(`/api/avaliacao/${id}`);
+                const data = await res.json();
+                
+                if (data) {
+                    // Populate form
+                    document.getElementById('formId').value = data.id;
+                    document.getElementById('etapaAtual').value = '90'; // Switch to 90 days mode
+                    
+                    // Populate fields
+                    const form = document.getElementById('experienciaForm');
+                    
+                    // Set basic fields
+                    if (data.funcionario) {
+                        document.getElementById('funcionarioSelect').value = data.funcionario;
+                    }
+                    if (data.avaliador) form.avaliador.value = data.avaliador;
+                    if (data.cargo) form.cargo.value = data.cargo;
+                    if (data.setor) form.setor.value = data.setor;
+                    if (data.dataAdmissao) form.dataAdmissao.value = data.dataAdmissao;
+                    if (data.metas) form.metas.value = data.metas;
+                    if (data.treinamentos) form.treinamentos.value = data.treinamentos;
+                    if (data.comentarios) form.comentarios.value = data.comentarios;
+                    
+                    if (data.status45) {
+                        const r = form.querySelector(`input[name="status45"][value="${data.status45}"]`);
+                        if (r) r.checked = true;
+                    }
+
+                    // Populate 45 answers and lock them
+                    if (data.answers45) {
+                        Object.keys(data.answers45).forEach(key => {
+                            const el = form.querySelector(`select[name="${key}"]`);
+                            if (el) {
+                                el.value = data.answers45[key];
+                                el.disabled = true;
+                            }
+                        });
+                        // Lock status 45
+                        form.querySelectorAll('input[name="status45"]').forEach(el => el.disabled = true);
+                        
+                        // Style adjustments for 90 days mode
+                        document.getElementById('status45Box').classList.remove('active');
+                        document.getElementById('status45Box').style.opacity = '0.7';
+                        
+                        // Enable 90
+                        form.querySelectorAll('select[name$="_90"]').forEach(el => el.disabled = false);
+                        
+                        const box90 = document.getElementById('status90Box');
+                        box90.style.opacity = '1';
+                        box90.style.pointerEvents = 'auto';
+                        box90.style.background = '#fff';
+                        box90.classList.add('active');
+                        
+                        document.getElementById('submitBtn').innerHTML = '<span>💾 Salvar Avaliação (90 Dias)</span>';
+                    }
+                }
+            } catch (e) {
+                console.error('Erro ao carregar:', e);
+                alert('Erro ao carregar avaliação.');
+            }
+        }
+
+        document.getElementById('experienciaForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            
+            // Collect answers
+            const answers45 = {};
+            const answers90 = {};
+            
+            for (let [key, value] of formData.entries()) {
+                if (key.endsWith('_45')) answers45[key] = value;
+                if (key.endsWith('_90')) answers90[key] = value;
+            }
+
+            const etapa = document.getElementById('etapaAtual').value;
+            const id = document.getElementById('formId').value;
+            
+            const payload = {
+                id: id || undefined,
+                tipo: 'experiencia',
+                funcionario: data.funcionario,
+                avaliador: data.avaliador,
+                cargo: data.cargo,
+                setor: data.setor,
+                dataAdmissao: data.dataAdmissao,
+                metas: data.metas,
+                treinamentos: data.treinamentos,
+                comentarios: data.comentarios,
+            };
+
+            if (etapa === '45') {
+                payload.answers45 = answers45;
+                payload.status45 = data.status45;
+            } else {
+                payload.answers90 = answers90;
+                payload.status90 = data.status90;
+            }
+
+            const url = id ? `/api/avaliacao/${id}` : '/api/avaliacao';
+            const method = id ? 'PUT' : 'POST';
+
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await res.json();
+                if (result.ok) {
+                    alert('Salvo com sucesso!');
+                    if (!id) {
+                         window.location.href = `/form-avaliacao-experiencia.html?id=${result.id}`;
+                    } else {
+                        location.reload();
+                    }
+                } else {
+                    alert('Erro: ' + result.erro);
+                }
+            } catch (err) {
+                alert('Erro de conexão.');
+            }
+        });
+
+        // Initialize
+        renderTable();
+        loadFuncionarios();
+
+        // Check ID param
+        const urlParams = new URLSearchParams(window.location.search);
+        const id = urlParams.get('id');
+        if (id) {
+            loadEvaluation(id);
+        }
+    </script>
+</body>
+</html>

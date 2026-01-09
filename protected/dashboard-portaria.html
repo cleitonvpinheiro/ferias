@@ -672,7 +672,7 @@
                         </div>
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <input type="number" id="qtd-${epi.id}" placeholder="+ Qtd" style="width: 80px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
-                            <button class="btn-confirm" style="padding: 8px 15px; font-size: 0.9rem;" onclick="adicionarEstoque(${epi.id})">ADICIONAR</button>
+                            <button class="btn-confirm" style="padding: 8px 15px; font-size: 0.9rem;" onclick="adicionarEstoque('${epi.id}')">ADICIONAR</button>
                         </div>
                     `;
                     lista.appendChild(div);
@@ -859,7 +859,7 @@
                         <div class="epi-name">${epi.nome}</div>
                         <div class="epi-footer">
                             <span style="font-size:0.8rem; color:#64748b;">Em uso</span>
-                            <button class="btn-loss" onclick="openDiscountModal(${itemId}, event)" style="background:#fee2e2; color:#991b1b; border:none; padding:4px 8px; border-radius:4px; font-size:0.75rem; cursor:pointer; font-weight:600;">REPORTAR PERDA</button>
+                            <button class="btn-loss" onclick="openDiscountModal('${itemId}', event)" style="background:#fee2e2; color:#991b1b; border:none; padding:4px 8px; border-radius:4px; font-size:0.75rem; cursor:pointer; font-weight:600;">REPORTAR PERDA</button>
                         </div>
                     `;
                     gridPossession.appendChild(card);
