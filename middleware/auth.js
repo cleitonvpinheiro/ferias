@@ -6,6 +6,28 @@ if (!SECRET) {
     throw new Error('FATAL: JWT_SECRET não definido no .env');
 }
 
+// Role Definitions
+const ROLES = {
+    ADMIN: 'admin',
+    RH: 'rh', // Legacy
+    RH_GERAL: 'rh_geral',
+    DP: 'dp',
+    RECRUTAMENTO: 'recrutamento',
+    TD: 'td',
+    SESMT: 'sesmt',
+    PORTARIA: 'portaria'
+};
+
+const ALL_RH_ROLES = [
+    ROLES.ADMIN, 
+    ROLES.RH, 
+    ROLES.RH_GERAL, 
+    ROLES.DP, 
+    ROLES.RECRUTAMENTO, 
+    ROLES.TD, 
+    ROLES.SESMT
+];
+
 // Middleware para verificar token JWT
 const verifyToken = (req, res, next) => {
     // Tenta pegar token do cookie ou header Authorization
@@ -43,7 +65,14 @@ const verifyToken = (req, res, next) => {
 // Middleware para verificar papel (Role)
 const checkRole = (roles) => {
     return (req, res, next) => {
-        if (!req.user || !roles.includes(req.user.role)) {
+        // If roles is a string, convert to array
+        const allowedRoles = Array.isArray(roles) ? roles : [roles];
+        
+        // If user is admin, allow everything? Maybe explicit is better.
+        // Let's add admin to allowedRoles if not present, assuming admin can access everything
+        if (!allowedRoles.includes(ROLES.ADMIN)) allowedRoles.push(ROLES.ADMIN);
+
+        if (!req.user || !allowedRoles.includes(req.user.role)) {
             if (req.accepts('html')) {
                 // Redireciona para login ou página de erro
                 return res.redirect('/login.html?error=forbidden');
@@ -54,14 +83,27 @@ const checkRole = (roles) => {
     };
 };
 
-// Funções para compatibilidade com o código anterior, mas usando JWT
-const rhAuth = [verifyToken, checkRole(['rh'])];
-const portariaAuth = [verifyToken, checkRole(['portaria', 'rh'])]; // RH também pode acessar portaria se quiser
+// Pre-defined auth middlewares
+const rhAuth = [verifyToken, checkRole(ALL_RH_ROLES)];
+const portariaAuth = [verifyToken, checkRole([ROLES.PORTARIA, ...ALL_RH_ROLES])];
+
+// Granular Auth Middlewares
+const recrutamentoAuth = [verifyToken, checkRole([ROLES.RECRUTAMENTO, ROLES.RH_GERAL, ROLES.RH])];
+const dpAuth = [verifyToken, checkRole([ROLES.DP, ROLES.RH_GERAL, ROLES.RH])];
+const tdAuth = [verifyToken, checkRole([ROLES.TD, ROLES.RH_GERAL, ROLES.RH])];
+const sesmtAuth = [verifyToken, checkRole([ROLES.SESMT, ROLES.RH_GERAL, ROLES.RH])];
+const adminAuth = [verifyToken, checkRole([ROLES.ADMIN])];
 
 module.exports = { 
     verifyToken, 
     checkRole, 
     rhAuth, 
     portariaAuth,
-    SECRET 
+    recrutamentoAuth,
+    dpAuth,
+    tdAuth,
+    sesmtAuth,
+    adminAuth,
+    SECRET,
+    ROLES
 };

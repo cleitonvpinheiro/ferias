@@ -3,7 +3,7 @@ const router = express.Router();
 const crypto = require('crypto');
 const db = require('../services/db');
 const pdfService = require('../services/pdfService');
-const { rhAuth } = require('../middleware/auth');
+const { recrutamentoAuth } = require('../middleware/auth');
 
 // Public: Submit Application
 router.post('/recrutamento-interno', async (req, res) => {
@@ -32,7 +32,7 @@ router.post('/recrutamento-interno', async (req, res) => {
 });
 
 // RH: List Applications
-router.get('/rh/recrutamento-interno', rhAuth, async (req, res) => {
+router.get('/rh/recrutamento-interno', recrutamentoAuth, async (req, res) => {
     try {
         const data = await db.recrutamentoInterno.getAll();
         const sorted = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -44,7 +44,7 @@ router.get('/rh/recrutamento-interno', rhAuth, async (req, res) => {
 });
 
 // RH: Get Single Application
-router.get('/rh/recrutamento-interno/:id', rhAuth, async (req, res) => {
+router.get('/rh/recrutamento-interno/:id', recrutamentoAuth, async (req, res) => {
     try {
         const item = await db.recrutamentoInterno.getById(req.params.id);
         if (!item) return res.status(404).json({ ok: false, erro: 'Registro não encontrado' });
@@ -55,7 +55,7 @@ router.get('/rh/recrutamento-interno/:id', rhAuth, async (req, res) => {
     }
 });
 
-router.get('/rh/recrutamento-interno/:id/pdf', rhAuth, async (req, res) => {
+router.get('/rh/recrutamento-interno/:id/pdf', recrutamentoAuth, async (req, res) => {
     try {
         const item = await db.recrutamentoInterno.getById(req.params.id);
         if (!item) return res.status(404).send('Registro não encontrado');
@@ -75,7 +75,7 @@ router.get('/rh/recrutamento-interno/:id/pdf', rhAuth, async (req, res) => {
 });
 
 // RH: Update Status
-router.post('/rh/recrutamento-interno/:id/status', rhAuth, async (req, res) => {
+router.post('/rh/recrutamento-interno/:id/status', recrutamentoAuth, async (req, res) => {
     try {
         const { status, observacao } = req.body;
         const item = await db.recrutamentoInterno.getById(req.params.id);

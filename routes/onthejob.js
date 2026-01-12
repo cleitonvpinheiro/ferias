@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 const db = require('../services/db');
-const { rhAuth } = require('../middleware/auth');
+const { tdAuth } = require('../middleware/auth');
 const { pdfBufferFromOnTheJobData } = require('../services/pdfService');
 
 // Public: Submit On The Job
@@ -32,7 +32,7 @@ router.post('/on-the-job', async (req, res) => {
 });
 
 // RH: List
-router.get('/rh/on-the-job', rhAuth, async (req, res) => {
+router.get('/rh/on-the-job', tdAuth, async (req, res) => {
     try {
         const data = await db.onthejob.getAll();
         const sorted = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -44,7 +44,7 @@ router.get('/rh/on-the-job', rhAuth, async (req, res) => {
 });
 
 // RH: Get Single
-router.get('/rh/on-the-job/:id', rhAuth, async (req, res) => {
+router.get('/rh/on-the-job/:id', tdAuth, async (req, res) => {
     try {
         const item = await db.onthejob.getById(req.params.id);
         if (!item) return res.status(404).json({ ok: false, erro: 'Registro não encontrado' });
@@ -56,7 +56,7 @@ router.get('/rh/on-the-job/:id', rhAuth, async (req, res) => {
 });
 
 // PDF Generation
-router.get('/rh/on-the-job/:id/pdf', rhAuth, async (req, res) => {
+router.get('/rh/on-the-job/:id/pdf', tdAuth, async (req, res) => {
     try {
         const item = await db.onthejob.getById(req.params.id);
         if (!item) return res.status(404).send('Registro não encontrado');

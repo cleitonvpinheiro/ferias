@@ -2,8 +2,11 @@ const express = require('express');
 const router = express.Router();
 const db = require('../services/db');
 const crypto = require('crypto');
-const { rhAuth } = require('../middleware/auth');
+const { verifyToken, checkRole, ROLES } = require('../middleware/auth');
 const pdfService = require('../services/pdfService');
+
+// Shared Auth for Avaliacoes (DP for Experiencia, TD for Performance)
+const avaliacoesAuth = [verifyToken, checkRole([ROLES.DP, ROLES.TD, ROLES.RH_GERAL, ROLES.RH])];
 
 // POST: Submit a new evaluation
 router.post('/avaliacao', async (req, res) => {
@@ -95,7 +98,7 @@ router.put('/avaliacao/:id', async (req, res) => {
 
 // GET: List evaluations (Protected, handled by auth middleware in server.js mounting)
 // Can filter by type (lideranca, adm, operacional)
-router.get('/avaliacoes', rhAuth, async (req, res) => {
+router.get('/avaliacoes', avaliacoesAuth, async (req, res) => {
     try {
         const { tipo } = req.query;
         let data = await db.avaliacoes.getAll();
@@ -114,7 +117,7 @@ router.get('/avaliacoes', rhAuth, async (req, res) => {
     }
 });
 
-router.get('/rh/avaliacoes/:id/pdf', rhAuth, async (req, res) => {
+router.get('/rh/avaliacoes/:id/pdf', avaliacoesAuth, async (req, res) => {
     try {
         const item = await db.avaliacoes.getById(req.params.id);
         if (!item) return res.status(404).send('Registro não encontrado');

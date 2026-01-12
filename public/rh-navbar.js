@@ -19,7 +19,7 @@ function renderRHNavbar(activePage) {
             <a href="/protected/dashboard-desligamento.html" class="rh-nav-link ${activePage === 'desligamento' ? 'active' : ''}">Desligamento</a>
             <a href="/protected/dashboard-avaliacao.html" class="rh-nav-link ${activePage === 'avaliacoes' ? 'active' : ''}">Avaliações</a>
             <a href="/protected/dashboard-experiencia.html" class="rh-nav-link ${activePage === 'experiencia' ? 'active' : ''}">Experiência</a>
-            <a href="/protected/dashboard-formularios.html" class="rh-nav-link ${activePage === 'formularios' ? 'active' : ''}">Formulários</a>
+            <a href="/protected/dashboard-formularios.html" class="rh-nav-link ${activePage === 'formularios' ? 'active' : ''}" data-role="admin">Formulários</a>
             <button onclick="logout()" class="rh-nav-link logout-btn" style="background: none; border: none; cursor: pointer; color: white;">🚪 Sair</button>
         </div>
     </nav>
@@ -30,6 +30,24 @@ function renderRHNavbar(activePage) {
         container.innerHTML = navbarHtml;
     } else {
         document.body.insertAdjacentHTML('afterbegin', navbarHtml);
+    }
+
+    // Hide admin-only links if not admin
+    checkNavbarPermissions();
+}
+
+async function checkNavbarPermissions() {
+    try {
+        const res = await fetch('/api/me');
+        if (res.ok) {
+            const data = await res.json();
+            if (data.user.role !== 'admin') {
+                const adminLinks = document.querySelectorAll('[data-role="admin"]');
+                adminLinks.forEach(link => link.style.display = 'none');
+            }
+        }
+    } catch (e) {
+        console.error('Erro ao verificar permissões da navbar', e);
     }
 }
 

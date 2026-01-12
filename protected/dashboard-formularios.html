@@ -12,7 +12,24 @@
 <body>
   <div id="navbar-container"></div>
   <script src="/rh-navbar.js"></script>
-  <script>renderRHNavbar('formularios');</script>
+  <script>
+    renderRHNavbar('formularios');
+    
+    // Check Admin Access
+    (async function() {
+        try {
+            const res = await fetch('/api/me');
+            if (!res.ok) throw new Error('Not logged in');
+            const data = await res.json();
+            if (data.user.role !== 'admin') {
+                // alert('Acesso restrito a administradores.'); // Optional alert
+                window.location.href = '/protected/index.html';
+            }
+        } catch (e) {
+            window.location.href = '/login.html';
+        }
+    })();
+  </script>
 
   <main class="dashboard-container">
     <div class="page-header">

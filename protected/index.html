@@ -92,6 +92,12 @@
             <h2>Formulários</h2>   
             <p>Criação e edição de formulários de pesquisa e avaliação.</p>
         </a>
+
+        <a href="/protected/gerenciar-usuarios.html" class="portal-card">
+            <div class="card-icon">🔐</div>
+            <h2>Gestão de Usuários</h2>
+            <p>Gerenciamento de acessos e perfis do portal.</p>
+        </a>
     </div>
   </main>
 
@@ -99,5 +105,135 @@
     <p>&copy; 2025 Família Madalosso. Acesso Restrito ao RH.</p>
   </footer>
 
+  <script>
+    async function checkAccess() {
+        try {
+            const res = await fetch('/api/me');
+            if (res.status === 401 || res.status === 403) {
+                window.location.href = '/login.html';
+                return;
+            }
+            if (!res.ok) throw new Error('Erro ao verificar sessão');
+            
+            const data = await res.json();
+            const user = data.user;
+            const role = user.role;
+            
+            // Definição de Permissões por Role
+            const accessMap = {
+                'admin': '*',
+                'rh': [
+                    '/protected/dashboard-rh.html',
+                    '/protected/dashboard-taxas.html',
+                    '/protected/dashboard-candidatos.html',
+                    '/protected/dashboard-recrutamento.html',
+                    '/protected/dashboard-onthejob.html',
+                    '/protected/dashboard-vagas.html',
+                    '/protected/dashboard-epis.html',
+                    '/protected/dashboard-funcionarios.html',
+                    '/protected/dashboard-desligamento.html',
+                    '/protected/dashboard-avaliacao.html',
+                    '/protected/dashboard-experiencia.html',
+                    '/protected/gerenciar-usuarios.html'
+                ],
+                'rh_geral': [
+                    '/protected/dashboard-rh.html',
+                    '/protected/dashboard-taxas.html',
+                    '/protected/dashboard-candidatos.html',
+                    '/protected/dashboard-recrutamento.html',
+                    '/protected/dashboard-onthejob.html',
+                    '/protected/dashboard-vagas.html',
+                    '/protected/dashboard-epis.html',
+                    '/protected/dashboard-funcionarios.html',
+                    '/protected/dashboard-desligamento.html',
+                    '/protected/dashboard-avaliacao.html',
+                    '/protected/dashboard-experiencia.html',
+                    '/protected/gerenciar-usuarios.html'
+                ],
+                'dp': [
+                    '/protected/dashboard-rh.html',
+                    '/protected/dashboard-taxas.html',
+                    '/protected/dashboard-funcionarios.html',
+                    '/protected/dashboard-desligamento.html',
+                    '/protected/dashboard-experiencia.html',
+                    '/protected/dashboard-onthejob.html'
+                ],
+                'recrutamento': [
+                    '/protected/dashboard-candidatos.html',
+                    '/protected/dashboard-recrutamento.html',
+                    '/protected/dashboard-vagas.html'
+                ],
+                'td': [
+                    '/protected/dashboard-onthejob.html',
+                    '/protected/dashboard-avaliacao.html'
+                ],
+                'sesmt': [
+                    '/protected/dashboard-epis.html'
+                ],
+                'portaria': [] 
+            };
+
+            const allowed = accessMap[role] || [];
+            
+            const cards = document.querySelectorAll('.portal-card');
+            cards.forEach(card => {
+                const href = card.getAttribute('href');
+                // Check if href is in allowed list (ignoring query params if any)
+                // Using simple includes for now
+                if (allowed === '*' || allowed.includes(href)) {
+                    card.style.display = ''; 
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            // Show user info
+            const header = document.querySelector('.portal-header');
+            let infoDiv = document.getElementById('user-info');
+            if (!infoDiv) {
+                infoDiv = document.createElement('div');
+                infoDiv.id = 'user-info';
+                infoDiv.style.marginTop = '15px';
+                infoDiv.style.padding = '8px 15px';
+                infoDiv.style.backgroundColor = 'rgba(0,0,0,0.05)';
+                infoDiv.style.borderRadius = '20px';
+                infoDiv.style.display = 'inline-block';
+                infoDiv.style.fontSize = '0.9rem';
+                infoDiv.style.color = 'var(--primary-color)';
+                header.appendChild(infoDiv);
+            }
+            infoDiv.textContent = `👤 ${user.name || user.username} (${role.toUpperCase()})`;
+            
+            // Add Logout Button
+            let logoutBtn = document.getElementById('logout-btn');
+            if (!logoutBtn) {
+                logoutBtn = document.createElement('button');
+                logoutBtn.id = 'logout-btn';
+                logoutBtn.textContent = 'Sair';
+                logoutBtn.style.marginLeft = '10px';
+                logoutBtn.style.padding = '5px 15px';
+                logoutBtn.style.border = '1px solid var(--primary-color)';
+                logoutBtn.style.borderRadius = '15px';
+                logoutBtn.style.backgroundColor = 'transparent';
+                logoutBtn.style.color = 'var(--primary-color)';
+                logoutBtn.style.cursor = 'pointer';
+                logoutBtn.onclick = async () => {
+                    await fetch('/api/logout', { method: 'POST' });
+                    window.location.href = '/login.html';
+                };
+                infoDiv.appendChild(logoutBtn);
+            }
+
+        } catch (e) {
+            console.error(e);
+            // window.location.href = '/login.html'; // Optional: Redirect on error
+        }
+    }
+    
+    // Hide all initially to avoid flash
+    // document.querySelectorAll('.portal-card').forEach(c => c.style.display = 'none');
+    
+    checkAccess();
+  </script>
 </body>
 </html>

@@ -2,14 +2,14 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 const db = require('../services/db');
-const { rhAuth } = require('../middleware/auth');
+const { sesmtAuth } = require('../middleware/auth');
 const pdfService = require('../services/pdfService');
 const multer = require('multer');
 const xlsx = require('xlsx');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-router.post('/rh/epis/import', rhAuth, upload.single('file'), async (req, res) => {
+router.post('/rh/epis/import', sesmtAuth, upload.single('file'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ ok: false, erro: 'Nenhum arquivo enviado' });
@@ -51,7 +51,7 @@ router.post('/rh/epis/import', rhAuth, upload.single('file'), async (req, res) =
     }
 });
 
-router.get('/rh/epis', rhAuth, async (req, res) => {
+router.get('/rh/epis', sesmtAuth, async (req, res) => {
     try {
         const epis = await db.epis.getAll();
         res.json(epis);
@@ -61,7 +61,7 @@ router.get('/rh/epis', rhAuth, async (req, res) => {
     }
 });
 
-router.post('/rh/epis', rhAuth, async (req, res) => {
+router.post('/rh/epis', sesmtAuth, async (req, res) => {
     try {
         const { nome, valor, estoque, ca_validade } = req.body;
         if (!nome || !valor) return res.status(400).json({ ok: false, erro: 'Dados incompletos' });
@@ -85,7 +85,7 @@ router.post('/rh/epis', rhAuth, async (req, res) => {
     }
 });
 
-router.delete('/rh/epis/:id', rhAuth, async (req, res) => {
+router.delete('/rh/epis/:id', sesmtAuth, async (req, res) => {
     try {
         await db.epis.delete(req.params.id);
         res.json({ ok: true });
@@ -96,7 +96,7 @@ router.delete('/rh/epis/:id', rhAuth, async (req, res) => {
 });
 
 // Atualizar estoque e CA
-router.put('/rh/epis/:id', rhAuth, async (req, res) => {
+router.put('/rh/epis/:id', sesmtAuth, async (req, res) => {
     try {
         const { nome, valor, estoque, ca_validade } = req.body;
         
@@ -121,7 +121,7 @@ router.put('/rh/epis/:id', rhAuth, async (req, res) => {
 });
 
 // Descontos RH - listar e resolver
-router.get('/rh/descontos', rhAuth, async (req, res) => {
+router.get('/rh/descontos', sesmtAuth, async (req, res) => {
     try {
         const descontos = await db.descontosEpis.getAll();
         res.json(descontos);
@@ -131,7 +131,7 @@ router.get('/rh/descontos', rhAuth, async (req, res) => {
     }
 });
 
-router.get('/rh/descontos/:id/pdf', rhAuth, async (req, res) => {
+router.get('/rh/descontos/:id/pdf', sesmtAuth, async (req, res) => {
     try {
         const item = await db.descontosEpis.getById(req.params.id);
         if (!item) return res.status(404).send('Registro não encontrado');
@@ -149,7 +149,7 @@ router.get('/rh/descontos/:id/pdf', rhAuth, async (req, res) => {
     }
 });
 
-router.post('/rh/descontos/:id/status', rhAuth, async (req, res) => {
+router.post('/rh/descontos/:id/status', sesmtAuth, async (req, res) => {
     try {
         const { status } = req.body;
         // Validate status if needed
@@ -164,7 +164,7 @@ router.post('/rh/descontos/:id/status', rhAuth, async (req, res) => {
     }
 });
 
-router.post('/rh/descontos/:id/resolver', rhAuth, async (req, res) => {
+router.post('/rh/descontos/:id/resolver', sesmtAuth, async (req, res) => {
     try {
         await db.descontosEpis.update(req.params.id, {
             status: 'resolvido',

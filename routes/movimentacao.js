@@ -4,9 +4,9 @@ const crypto = require('crypto');
 const db = require('../services/db');
 const emailService = require('../services/email');
 const pdfService = require('../services/pdfService');
-const { rhAuth } = require('../middleware/auth');
+const { dpAuth } = require('../middleware/auth');
 
-router.get('/rh/movimentacoes', rhAuth, async (req, res) => {
+router.get('/rh/movimentacoes', dpAuth, async (req, res) => {
     try {
         const data = await db.movimentacoes.getAll();
         res.json(data);
@@ -39,7 +39,7 @@ router.post('/movimentacao', async (req, res) => {
     }
 });
 
-router.post('/rh/movimentacao/:id/aprovar', rhAuth, async (req, res) => {
+router.post('/rh/movimentacao/:id/aprovar', dpAuth, async (req, res) => {
     try {
         const item = await db.movimentacoes.getById(req.params.id);
         if (!item) return res.status(404).json({ ok: false, erro: 'Não encontrado' });
@@ -55,7 +55,7 @@ router.post('/rh/movimentacao/:id/aprovar', rhAuth, async (req, res) => {
     }
 });
 
-router.post('/rh/movimentacao/:id/reprovar', rhAuth, async (req, res) => {
+router.post('/rh/movimentacao/:id/reprovar', dpAuth, async (req, res) => {
     try {
         const item = await db.movimentacoes.getById(req.params.id);
         if (!item) return res.status(404).json({ ok: false, erro: 'Não encontrado' });
@@ -71,7 +71,7 @@ router.post('/rh/movimentacao/:id/reprovar', rhAuth, async (req, res) => {
     }
 });
 
-router.get('/rh/movimentacao/:id/pdf', rhAuth, async (req, res) => {
+router.get('/rh/movimentacao/:id/pdf', dpAuth, async (req, res) => {
     try {
         const item = await db.movimentacoes.getById(req.params.id);
         if (!item) return res.status(404).send('Não encontrado');

@@ -5,7 +5,7 @@ const db = require('../services/db');
 const emailService = require('../services/email');
 const pdfService = require('../services/pdfService');
 const upload = require('../middleware/upload');
-const { rhAuth } = require('../middleware/auth');
+const { recrutamentoAuth } = require('../middleware/auth');
 
 router.post('/candidaturas', upload.single('curriculo'), async (req, res) => {
     try {
@@ -41,7 +41,7 @@ router.post('/candidaturas', upload.single('curriculo'), async (req, res) => {
     }
 });
 
-router.get('/rh/candidatos', rhAuth, async (req, res) => {
+router.get('/rh/candidatos', recrutamentoAuth, async (req, res) => {
     try {
         const data = await db.candidatos.getAll();
         // Ordenar por data decrescente
@@ -53,7 +53,7 @@ router.get('/rh/candidatos', rhAuth, async (req, res) => {
     }
 });
 
-router.get('/rh/candidatos/:id', rhAuth, async (req, res) => {
+router.get('/rh/candidatos/:id', recrutamentoAuth, async (req, res) => {
     try {
         const candidato = await db.candidatos.getById(req.params.id);
         if (!candidato) return res.status(404).json({ ok: false, erro: 'Candidato não encontrado' });
@@ -64,7 +64,7 @@ router.get('/rh/candidatos/:id', rhAuth, async (req, res) => {
     }
 });
 
-router.post('/rh/candidatos/:id/status', rhAuth, async (req, res) => {
+router.post('/rh/candidatos/:id/status', recrutamentoAuth, async (req, res) => {
     try {
         const { status, observacao } = req.body;
         const candidato = await db.candidatos.getById(req.params.id);
@@ -91,7 +91,7 @@ router.post('/rh/candidatos/:id/status', rhAuth, async (req, res) => {
     }
 });
 
-router.post('/rh/candidatos/:id/agendar', rhAuth, async (req, res) => {
+router.post('/rh/candidatos/:id/agendar', recrutamentoAuth, async (req, res) => {
     try {
         const { data: dataEntrevista, local, entrevistador } = req.body;
         const candidato = await db.candidatos.getById(req.params.id);
@@ -121,7 +121,7 @@ router.post('/rh/candidatos/:id/agendar', rhAuth, async (req, res) => {
     }
 });
 
-router.get('/rh/candidatos/arquivo-banco', rhAuth, async (req, res) => {
+router.get('/rh/candidatos/arquivo-banco', recrutamentoAuth, async (req, res) => {
     try {
         const candidatos = await db.candidatos.getAll();
         // Exemplo simples de CSV

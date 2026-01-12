@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 const db = require('../services/db');
-const { rhAuth } = require('../middleware/auth');
+const { sesmtAuth } = require('../middleware/auth');
 const pdfService = require('../services/pdfService');
 
 router.get('/uniformes', async (req, res) => {
@@ -39,7 +39,7 @@ router.post('/uniformes', async (req, res) => {
     }
 });
 
-router.get('/rh/uniformes/solicitacoes', rhAuth, async (req, res) => {
+router.get('/rh/uniformes/solicitacoes', sesmtAuth, async (req, res) => {
     try {
         const data = await db.uniformes.getAll();
         res.json(data);
@@ -49,7 +49,7 @@ router.get('/rh/uniformes/solicitacoes', rhAuth, async (req, res) => {
     }
 });
 
-router.post('/rh/uniformes/solicitacao/:id/status', rhAuth, async (req, res) => {
+router.post('/rh/uniformes/solicitacao/:id/status', sesmtAuth, async (req, res) => {
     try {
         const { status } = req.body;
         const item = await db.uniformes.getById(req.params.id);
@@ -70,7 +70,7 @@ router.post('/rh/uniformes/solicitacao/:id/status', rhAuth, async (req, res) => 
     }
 });
 
-router.get('/rh/uniformes/solicitacao/:id/pdf', rhAuth, async (req, res) => {
+router.get('/rh/uniformes/solicitacao/:id/pdf', sesmtAuth, async (req, res) => {
     try {
         const item = await db.uniformes.getById(req.params.id);
         if (!item) return res.status(404).send('Solicitação não encontrada');

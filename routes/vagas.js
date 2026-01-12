@@ -3,10 +3,10 @@ const router = express.Router();
 const crypto = require('crypto');
 const db = require('../services/db');
 const emailService = require('../services/email');
-const { rhAuth } = require('../middleware/auth');
 const pdfService = require('../services/pdfService');
+const { recrutamentoAuth } = require('../middleware/auth');
 
-router.get('/rh/vagas', rhAuth, async (req, res) => {
+router.get('/rh/vagas', recrutamentoAuth, async (req, res) => {
     try {
         const data = await db.vagas.getAll();
         const lista = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -17,7 +17,7 @@ router.get('/rh/vagas', rhAuth, async (req, res) => {
     }
 });
 
-router.post('/vagas', rhAuth, async (req, res) => {
+router.post('/vagas', recrutamentoAuth, async (req, res) => {
     try {
         const payload = req.body;
         if (!payload.cargo || !payload.setor) {
@@ -42,7 +42,7 @@ router.post('/vagas', rhAuth, async (req, res) => {
     }
 });
 
-router.post('/vagas/avaliar', rhAuth, async (req, res) => {
+router.post('/vagas/avaliar', recrutamentoAuth, async (req, res) => {
     try {
         const { id, status, justificativa } = req.body;
         if (!id || !status) {
@@ -78,7 +78,7 @@ router.post('/vagas/avaliar', rhAuth, async (req, res) => {
     }
 });
 
-router.get('/rh/vagas/:id/sugestoes', rhAuth, async (req, res) => {
+router.get('/rh/vagas/:id/sugestoes', recrutamentoAuth, async (req, res) => {
     try {
         const { id } = req.params;
         const vaga = await db.vagas.getById(id);
@@ -110,7 +110,7 @@ router.get('/rh/vagas/:id/sugestoes', rhAuth, async (req, res) => {
     }
 });
 
-router.get('/rh/vagas/:id/pdf', rhAuth, async (req, res) => {
+router.get('/rh/vagas/:id/pdf', recrutamentoAuth, async (req, res) => {
     try {
         const item = await db.vagas.getById(req.params.id);
         if (!item) return res.status(404).send('Registro não encontrado');

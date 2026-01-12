@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const db = require('../services/db');
 const emailService = require('../services/email');
 const pdfService = require('../services/pdfService');
-const { rhAuth } = require('../middleware/auth');
+const { dpAuth } = require('../middleware/auth');
 
 router.post('/taxas/draft', async (req, res) => {
     try {
@@ -137,13 +137,13 @@ router.post('/taxas', async (req, res) => {
     }
 });
 
-router.get('/rh/taxas', rhAuth, async (req, res) => {
+router.get('/rh/taxas', dpAuth, async (req, res) => {
     const data = await db.taxas.getAll();
     const filtered = data.filter(item => item.status !== 'rascunho');
     res.json(filtered);
 });
 
-router.put('/rh/taxas/:id', rhAuth, async (req, res) => {
+router.put('/rh/taxas/:id', dpAuth, async (req, res) => {
     try {
         const { id } = req.params;
         const updates = req.body;
@@ -165,7 +165,7 @@ router.put('/rh/taxas/:id', rhAuth, async (req, res) => {
     }
 });
 
-router.post('/rh/taxas/:id/aprovar', rhAuth, async (req, res) => {
+router.post('/rh/taxas/:id/aprovar', dpAuth, async (req, res) => {
     const item = await db.taxas.getById(req.params.id);
     if (!item) return res.status(404).json({ message: 'Taxa não encontrada' });
     
@@ -216,7 +216,7 @@ router.post('/api/taxas/assinar', async (req, res) => {
     res.json({ ok: true, message: 'Assinado com sucesso!' });
 });
 
-router.post('/rh/taxas/:id/reprovar', rhAuth, async (req, res) => {
+router.post('/rh/taxas/:id/reprovar', dpAuth, async (req, res) => {
     const item = await db.taxas.getById(req.params.id);
     if (!item) return res.status(404).json({ message: 'Taxa não encontrada' });
     
@@ -226,7 +226,7 @@ router.post('/rh/taxas/:id/reprovar', rhAuth, async (req, res) => {
     res.json({ message: 'Reprovado com sucesso' });
 });
 
-router.get('/rh/taxas/arquivo-pagamento', rhAuth, async (req, res) => {
+router.get('/rh/taxas/arquivo-pagamento', dpAuth, async (req, res) => {
     const data = await db.taxas.getAll();
     const aprovadas = data.filter(i => i.status === 'aprovado');
     

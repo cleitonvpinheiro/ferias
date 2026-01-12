@@ -1,10 +1,69 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../services/db');
-const { rhAuth } = require('../middleware/auth');
+const { tdAuth, adminAuth } = require('../middleware/auth');
+const crypto = require('crypto');
+
+// --- Rotas Públicas ---
+
+// Obter definição pública de um formulário
+router.get('/public/:id', async (req, res) => {
+    try {
+        const form = await db.formularios.getById(req.params.id);
+        if (!form) {
+            return res.status(404).json({ error: 'Formulário não encontrado' });
+        }
+        if (!form.ativo) {
+            return res.status(403).json({ error: 'Este formulário não está aceitando respostas no momento.' });
+        }
+        // Retornar apenas dados necessários para renderização pública
+        res.json({
+            id: form.id,
+            titulo: form.titulo,
+            tipo: form.tipo,
+            questoes: form.questoes
+        });
+    } catch (error) {
+        console.error('Erro ao obter formulário público:', error);
+        res.status(500).json({ error: 'Erro ao obter formulário' });
+    }
+});
+
+// Enviar resposta para um formulário
+router.post('/public/:id/responder', async (req, res) => {
+    try {
+        const formId = req.params.id;
+        const { respostas, funcionarioId } = req.body;
+
+        const form = await db.formularios.getById(formId);
+        if (!form) {
+            return res.status(404).json({ error: 'Formulário não encontrado' });
+        }
+        if (!form.ativo) {
+            return res.status(403).json({ error: 'Este formulário não está aceitando respostas no momento.' });
+        }
+
+        const newResponse = {
+            id: crypto.randomUUID(),
+            formulario_id: formId,
+            funcionario_id: funcionarioId || null, // Opcional (anônimo ou autenticado)
+            respostas: respostas || {},
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+
+        await db.respostas.create(newResponse);
+        res.status(201).json({ message: 'Resposta enviada com sucesso!', id: newResponse.id });
+    } catch (error) {
+        console.error('Erro ao salvar resposta:', error);
+        res.status(500).json({ error: 'Erro ao salvar resposta' });
+    }
+});
+
+// --- Rotas Administrativas (RH) ---
 
 // Listar todos os formulários
-router.get('/', rhAuth, async (req, res) => {
+router.get('/', adminAuth, async (req, res) => {
     try {
         const forms = await db.formularios.getAll();
         res.json(forms);
@@ -15,7 +74,7 @@ router.get('/', rhAuth, async (req, res) => {
 });
 
 // Obter um formulário específico
-router.get('/:id', rhAuth, async (req, res) => {
+router.get('/:id', adminAuth, async (req, res) => {
     try {
         const form = await db.formularios.getById(req.params.id);
         if (!form) {
@@ -29,7 +88,7 @@ router.get('/:id', rhAuth, async (req, res) => {
 });
 
 // Criar novo formulário
-router.post('/', rhAuth, async (req, res) => {
+router.post('/', tdAuth, async (req, res) => {
     try {
         const { id, titulo, tipo, questoes, ativo } = req.body;
         
@@ -60,7 +119,7 @@ router.post('/', rhAuth, async (req, res) => {
 });
 
 // Atualizar formulário
-router.put('/:id', rhAuth, async (req, res) => {
+router.put('/:id', tdAuth, async (req, res) => {
     try {
         const { titulo, tipo, questoes, ativo } = req.body;
         const form = await db.formularios.getById(req.params.id);
@@ -87,7 +146,7 @@ router.put('/:id', rhAuth, async (req, res) => {
 });
 
 // Excluir formulário
-router.delete('/:id', rhAuth, async (req, res) => {
+router.delete('/:id', adminAuth, async (req, res) => {
     try {
         await db.formularios.delete(req.params.id);
         res.json({ message: 'Formulário excluído com sucesso' });

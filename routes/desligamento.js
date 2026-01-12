@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 const db = require('../services/db');
-const { rhAuth } = require('../middleware/auth');
+const { dpAuth } = require('../middleware/auth');
 const pdfService = require('../services/pdfService');
 
 // Public: Submit Interview
@@ -30,7 +30,7 @@ router.post('/entrevistas-desligamento', async (req, res) => {
 });
 
 // RH: List
-router.get('/rh/entrevistas-desligamento', rhAuth, async (req, res) => {
+router.get('/rh/entrevistas-desligamento', dpAuth, async (req, res) => {
     try {
         const data = await db.entrevistasDesligamento.getAll();
         const sorted = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -42,7 +42,7 @@ router.get('/rh/entrevistas-desligamento', rhAuth, async (req, res) => {
 });
 
 // RH: Get Single
-router.get('/rh/entrevistas-desligamento/:id', rhAuth, async (req, res) => {
+router.get('/rh/entrevistas-desligamento/:id', dpAuth, async (req, res) => {
     try {
         const item = await db.entrevistasDesligamento.getById(req.params.id);
         if (!item) return res.status(404).json({ ok: false, erro: 'Registro não encontrado' });
@@ -53,7 +53,7 @@ router.get('/rh/entrevistas-desligamento/:id', rhAuth, async (req, res) => {
     }
 });
 
-router.get('/rh/entrevistas-desligamento/:id/pdf', rhAuth, async (req, res) => {
+router.get('/rh/entrevistas-desligamento/:id/pdf', dpAuth, async (req, res) => {
     try {
         const item = await db.entrevistasDesligamento.getById(req.params.id);
         if (!item) return res.status(404).send('Registro não encontrado');

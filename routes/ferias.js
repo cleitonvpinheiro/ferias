@@ -5,7 +5,7 @@ const db = require('../services/db');
 const pdfService = require('../services/pdfService');
 const emailService = require('../services/email');
 const { validarPayloadFerias } = require('../utils/validation');
-const { rhAuth } = require('../middleware/auth');
+const { dpAuth } = require('../middleware/auth');
 
 router.get('/solicitacao/:id', async (req, res) => {
     try {
@@ -18,7 +18,7 @@ router.get('/solicitacao/:id', async (req, res) => {
     }
 });
 
-router.get('/rh/solicitacoes', rhAuth, async (req, res) => {
+router.get('/rh/solicitacoes', dpAuth, async (req, res) => {
     try {
         const data = await db.solicitacoes.getAll();
         const lista = data
@@ -323,7 +323,7 @@ router.post('/solicitacao/rh-aprovar', async (req, res) => {
     }
 });
 
-router.post('/solicitacao/definir-status', rhAuth, async (req, res) => {
+router.post('/solicitacao/definir-status', dpAuth, async (req, res) => {
     const { id, status } = req.body;
     
     if (!id || !['concluido', 'assinado'].includes(status)) {

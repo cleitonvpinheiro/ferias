@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gestão de Usuários - Portal RH</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="/rh-styles.css">
+  <style>
+    /* Custom styles for user management */
+    .user-form {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        margin-bottom: 20px;
+        display: none; /* Hidden by default */
+    }
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+    .form-group label {
+        font-weight: 500;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+    .form-group input, .form-group select {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 1rem;
+    }
+    .btn-row {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Minimal Navbar -->
+  <nav style="background: white; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <img src="/assets/logo.png" alt="Logo" style="height: 35px;">
+        <span style="font-weight: 600; color: var(--primary-color);">Portal RH</span>
+    </div>
+    <a href="/protected/index.html" class="btn btn-outline">Voltar ao Portal</a>
+  </nav>
+
+  <main class="dashboard-container">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Gestão de Usuários</h1>
+            <p class="page-subtitle">Gerencie o acesso ao Portal RH</p>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-outline" onclick="importLdap()">
+                🔄 Importar LDAP
+            </button>
+            <button class="btn btn-primary" onclick="showCreateForm()">
+                ➕ Novo Usuário
+            </button>
+        </div>
+    </div>
+
+    <!-- User Form (Create/Edit) -->
+    <div id="user-form-container" class="user-form">
+        <h3 id="form-title" style="margin-bottom: 15px; color: var(--primary-color);">Novo Usuário</h3>
+        <form id="userForm" onsubmit="handleSave(event)">
+            <input type="hidden" id="edit-mode" value="create">
+            <input type="hidden" id="original-username">
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Usuário (Login)</label>
+                    <input type="text" id="username" required placeholder="ex: joao.silva">
+                </div>
+                <div class="form-group">
+                    <label>Nome Completo</label>
+                    <input type="text" id="name" placeholder="ex: João Silva">
+                </div>
+                <div class="form-group">
+                    <label>Senha</label>
+                    <input type="password" id="password" placeholder="******">
+                    <small style="color: #888;" id="password-hint">Obrigatório para novos usuários</small>
+                </div>
+                <div class="form-group">
+                    <label>Perfil de Acesso</label>
+                    <select id="role" required>
+                        <option value="">Selecione...</option>
+                        <option value="admin">Administrador (Acesso Total)</option>
+                        <option value="rh_geral">RH Geral (Acesso Total)</option>
+                        <option value="dp">Departamento Pessoal</option>
+                        <option value="recrutamento">Recrutamento e Seleção</option>
+                        <option value="td">Treinamento e Desenv.</option>
+                        <option value="sesmt">SESMT</option>
+                        <option value="portaria">Portaria</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="btn-row">
+                <button type="button" class="btn btn-outline" onclick="hideForm()">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Salvar</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="table-container">
+        <div class="table-wrapper">
+            <table id="users-table">
+                <thead>
+                    <tr>
+                        <th>Usuário</th>
+                        <th>Nome</th>
+                        <th>Perfil</th>
+                        <th>Criado em</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="users-list">
+                    <!-- JS fills this -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+  </main>
+
+  <script>
+    const ROLES_MAP = {
+        'admin': 'Administrador',
+        'rh': 'RH (Legacy)',
+        'rh_geral': 'RH Geral',
+        'dp': 'Departamento Pessoal',
+        'recrutamento': 'Recrutamento',
+        'td': 'T&D',
+        'sesmt': 'SESMT',
+        'portaria': 'Portaria'
+    };
+
+    async function checkAuth() {
+        try {
+            const res = await fetch('/api/me', {
+                headers: { 'Accept': 'application/json' }
+            });
+            if (!res.ok) throw new Error('Auth failed');
+            const data = await res.json();
+            // Allow legacy 'rh' role as well
+            if (!['admin', 'rh_geral', 'rh'].includes(data.user.role)) {
+                alert('Acesso negado: Apenas Administradores e RH Geral.');
+                window.location.href = '/protected/index.html';
+                return false;
+            }
+            return true;
+        } catch (e) {
+            window.location.href = '/login.html';
+            return false;
+        }
+    }
+
+    async function loadUsers() {
+        try {
+            const res = await fetch('/api/users', {
+                headers: { 'Accept': 'application/json' }
+            });
+            if (res.status === 403 || res.status === 401) {
+                // If this happens, verifyToken or checkRole failed
+                console.warn('API refused access:', res.status);
+                // We rely on checkAuth to redirect if needed, or show alert
+                return; 
+            }
+            if (!res.ok) throw new Error('Erro ao carregar');
+            const users = await res.json();
+            renderUsers(users);
+        } catch (e) {
+            console.error(e);
+            alert('Erro ao carregar usuários');
+        }
+    }
+
+    function renderUsers(users) {
+        const tbody = document.getElementById('users-list');
+        tbody.innerHTML = '';
+        
+        users.forEach(u => {
+            const tr = document.createElement('tr');
+            const roleName = ROLES_MAP[u.role] || u.role;
+            const date = new Date(u.created_at).toLocaleDateString('pt-BR');
+            
+            tr.innerHTML = `
+                <td><strong>${u.username}</strong></td>
+                <td>${u.name || '-'}</td>
+                <td><span class="badge badge-info">${roleName}</span></td>
+                <td>${date}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline" onclick="editUser('${u.username}', '${u.role}', '${u.name || ''}')">✏️</button>
+                    ${u.username !== 'admin' ? `<button class="btn btn-sm btn-outline" style="color: #dc3545; border-color: #dc3545;" onclick="deleteUser('${u.username}')">🗑️</button>` : ''}
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function showCreateForm() {
+        document.getElementById('user-form-container').style.display = 'block';
+        document.getElementById('form-title').innerText = 'Novo Usuário';
+        document.getElementById('userForm').reset();
+        document.getElementById('edit-mode').value = 'create';
+        document.getElementById('username').disabled = false;
+        document.getElementById('password-hint').innerText = 'Obrigatório';
+        document.getElementById('password').required = true;
+    }
+
+    function editUser(username, role, name) {
+        document.getElementById('user-form-container').style.display = 'block';
+        document.getElementById('form-title').innerText = 'Editar Usuário';
+        document.getElementById('edit-mode').value = 'edit';
+        document.getElementById('original-username').value = username;
+        
+        document.getElementById('username').value = username;
+        document.getElementById('username').disabled = true; // Cannot change username
+        document.getElementById('name').value = name;
+        document.getElementById('role').value = role;
+        
+        document.getElementById('password').value = '';
+        document.getElementById('password').required = false;
+        document.getElementById('password-hint').innerText = 'Deixe em branco para manter a senha atual';
+    }
+
+    function hideForm() {
+        document.getElementById('user-form-container').style.display = 'none';
+    }
+
+    async function handleSave(e) {
+        e.preventDefault();
+        
+        const mode = document.getElementById('edit-mode').value;
+        const username = document.getElementById('username').value;
+        const name = document.getElementById('name').value;
+        const password = document.getElementById('password').value;
+        const role = document.getElementById('role').value;
+        
+        const payload = { name, role };
+        if (password) payload.password = password;
+        if (mode === 'create') payload.username = username;
+
+        const url = mode === 'create' ? '/api/users' : `/api/users/${username}`;
+        const method = mode === 'create' ? 'POST' : 'PUT';
+
+        try {
+            const res = await fetch(url, {
+                method,
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+            
+            const data = await res.json();
+            if (data.ok) {
+                hideForm();
+                loadUsers();
+            } else {
+                alert('Erro: ' + data.erro);
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Erro ao salvar');
+        }
+    }
+
+    async function deleteUser(username) {
+        if (!confirm(`Tem certeza que deseja remover o usuário ${username}?`)) return;
+        
+        try {
+            const res = await fetch(`/api/users/${username}`, { 
+                method: 'DELETE',
+                headers: { 'Accept': 'application/json' }
+            });
+            const data = await res.json();
+            if (data.ok) {
+                loadUsers();
+            } else {
+                alert('Erro: ' + data.erro);
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erro ao remover');
+        }
+    }
+
+    async function importLdap() {
+        if (!confirm('Deseja importar todos os usuários do LDAP? Isso pode levar alguns segundos.')) return;
+        
+        const btn = document.querySelector('button[onclick="importLdap()"]');
+        const originalText = btn.innerText;
+        btn.innerText = 'Importando...';
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/users/import-ldap', { 
+                method: 'POST',
+                headers: { 'Accept': 'application/json' }
+            });
+            const data = await res.json();
+            
+            if (data.ok) {
+                alert(`Importação concluída!\n\nNovos usuários: ${data.imported}\nTotal encontrados: ${data.totalFound}`);
+                loadUsers();
+            } else {
+                alert('Erro na importação: ' + data.erro);
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erro de conexão ao importar LDAP');
+        } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    // Init
+    (async () => {
+        const authorized = await checkAuth();
+        if (authorized) {
+            loadUsers();
+        }
+    })();
+  </script>
+</body>
+</html>

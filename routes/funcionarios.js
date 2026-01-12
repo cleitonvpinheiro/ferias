@@ -3,7 +3,7 @@ const router = express.Router();
 const crypto = require('crypto');
 const db = require('../services/db');
 const questorService = require('../services/questorService');
-const { rhAuth } = require('../middleware/auth');
+const { dpAuth } = require('../middleware/auth');
 
 // Public
 router.get('/funcionarios', async (req, res) => {
@@ -12,13 +12,13 @@ router.get('/funcionarios', async (req, res) => {
 });
 
 // RH Protected
-router.get('/rh/funcionarios', rhAuth, async (req, res) => {
+router.get('/rh/funcionarios', dpAuth, async (req, res) => {
     const data = await db.funcionarios.getAll();
     res.json(data);
 });
 
 // Sincronizar com Questor
-router.post('/rh/funcionarios/sync-questor', rhAuth, async (req, res) => {
+router.post('/rh/funcionarios/sync-questor', dpAuth, async (req, res) => {
     try {
         const resultado = await questorService.syncFuncionarios();
         res.json(resultado);
@@ -28,7 +28,7 @@ router.post('/rh/funcionarios/sync-questor', rhAuth, async (req, res) => {
     }
 });
 
-router.post('/rh/funcionarios/importar', rhAuth, async (req, res) => {
+router.post('/rh/funcionarios/importar', dpAuth, async (req, res) => {
     try {
         const { funcionarios } = req.body;
         if (!Array.isArray(funcionarios)) {
@@ -81,7 +81,7 @@ router.post('/rh/funcionarios/importar', rhAuth, async (req, res) => {
     }
 });
 
-router.delete('/rh/funcionarios/:id', rhAuth, async (req, res) => {
+router.delete('/rh/funcionarios/:id', dpAuth, async (req, res) => {
     try {
         await db.funcionarios.delete(req.params.id);
         res.json({ ok: true });

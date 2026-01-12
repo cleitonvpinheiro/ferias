@@ -184,6 +184,8 @@
                 }
 
                 const total = item.valores?.total_geral || '0.00';
+                const valorTaxa = item.valores?.taxa?.total || '0.00';
+                const valorVt = item.valores?.vt?.total || '0.00';
 
                 tr.innerHTML = `
                     <td>
@@ -192,6 +194,8 @@
                     </td>
                     <td>${item.departamento}</td>
                     <td>${item.funcao}</td>
+                    <td style="font-family: monospace;">R$ ${valorTaxa}</td>
+                    <td style="font-family: monospace;">R$ ${valorVt}</td>
                     <td style="font-family: monospace; font-weight: 600;">R$ ${total}</td>
                     <td>${statusBadge}</td>
                     <td>${actionBtn}</td>
@@ -218,6 +222,8 @@
             CPF: item.cpf,
             Departamento: item.departamento,
             Função: item.funcao,
+            'Valor Taxa (R$)': item.valores?.taxa?.total || '0.00',
+            'Valor VT (R$)': item.valores?.vt?.total || '0.00',
             'Total (R$)': item.valores?.total_geral,
             Status: item.status,
             'Criado em': new Date(item.createdAt).toLocaleDateString('pt-BR')

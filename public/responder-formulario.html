@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responder Formulário | RH</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0f172a;
+            --secondary: #64748b;
+            --accent: #3b82f6;
+            --bg-light: #f8fafc;
+            --success: #10b981;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            color: #1e293b;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main-container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+            flex: 1;
+        }
+
+        .form-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 40px;
+            margin-bottom: 20px;
+            border-top: 6px solid var(--primary);
+        }
+
+        .form-header {
+            margin-bottom: 30px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 20px;
+        }
+
+        .form-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .form-description {
+            color: var(--secondary);
+            font-size: 1.1rem;
+        }
+
+        .question-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 20px;
+            transition: all 0.2s;
+        }
+
+        .question-card:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .question-label {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            display: block;
+            color: #334155;
+        }
+
+        .required-mark {
+            color: #ef4444;
+            margin-left: 4px;
+        }
+
+        .form-control, .form-select {
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .rating-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .rating-option {
+            flex: 1;
+            min-width: 60px;
+        }
+
+        .rating-option input[type="radio"] {
+            display: none;
+        }
+
+        .rating-option label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            height: 100%;
+        }
+
+        .rating-option input[type="radio"]:checked + label {
+            border-color: var(--accent);
+            background-color: #eff6ff;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .rating-value {
+            font-size: 1.25rem;
+            margin-bottom: 4px;
+        }
+
+        .rating-label {
+            font-size: 0.8rem;
+            text-align: center;
+            color: var(--secondary);
+        }
+
+        .rating-option input[type="radio"]:checked + label .rating-label {
+            color: var(--accent);
+        }
+
+        .btn-submit {
+            background-color: var(--primary);
+            color: white;
+            padding: 14px 28px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            border: none;
+            width: 100%;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-submit:hover {
+            background-color: #1e293b;
+            transform: translateY(-1px);
+        }
+
+        .btn-submit:disabled {
+            background-color: #94a3b8;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .success-message {
+            text-align: center;
+            padding: 60px 20px;
+            display: none;
+        }
+
+        .success-icon {
+            font-size: 4rem;
+            color: var(--success);
+            margin-bottom: 20px;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        /* Custom Radio/Checkbox */
+        .custom-option {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .custom-option:hover {
+            background-color: #f8fafc;
+        }
+        
+        .custom-option input {
+            margin-right: 12px;
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+        }
+
+        .error-message {
+            color: #ef4444;
+            font-size: 0.875rem;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .is-invalid {
+            border-color: #ef4444 !important;
+        }
+        
+        .is-invalid + .error-message {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loading" class="loading-overlay">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Carregando...</span>
+        </div>
+        <p>Carregando formulário...</p>
+    </div>
+
+    <div class="main-container" id="formContainer" style="display: none;">
+        <div class="form-card">
+            <div class="form-header">
+                <h1 class="form-title" id="formTitle">Título do Formulário</h1>
+                <p class="form-description" id="formType">Carregando...</p>
+            </div>
+
+            <form id="dynamicForm" onsubmit="submitForm(event)">
+                <div id="questionsContainer"></div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn-submit" id="submitBtn">
+                        <i class="fas fa-paper-plane"></i> Enviar Respostas
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="main-container" id="successContainer" style="display: none;">
+        <div class="form-card success-message">
+            <div class="success-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h2>Formulário Enviado!</h2>
+            <p class="text-muted mb-4">Suas respostas foram registradas com sucesso.</p>
+            <button class="btn btn-outline-primary" onclick="window.location.reload()">Preencher Novamente</button>
+        </div>
+    </div>
+    
+    <div class="main-container" id="errorContainer" style="display: none;">
+        <div class="form-card text-center">
+            <div class="text-danger mb-3" style="font-size: 3rem;">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h2 class="text-danger">Erro</h2>
+            <p id="errorText" class="text-muted mb-4">Não foi possível carregar o formulário.</p>
+            <button class="btn btn-primary" onclick="window.location.reload()">Tentar Novamente</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const formId = urlParams.get('id');
+        let formDefinition = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!formId) {
+                showError('ID do formulário não fornecido.');
+                return;
+            }
+            loadForm();
+        });
+
+        async function loadForm() {
+            try {
+                const response = await fetch(`/api/rh/formularios/public/${formId}`);
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || 'Erro ao carregar formulário');
+                }
+                formDefinition = await response.json();
+                renderForm(formDefinition);
+            } catch (error) {
+                console.error(error);
+                showError(error.message);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function showError(msg) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('formContainer').style.display = 'none';
+            document.getElementById('errorContainer').style.display = 'block';
+            document.getElementById('errorText').textContent = msg;
+        }
+
+        function renderForm(form) {
+            document.getElementById('formTitle').textContent = form.titulo;
+            document.getElementById('formType').textContent = form.tipo === 'avaliacao' ? 'Avaliação de Desempenho' : 'Pesquisa / Formulário';
+            
+            const container = document.getElementById('questionsContainer');
+            container.innerHTML = '';
+
+            if (!form.questoes || form.questoes.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center">Este formulário não possui questões.</p>';
+                document.getElementById('submitBtn').style.display = 'none';
+                return;
+            }
+
+            form.questoes.forEach((q, index) => {
+                const qDiv = document.createElement('div');
+                qDiv.className = 'question-card';
+                
+                const requiredStar = q.required ? '<span class="required-mark">*</span>' : '';
+                const label = `<label class="question-label">${q.question}${requiredStar}</label>`;
+                
+                let inputHtml = '';
+                const name = `q_${index}`;
+                const requiredAttr = q.required ? 'required' : '';
+
+                if (q.type === 'text') {
+                    inputHtml = `<input type="text" class="form-control" name="${name}" ${requiredAttr} placeholder="Sua resposta...">`;
+                } else if (['date', 'number', 'email', 'tel', 'time'].includes(q.type)) {
+                    inputHtml = `<input type="${q.type}" class="form-control" name="${name}" ${requiredAttr} placeholder="Sua resposta...">`;
+                } else if (q.type === 'textarea') {
+                    inputHtml = `<textarea class="form-control" name="${name}" rows="3" ${requiredAttr} placeholder="Sua resposta..."></textarea>`;
+                } else if (q.type === 'select') {
+                    inputHtml = `
+                        <select class="form-select" name="${name}" ${requiredAttr}>
+                            <option value="">Selecione uma opção...</option>
+                            ${(q.options || []).map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+                        </select>
+                    `;
+                } else if (q.type === 'yesno') {
+                    inputHtml = `
+                        <div class="rating-group" style="max-width: 300px;">
+                            <div class="rating-option">
+                                <input type="radio" name="${name}" id="${name}_yes" value="Sim" ${requiredAttr}>
+                                <label for="${name}_yes">
+                                    <div class="rating-value"><i class="fas fa-check"></i></div>
+                                    <div class="rating-label">Sim</div>
+                                </label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" name="${name}" id="${name}_no" value="Não" ${requiredAttr}>
+                                <label for="${name}_no">
+                                    <div class="rating-value"><i class="fas fa-times"></i></div>
+                                    <div class="rating-label">Não</div>
+                                </label>
+                            </div>
+                        </div>
+                    `;
+                } else if (q.type === 'rating') {
+                    inputHtml = `
+                        <div class="rating-group">
+                            ${[1, 2, 3, 4, 5].map(val => `
+                                <div class="rating-option">
+                                    <input type="radio" name="${name}" id="${name}_${val}" value="${val}" ${requiredAttr}>
+                                    <label for="${name}_${val}">
+                                        <div class="rating-value">${val}</div>
+                                    </label>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                } else if (q.type === 'multi') {
+                    // Checkbox group
+                    inputHtml = `
+                        <div class="checkbox-group">
+                            ${(q.options || []).map((opt, i) => `
+                                <label class="custom-option">
+                                    <input type="checkbox" name="${name}" value="${opt}">
+                                    <span>${opt}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    `;
+                } else if (q.type === 'file') {
+                    inputHtml = `
+                        <input type="file" class="form-control" name="${name}" ${requiredAttr} accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                        <small class="text-muted">Formatos aceitos: PDF, DOC, DOCX, Imagem (Máx 5MB)</small>
+                    `;
+                }
+
+                qDiv.innerHTML = label + inputHtml + `<div class="error-message">Este campo é obrigatório</div>`;
+                container.appendChild(qDiv);
+            });
+
+            document.getElementById('formContainer').style.display = 'block';
+        }
+
+        const fileToBase64 = file => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+
+        async function submitForm(e) {
+            e.preventDefault();
+            
+            const btn = document.getElementById('submitBtn');
+            const originalBtnText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+
+            // Collect answers
+            const formData = new FormData(e.target);
+            const respostas = {};
+            let hasError = false;
+
+            for (let index = 0; index < formDefinition.questoes.length; index++) {
+                const q = formDefinition.questoes[index];
+                const name = `q_${index}`;
+                let val = null;
+
+                if (q.type === 'multi') {
+                    val = formData.getAll(name); // Array for checkboxes
+                    if (q.required && val.length === 0) {
+                        markError(index, true);
+                        hasError = true;
+                    } else {
+                        markError(index, false);
+                    }
+                } else if (q.type === 'file') {
+                    const fileInput = document.getElementsByName(name)[0];
+                    if (fileInput && fileInput.files.length > 0) {
+                        const file = fileInput.files[0];
+                        if (file.size > 5 * 1024 * 1024) {
+                            Swal.fire('Erro', `O arquivo da questão "${q.question}" excede 5MB.`, 'error');
+                            btn.disabled = false;
+                            btn.innerHTML = originalBtnText;
+                            return;
+                        }
+                        try {
+                            val = await fileToBase64(file);
+                        } catch (err) {
+                            console.error("Erro ao ler arquivo", err);
+                            hasError = true;
+                        }
+                    } else if (q.required) {
+                        markError(index, true);
+                        hasError = true;
+                    } else {
+                        markError(index, false);
+                    }
+                } else {
+                    val = formData.get(name);
+                    if (q.required && !val) {
+                        markError(index, true);
+                        hasError = true;
+                    } else {
+                        markError(index, false);
+                    }
+                }
+                
+                // Save answer with question text for context
+                if (val !== null) {
+                    respostas[index] = {
+                        question: q.question,
+                        category: q.category,
+                        answer: val,
+                        type: q.type
+                    };
+                }
+            }
+
+            if (hasError) {
+                btn.disabled = false;
+                btn.innerHTML = originalBtnText;
+                Swal.fire('Atenção', 'Por favor, verifique os campos obrigatórios.', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/rh/formularios/public/${formId}/responder`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ respostas })
+                });
+
+                if (response.ok) {
+                    document.getElementById('formContainer').style.display = 'none';
+                    document.getElementById('successContainer').style.display = 'block';
+                    window.scrollTo(0, 0);
+                } else {
+                    const err = await response.json();
+                    Swal.fire('Erro', err.error || 'Erro ao enviar respostas', 'error');
+                }
+            } catch (error) {
+                console.error(error);
+                Swal.fire('Erro', 'Erro de conexão', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalBtnText;
+            }
+        }
+        
+        function markError(index, isError) {
+            const inputs = document.getElementsByName(`q_${index}`);
+            if (inputs.length > 0) {
+                const container = inputs[0].closest('.question-card');
+                if (isError) {
+                    inputs.forEach(input => input.classList.add('is-invalid'));
+                    // For radio/checkbox groups, we might need to style the container or labels
+                    if (container) container.style.borderColor = '#ef4444';
+                } else {
+                    inputs.forEach(input => input.classList.remove('is-invalid'));
+                    if (container) container.style.borderColor = '#e2e8f0';
+                }
+            }
+        }
+    </script>
+</body>
+</html>

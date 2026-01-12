@@ -376,6 +376,53 @@ module.exports = {
         },
         delete: async (id) => await run('DELETE FROM formularios WHERE id = ?', [id])
     },
+    respostas: {
+        getAll: async () => {
+            const rows = await all('SELECT * FROM respostas_formularios');
+            return rows.map(r => parseJsonFields(r, ['respostas']));
+        },
+        getByFormId: async (formId) => {
+            const rows = await all('SELECT * FROM respostas_formularios WHERE formulario_id = ?', [formId]);
+            return rows.map(r => parseJsonFields(r, ['respostas']));
+        },
+        create: async (data) => {
+            await run(`INSERT INTO respostas_formularios (id, formulario_id, funcionario_id, respostas, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`,
+                [data.id, data.formulario_id, data.funcionario_id, JSON.stringify(data.respostas), data.createdAt || new Date().toISOString(), data.updatedAt || new Date().toISOString()]);
+            return data;
+        }
+    },
+    users: {
+        getAll: async () => await all('SELECT id, username, role, name, created_at FROM users'),
+        getByUsername: async (username) => await get('SELECT * FROM users WHERE username = ?', [username]),
+        create: async (data) => {
+            await run(`INSERT INTO users (username, password, role, name, created_at) VALUES (?, ?, ?, ?, ?)`,
+                [data.username, data.password, data.role, data.name, new Date().toISOString()]);
+            return data;
+        },
+        update: async (username, data) => {
+            const fields = [];
+            const params = [];
+            if (data.password) {
+                fields.push('password = ?');
+                params.push(data.password);
+            }
+            if (data.role) {
+                fields.push('role = ?');
+                params.push(data.role);
+            }
+            if (data.name) {
+                fields.push('name = ?');
+                params.push(data.name);
+            }
+            
+            if (fields.length === 0) return null;
+            
+            params.push(username);
+            await run(`UPDATE users SET ${fields.join(', ')} WHERE username = ?`, params);
+            return data;
+        },
+        delete: async (username) => await run('DELETE FROM users WHERE username = ?', [username])
+    },
     // Remaining JSON entities
     epis: {
         getAll: async () => await all('SELECT * FROM epis'),
