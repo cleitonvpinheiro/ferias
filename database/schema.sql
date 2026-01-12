@@ -199,3 +199,13 @@ CREATE TABLE IF NOT EXISTS movimentacoes (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS formularios (
+    id TEXT PRIMARY KEY,
+    titulo TEXT,
+    tipo TEXT, -- 'avaliacao', 'pesquisa', etc.
+    questoes TEXT, -- JSON Array of questions
+    ativo BOOLEAN DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);

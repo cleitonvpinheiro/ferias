@@ -19,6 +19,7 @@ function renderRHNavbar(activePage) {
             <a href="/protected/dashboard-desligamento.html" class="rh-nav-link ${activePage === 'desligamento' ? 'active' : ''}">Desligamento</a>
             <a href="/protected/dashboard-avaliacao.html" class="rh-nav-link ${activePage === 'avaliacoes' ? 'active' : ''}">Avaliações</a>
             <a href="/protected/dashboard-experiencia.html" class="rh-nav-link ${activePage === 'experiencia' ? 'active' : ''}">Experiência</a>
+            <a href="/protected/dashboard-formularios.html" class="rh-nav-link ${activePage === 'formularios' ? 'active' : ''}">Formulários</a>
             <button onclick="logout()" class="rh-nav-link logout-btn" style="background: none; border: none; cursor: pointer; color: white;">🚪 Sair</button>
         </div>
     </nav>

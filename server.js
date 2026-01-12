@@ -64,6 +64,7 @@ const recrutamentoRouter = require('./routes/recrutamento');
 const onthejobRouter = require('./routes/onthejob');
 const desligamentoRouter = require('./routes/desligamento');
 const avaliacaoRouter = require('./routes/avaliacao');
+const formulariosRouter = require('./routes/formularios');
 
 // Protected HTML Routes (Redirect to static or serve directly)
 const { rhAuth, portariaAuth } = require('./middleware/auth');
@@ -98,6 +99,7 @@ app.use('/api', recrutamentoRouter);
 app.use('/api', onthejobRouter);
 app.use('/api', desligamentoRouter);
 app.use('/api', avaliacaoRouter);
+app.use('/api/rh/formularios', formulariosRouter);
 
 // Start Server
 app.listen(PORT, () => {

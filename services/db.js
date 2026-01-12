@@ -355,6 +355,27 @@ module.exports = {
         read: () => { throw new Error("Use async methods for candidatos"); },
         write: () => { throw new Error("Use async methods for candidatos"); }
     },
+    formularios: {
+        getAll: async () => {
+            const rows = await all('SELECT * FROM formularios');
+            return rows.map(r => parseJsonFields(r, ['questoes']));
+        },
+        getById: async (id) => {
+            const row = await get('SELECT * FROM formularios WHERE id = ?', [id]);
+            return parseJsonFields(row, ['questoes']);
+        },
+        create: async (data) => {
+            await run(`INSERT INTO formularios (id, titulo, tipo, questoes, ativo, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [data.id, data.titulo, data.tipo, JSON.stringify(data.questoes), data.ativo ? 1 : 0, data.createdAt || new Date().toISOString(), data.updatedAt || new Date().toISOString()]);
+            return data;
+        },
+        update: async (id, data) => {
+            await run(`UPDATE formularios SET titulo=?, tipo=?, questoes=?, ativo=?, updated_at=? WHERE id=?`,
+                [data.titulo, data.tipo, JSON.stringify(data.questoes), data.ativo ? 1 : 0, data.updatedAt || new Date().toISOString(), id]);
+            return data;
+        },
+        delete: async (id) => await run('DELETE FROM formularios WHERE id = ?', [id])
+    },
     // Remaining JSON entities
     epis: {
         getAll: async () => await all('SELECT * FROM epis'),

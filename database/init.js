@@ -47,8 +47,10 @@ db.serialize(() => {
                                                             migrateAvaliacoes(() => {
                                                                 migrateAcessos(() => {
                                                                     migrateUniformes(() => {
-                                                                        console.log("Migração concluída.");
-                                                                        db.close();
+                                                                        migrateFormularios(() => {
+                                                                            console.log("Migração concluída.");
+                                                                            db.close();
+                                                                        });
                                                                     });
                                                                 });
                                                             });
@@ -309,6 +311,43 @@ function migrateUniformes(cb) {
         });
         db.run("COMMIT", () => {
             console.log(`Migrados ${data.length} uniformes.`);
+            stmt.finalize();
+            cb();
+        });
+    });
+}
+
+function migrateFormularios(cb) {
+    const filePath = path.join(__dirname, '..', 'form_questions.json');
+    let data;
+    try {
+        if (fs.existsSync(filePath)) {
+            data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        }
+    } catch (e) {
+        console.error('Erro ao ler form_questions.json:', e);
+    }
+
+    if (!data || Object.keys(data).length === 0) return cb();
+
+    const stmt = db.prepare(`INSERT OR REPLACE INTO formularios (id, titulo, tipo, questoes, ativo, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+
+    db.serialize(() => {
+        db.run("BEGIN TRANSACTION");
+        Object.keys(data).forEach(key => {
+            const id = key.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+            stmt.run(
+                id,
+                key, // titulo
+                'avaliacao', // tipo
+                JSON.stringify(data[key]),
+                1, // ativo
+                new Date().toISOString(),
+                new Date().toISOString()
+            );
+        });
+        db.run("COMMIT", () => {
+            console.log(`Migrados ${Object.keys(data).length} formularios.`);
             stmt.finalize();
             cb();
         });

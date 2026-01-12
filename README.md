@@ -41,6 +41,11 @@ O sistema é dividido em módulos integrados:
 - Registro rápido de entrega de EPIs.
 - Consulta de itens autorizados.
 
+### 8. 📝 Gestão de Formulários
+- Criação e edição dinâmica de formulários (Pesquisa/Avaliação).
+- Editor visual com suporte a múltiplos tipos de questões.
+- API para distribuição e coleta de respostas.
+
 ## 🛠️ Tecnologias Utilizadas
 
 - **Backend:** Node.js, Express
