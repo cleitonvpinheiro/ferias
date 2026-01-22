@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard RH - Requisição de Taxas</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="/rh-styles.css">
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div id="navbar-container"></div>
+  <script src="/rh-navbar.js"></script>
+  <script>renderRHNavbar('req_taxas');</script>
+
+  <main class="dashboard-container">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Requisições de Taxa</h1>
+            <p class="page-subtitle">Autorização prévia para contratação de mão de obra extra</p>
+        </div>
+        <div class="last-update">
+            <span id="lastUpdate">Atualizado agora</span>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card pending">
+            <div class="stat-header">
+                <div class="stat-title">Pendentes</div>
+                <div class="stat-icon">⏳</div>
+            </div>
+            <div class="stat-value" id="stat-pending">0</div>
+        </div>
+        <div class="stat-card approved">
+            <div class="stat-header">
+                <div class="stat-title">Aprovadas</div>
+                <div class="stat-icon">✅</div>
+            </div>
+            <div class="stat-value" id="stat-approved">0</div>
+        </div>
+        <div class="stat-card rejected">
+            <div class="stat-header">
+                <div class="stat-title">Reprovadas</div>
+                <div class="stat-icon">❌</div>
+            </div>
+            <div class="stat-value" id="stat-rejected">0</div>
+        </div>
+    </div>
+
+    <div class="action-bar">
+        <h2>Solicitações Recentes</h2>
+        <div class="action-buttons">
+            <button class="btn btn-outline" onclick="exportarExcel()">
+                📊 Excel
+            </button>
+            <button class="btn btn-primary" onclick="carregarSolicitacoes()">
+                🔄 Atualizar
+            </button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <div class="table-wrapper">
+            <table id="tabela-solicitacoes">
+                <thead>
+                    <tr>
+                        <th>Data Nec.</th>
+                        <th>Solicitante</th>
+                        <th>Depto</th>
+                        <th>Função</th>
+                        <th>Motivo</th>
+                        <th>Vagas</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="lista-corpo">
+                    <!-- Preenchido via JS -->
+                </tbody>
+            </table>
+        </div>
+        <div id="empty-state" class="empty-state" hidden>
+            <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Nenhuma solicitação encontrada.</p>
+        </div>
+    </div>
+  </main>
+
+  <footer style="text-align: center; padding: 40px; color: var(--text-secondary); font-size: 0.875rem;">
+    <p>&copy; 2025 Família Madalosso. Acesso Restrito ao RH.</p>
+  </footer>
+
+  <script>
+    let globalData = [];
+
+    async function carregarSolicitacoes() {
+        try {
+            const res = await fetch('/api/rh/solicitacoes-taxa');
+            if (res.status === 401 || res.status === 403) {
+                window.location.href = '/login.html';
+                return;
+            }
+            const data = await res.json();
+            globalData = data;
+            renderizarTabela(data);
+            atualizarStats(data);
+            document.getElementById('lastUpdate').innerText = 'Atualizado às ' + new Date().toLocaleTimeString();
+        } catch (err) {
+            console.error(err);
+            alert('Erro ao carregar dados.');
+        }
+    }
+
+    function renderizarTabela(data) {
+        const tbody = document.getElementById('lista-corpo');
+        const emptyState = document.getElementById('empty-state');
+        tbody.innerHTML = '';
+
+        if (!data || data.length === 0) {
+            emptyState.hidden = false;
+            return;
+        }
+        emptyState.hidden = true;
+
+        // Sort by created_at desc
+        data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+        data.forEach(item => {
+            const tr = document.createElement('tr');
+            
+            // Format Data
+            const dataNec = new Date(item.data_necessaria + 'T00:00:00').toLocaleDateString();
+            const horario = `${item.horario_inicio} - ${item.horario_fim}`;
+
+            // Format Motivo
+            let motivoTexto = '';
+            if (item.motivo === 'aumento_demanda') motivoTexto = 'Aumento Demanda';
+            else if (item.motivo === 'evento') motivoTexto = `Evento: ${item.detalhe_motivo}`;
+            else if (item.motivo === 'falta_ferias') motivoTexto = `Cob.: ${item.detalhe_motivo}`;
+
+            // Status Badge
+            let statusBadge = '';
+            if (item.status === 'aprovado') statusBadge = '<span class="status-badge status-approved">Aprovado</span>';
+            else if (item.status === 'reprovado') statusBadge = '<span class="status-badge status-rejected">Reprovado</span>';
+            else statusBadge = '<span class="status-badge status-pending">Pendente</span>';
+
+            tr.innerHTML = `
+                <td>
+                    <div style="font-weight: 500;">${dataNec}</div>
+                    <div style="font-size: 0.8rem; color: #64748b;">${horario}</div>
+                </td>
+                <td>
+                    <div style="font-weight: 500;">${item.solicitante}</div>
+                </td>
+                <td>${item.departamento}</td>
+                <td>${item.funcao_necessaria}</td>
+                <td>
+                    <div style="font-size: 0.9rem;">${motivoTexto}</div>
+                    ${item.observacoes ? `<div style="font-size: 0.75rem; color: #64748b; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.observacoes}">Obs: ${item.observacoes}</div>` : ''}
+                </td>
+                <td style="text-align: center;">${item.quantidade_vagas}</td>
+                <td>${statusBadge}</td>
+                <td>
+                    <div class="action-buttons" style="justify-content: flex-start;">
+                        ${item.status === 'pendente' ? `
+                        <button class="btn-icon" onclick="atualizarStatus('${item.id}', 'aprovado')" title="Aprovar" style="color: #10b981; background: #ecfdf5;">
+                            ✓
+                        </button>
+                        <button class="btn-icon" onclick="atualizarStatus('${item.id}', 'reprovado')" title="Reprovar" style="color: #ef4444; background: #fef2f2;">
+                            ✕
+                        </button>
+                        ` : '-'}
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function atualizarStats(data) {
+        const pending = data.filter(i => i.status === 'pendente').length;
+        const approved = data.filter(i => i.status === 'aprovado').length;
+        const rejected = data.filter(i => i.status === 'reprovado').length;
+
+        document.getElementById('stat-pending').innerText = pending;
+        document.getElementById('stat-approved').innerText = approved;
+        document.getElementById('stat-rejected').innerText = rejected;
+    }
+
+    async function atualizarStatus(id, novoStatus) {
+        if (!confirm(`Deseja realmente marcar como ${novoStatus}?`)) return;
+
+        try {
+            const res = await fetch(`/api/rh/solicitacoes-taxa/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: novoStatus })
+            });
+
+            if (res.ok) {
+                carregarSolicitacoes();
+            } else {
+                alert('Erro ao atualizar status.');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erro de conexão.');
+        }
+    }
+
+    function exportarExcel() {
+        const wb = XLSX.utils.book_new();
+        
+        const dataExport = globalData.map(item => ({
+            'Data Necessária': item.data_necessaria,
+            'Horário Início': item.horario_inicio,
+            'Horário Fim': item.horario_fim,
+            'Solicitante': item.solicitante,
+            'Departamento': item.departamento,
+            'Função': item.funcao_necessaria,
+            'Motivo': item.motivo,
+            'Detalhe Motivo': item.detalhe_motivo,
+            'Vagas': item.quantidade_vagas,
+            'Observações': item.observacoes,
+            'Status': item.status,
+            'Data Solicitação': new Date(item.created_at).toLocaleString()
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(dataExport);
+        XLSX.utils.book_append_sheet(wb, ws, "Requisições");
+        XLSX.writeFile(wb, "requisicoes_taxa.xlsx");
+    }
+
+    // Init
+    carregarSolicitacoes();
+  </script>
+</body>
+</html>

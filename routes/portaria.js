@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../services/db');
 const { portariaAuth } = require('../middleware/auth');
 const crypto = require('crypto');
+const pdfService = require('../services/pdfService');
 
 router.get('/portaria/candidatos', portariaAuth, async (req, res) => {
     try {
@@ -135,7 +136,7 @@ router.get('/portaria/epis', portariaAuth, async (req, res) => {
 // Registrar movimentação
 router.post('/portaria/movimentacao', portariaAuth, async (req, res) => {
     try {
-        const { funcionario_id, itens_retirados, itens_devolvidos, evidencia, tipo_evidencia } = req.body;
+        const { funcionario_id, itens_retirados, itens_devolvidos, evidencia, tipo_evidencia, termo } = req.body;
         if (!funcionario_id) return res.status(400).json({ ok: false, erro: 'Funcionário inválido' });
         
         const epis = await db.epis.getAll();
@@ -154,6 +155,33 @@ router.post('/portaria/movimentacao', portariaAuth, async (req, res) => {
             }
         }
 
+        let termoPdf = termo;
+        if (!termoPdf && evidencia && (itens_retirados?.length > 0 || itens_devolvidos?.length > 0)) {
+            try {
+                const funcionario = await db.funcionarios.getById(funcionario_id);
+                if (funcionario) {
+                    const nomesRetirados = (itens_retirados || []).map(id => {
+                        const e = epis.find(x => x.id === id);
+                        return { nome: e ? e.nome : id, ca: e ? e.ca_validade : '' };
+                    });
+                    const nomesDevolvidos = (itens_devolvidos || []).map(id => {
+                        const e = epis.find(x => x.id === id);
+                        return { nome: e ? e.nome : id };
+                    });
+                    
+                    const buffer = await pdfService.gerarTermoEPI({
+                        funcionario_nome: funcionario.nome,
+                        itens_retirados: nomesRetirados,
+                        itens_devolvidos: nomesDevolvidos,
+                        assinatura: evidencia
+                    });
+                    termoPdf = 'data:application/pdf;base64,' + buffer.toString('base64');
+                }
+            } catch (errPdf) {
+                console.error('Erro ao gerar termo PDF:', errPdf);
+            }
+        }
+
         await db.movimentacoesEpis.create({
             id: crypto.randomUUID(),
             funcionario_id,
@@ -161,6 +189,7 @@ router.post('/portaria/movimentacao', portariaAuth, async (req, res) => {
             itens_devolvidos: Array.isArray(itens_devolvidos) ? itens_devolvidos : [],
             evidencia: evidencia || null,
             tipo_evidencia: tipo_evidencia || null,
+            termo: termoPdf || null,
             createdAt: new Date().toISOString()
         });
         

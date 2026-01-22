@@ -225,9 +225,13 @@ function pdfBufferFromTaxaData(payload) {
     const motivos = payload.motivo || [];
     const mDemanda = motivos.includes('aumento_demanda') ? '(X)' : '( )';
     const mEvento = motivos.includes('evento') ? '(X)' : '( )';
+    let eventoTexto = ' EVENTO';
+    if (motivos.includes('evento') && payload.detalhe_motivo) {
+        eventoTexto += ` (${payload.detalhe_motivo})`;
+    }
     const mVaga = motivos.includes('vaga_aberta') ? '(X)' : '( )';
     
-    doc.font('Helvetica').text(`${mDemanda} AUMENTO DE DEMANDA   ${mEvento} EVENTO   ${mVaga} VAGA ABERTA (ANTECESSOR): ${payload.antecessor || '________________'}`, 100, y + 10);
+    doc.font('Helvetica').text(`${mDemanda} AUMENTO DE DEMANDA   ${mEvento}${eventoTexto}   ${mVaga} VAGA ABERTA (ANTECESSOR): ${payload.antecessor || '________________'}`, 100, y + 10);
     y += 30;
 
     // Table Header
@@ -1254,6 +1258,86 @@ function pdfBufferFromCandidato(payload) {
     });
 }
 
+function gerarTermoEPI(dados) {
+  const doc = new PDFDocument({ size: 'A4', margin: 50 });
+  const chunks = [];
+  doc.on('data', c => chunks.push(c));
+  
+  return new Promise(resolve => {
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+    // Logo
+    if (fs.existsSync(LOGO_PATH)) {
+        doc.image(LOGO_PATH, 50, 15, { width: 60 });
+    }
+
+    doc.moveDown(4);
+    
+    // Título
+    doc.font('Helvetica-Bold').fontSize(16).text('TERMO DE RESPONSABILIDADE - EPI', { align: 'center' });
+    doc.moveDown(2);
+
+    // Texto Legal
+    doc.font('Helvetica').fontSize(10).text(
+        'Recebi da empresa os Equipamentos de Proteção Individual (EPI) constantes na lista abaixo, ' +
+        'para uso exclusivo em serviço, comprometendo-me a usá-los corretamente, zelar pela sua guarda e conservação, ' +
+        'e comunicar imediatamente qualquer alteração que os torne impróprios para uso, conforme determina a NR-6.',
+        { align: 'justify' }
+    );
+    doc.moveDown();
+
+    // Dados do Funcionário
+    doc.font('Helvetica-Bold').fontSize(12).text(`Colaborador: ${dados.funcionario_nome}`);
+    doc.font('Helvetica').fontSize(10).text(`Data da Movimentação: ${new Date().toLocaleString('pt-BR')}`);
+    doc.moveDown();
+
+    // Tabela de Itens
+    if (dados.itens_retirados && dados.itens_retirados.length > 0) {
+        doc.font('Helvetica-Bold').fontSize(12).text('ITENS RETIRADOS (ENTREGA)', { underline: true });
+        doc.moveDown(0.5);
+        dados.itens_retirados.forEach(item => {
+             doc.font('Helvetica').fontSize(10).text(`• ${item.nome} (CA: ${item.ca || 'N/A'})`);
+        });
+        doc.moveDown();
+    }
+
+    if (dados.itens_devolvidos && dados.itens_devolvidos.length > 0) {
+        doc.font('Helvetica-Bold').fontSize(12).text('ITENS DEVOLVIDOS (RETORNO)', { underline: true });
+        doc.moveDown(0.5);
+        dados.itens_devolvidos.forEach(item => {
+             doc.font('Helvetica').fontSize(10).text(`• ${item.nome}`);
+        });
+        doc.moveDown();
+    }
+    
+    doc.moveDown(4);
+
+    // Assinatura
+    if (dados.assinatura) {
+        try {
+            // Assumindo que vem como data:image/png;base64,...
+            const sigBuf = Buffer.from(dados.assinatura.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+            // Centralizar assinatura
+            const x = (doc.page.width - 200) / 2;
+            doc.image(sigBuf, x, doc.y, { width: 200, height: 100 });
+            doc.moveDown(6); // Espaço ocupado pela imagem
+        } catch(e) { 
+            console.error('Erro ao processar assinatura para PDF', e);
+            doc.text('[Erro na assinatura]', { align: 'center' });
+        }
+    } else {
+        doc.moveDown(4);
+    }
+    
+    // Linha
+    doc.moveTo(100, doc.y).lineTo(doc.page.width - 100, doc.y).stroke();
+    doc.font('Helvetica').fontSize(10).text(dados.funcionario_nome, { align: 'center' });
+    doc.text('Assinatura do Colaborador', { align: 'center' });
+
+    doc.end();
+  });
+}
+
 module.exports = {
     pdfBufferFromData,
     pdfBufferFromDescontoData,
@@ -1265,6 +1349,7 @@ module.exports = {
     pdfBufferFromAvaliacaoData,
     pdfBufferFromMovimentacao,
     pdfBufferFromUniformeData,
-    pdfBufferFromCandidato
+    pdfBufferFromCandidato,
+    gerarTermoEPI
 };
 

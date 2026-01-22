@@ -209,3 +209,21 @@ CREATE TABLE IF NOT EXISTS formularios (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS solicitacoes_taxa (
+    id TEXT PRIMARY KEY,
+    solicitante TEXT,
+    email_solicitante TEXT,
+    departamento TEXT,
+    funcao_necessaria TEXT,
+    motivo TEXT,
+    detalhe_motivo TEXT,
+    data_necessaria DATE,
+    horario_inicio TEXT,
+    horario_fim TEXT,
+    quantidade_vagas INTEGER,
+    observacoes TEXT,
+    status TEXT DEFAULT 'pendente',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);

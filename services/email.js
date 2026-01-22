@@ -435,5 +435,38 @@ module.exports = {
     notificarGestorVaga,
     enviarEmailRecrutamentoRH,
     enviarSolicitacaoAssinaturaTaxa,
-    notificarRHCandidatura
+    notificarRHCandidatura,
+    enviarEmailResultadoSolicitacaoTaxa
 };
+
+async function enviarEmailResultadoSolicitacaoTaxa(payload, aprovado) {
+    const host = process.env.SMTP_HOST;
+    const port = Number(process.env.SMTP_PORT || 587);
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+    const secure = String(process.env.SMTP_SECURE || 'false') === 'true';
+    const to = payload.email_solicitante;
+    const from = process.env.MAIL_FROM || user;
+
+    const status = aprovado ? 'APROVADA' : 'REPROVADA';
+    const subject = `Solicitação de Mão de Obra ${status} - ${payload.funcao_necessaria}`;
+    const text = `Olá ${payload.solicitante},\n\nSua solicitação de mão de obra (taxa) para a função ${payload.funcao_necessaria} foi ${status} pelo RH.\n\n` +
+                 (aprovado ? 'O processo de contratação será iniciado.' : 'Motivo: O pedido não foi aceito neste momento.');
+
+    if (!host || !port || !user || !pass || !to) {
+        console.log('--- EMAIL MOCK (Resultado Solicitação Taxa) ---');
+        console.log(`To: ${to}`);
+        console.log(`Subject: ${subject}`);
+        console.log(`Text: ${text}`);
+        return { ok: true, mock: true };
+    }
+
+    const transporter = nodemailer.createTransport({ host, port, secure, auth: { user, pass } });
+    try {
+        await transporter.sendMail({ from, to, subject, text });
+        return { ok: true };
+    } catch (e) {
+        console.error('Erro ao enviar email resultado solicitação taxa:', e);
+        return { ok: false };
+    }
+}

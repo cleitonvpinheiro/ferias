@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solicitação de Mão de Obra (Taxa)</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="./styles.css">
+  <style>
+      /* Custom styles for this page */
+      .navbar {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 20px 0;
+          margin-bottom: 30px;
+      }
+      
+      .back-link {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          text-decoration: none;
+          color: var(--muted);
+          font-weight: 500;
+          transition: color 0.2s;
+      }
+      .back-link:hover { color: var(--accent); }
+
+      .form-header {
+          text-align: center;
+          margin-bottom: 32px;
+      }
+      .form-header h1 {
+          font-size: 1.75rem;
+          color: #1e293b;
+          margin-bottom: 8px;
+      }
+      .form-header p {
+          color: #64748b;
+      }
+
+      /* Enhanced Selection Grid */
+      .selection-grid { 
+          display: grid; 
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
+          gap: 16px; 
+          margin-bottom: 24px; 
+      }
+      .selection-card { position: relative; cursor: pointer; }
+      .selection-card input { position: absolute; opacity: 0; width: 0; height: 0; }
+      
+      .selection-content { 
+          display: flex; 
+          flex-direction: column; 
+          align-items: center; 
+          justify-content: center; 
+          padding: 20px; 
+          background: #fff; 
+          border: 2px solid #e2e8f0; 
+          border-radius: 16px; 
+          transition: all 0.2s ease; 
+          height: 100%; 
+          text-align: center; 
+          color: #64748b; 
+      }
+      
+      .selection-card:hover .selection-content { 
+          border-color: #cbd5e1; 
+          background: #f8fafc; 
+          transform: translateY(-2px);
+      }
+      
+      .selection-card input:checked + .selection-content { 
+          border-color: var(--accent); 
+          background: #eff6ff; 
+          color: var(--accent); 
+          font-weight: 600; 
+          box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.1); 
+      }
+      
+      .selection-icon { 
+          font-size: 32px; 
+          margin-bottom: 12px; 
+          filter: grayscale(1); 
+          transition: filter 0.2s;
+      }
+      .selection-card input:checked + .selection-content .selection-icon { filter: grayscale(0); }
+
+      /* Animation for dynamic fields */
+      .fade-enter {
+          animation: fadeIn 0.3s ease-out forwards;
+      }
+      @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+      }
+
+      /* Input enhancements */
+      .input-group {
+          position: relative;
+      }
+      .input-icon {
+          position: absolute;
+          left: 12px;
+          top: 42px; /* Adjust based on label height */
+          color: #94a3b8;
+          pointer-events: none;
+      }
+      
+      /* Section separation */
+      .form-section {
+          background: #f8fafc;
+          border-radius: 12px;
+          padding: 20px;
+          margin-bottom: 24px;
+          border: 1px solid #e2e8f0;
+      }
+      .form-section-title {
+          font-size: 0.9rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: #64748b;
+          font-weight: 600;
+          margin-bottom: 16px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+      }
+
+      .btn-loading {
+          position: relative;
+          color: transparent !important;
+      }
+      .btn-loading::after {
+          content: "";
+          position: absolute;
+          width: 20px;
+          height: 20px;
+          top: 50%;
+          left: 50%;
+          margin: -10px 0 0 -10px;
+          border: 2px solid #fff;
+          border-top-color: transparent;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <main class="container">
+    <nav class="navbar">
+        <a href="/" class="back-link">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+            Voltar ao Menu
+        </a>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <img src="/assets/logo.png" alt="Logo" style="height: 32px;">
+        </div>
+    </nav>
+
+    <div class="form-header">
+      <h1>Solicitação de Mão de Obra</h1>
+      <p>Requisição de taxa extra para eventos, cobertura ou aumento de demanda.</p>
+    </div>
+
+    <form id="formSolicitacaoTaxa">
+      
+      <!-- Dados do Solicitante -->
+      <div class="form-section">
+          <div class="form-section-title">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+              Dados do Solicitante
+          </div>
+          <div class="grid-2">
+            <label>
+                Nome do Solicitante (Líder/Gestor)
+                <input type="text" id="solicitante" required placeholder="Seu nome completo">
+            </label>
+            <label>
+                Departamento
+                <select id="departamento" required>
+                    <option value="" disabled selected>Selecione...</option>
+                    <option value="Salao">Salão</option>
+                    <option value="Cozinha">Cozinha</option>
+                    <option value="Bar">Bar</option>
+                    <option value="Limpeza">Limpeza</option>
+                    <option value="Estoque">Estoque</option>
+                    <option value="Manutencao">Manutenção</option>
+                    <option value="Outros">Outros</option>
+                </select>
+            </label>
+          </div>
+      </div>
+
+      <!-- Detalhes da Vaga -->
+      <div class="form-section">
+          <div class="form-section-title">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+              Detalhes da Vaga
+          </div>
+          
+          <label>
+              Função Necessária
+              <input type="text" id="funcao_necessaria" required placeholder="Ex: Garçom, Cozinheiro, Commim...">
+          </label>
+
+          <label style="margin-top: 20px; font-weight: 600; color: #334155;">Qual o motivo da solicitação?</label>
+          <div class="selection-grid">
+              <label class="selection-card">
+                <input type="radio" name="motivo" value="aumento_demanda" required>
+                <div class="selection-content">
+                    <div class="selection-icon">📈</div>
+                    <span>Aumento de Demanda</span>
+                </div>
+              </label>
+              <label class="selection-card">
+                <input type="radio" name="motivo" value="evento">
+                <div class="selection-content">
+                    <div class="selection-icon">🎉</div>
+                    <span>Evento Específico</span>
+                </div>
+              </label>
+              <label class="selection-card">
+                <input type="radio" name="motivo" value="falta_ferias">
+                <div class="selection-content">
+                    <div class="selection-icon">🚑</div>
+                    <span>Cobertura (Falta/Férias)</span>
+                </div>
+              </label>
+          </div>
+          
+          <div id="eventoArea" hidden class="fade-enter" style="background: #fff; padding: 16px; border-radius: 8px; border: 1px dashed #cbd5e1; margin-bottom: 16px;">
+              <label style="margin: 0;">
+                  <span id="labelDetalhe">Detalhes do Evento</span>
+                  <input type="text" id="detalhe_motivo" placeholder="Digite aqui...">
+              </label>
+          </div>
+      </div>
+
+      <!-- Agendamento -->
+      <div class="form-section">
+          <div class="form-section-title">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              Data e Horário
+          </div>
+          
+          <div class="grid-2">
+              <label>
+                  Data Necessária
+                  <input type="date" id="data_necessaria" required>
+              </label>
+              <label>
+                  Quantidade de Vagas
+                  <input type="number" id="quantidade_vagas" min="1" value="1" required>
+              </label>
+          </div>
+          
+          <div class="grid-2">
+              <label>
+                  Horário Início
+                  <input type="time" id="horario_inicio" required>
+              </label>
+              <label>
+                  Horário Fim
+                  <input type="time" id="horario_fim" required>
+              </label>
+          </div>
+      </div>
+
+      <label>
+          Observações Adicionais
+          <textarea id="observacoes" rows="3" placeholder="Alguma instrução específica para o RH?"></textarea>
+      </label>
+
+      <div style="margin-top: 30px;">
+          <button class="enviar" type="submit" id="btnSubmit">Enviar Solicitação</button>
+      </div>
+    </form>
+  </main>
+
+  <footer class="app-footer">
+    <div class="footer-content">
+      <p>&copy; 2025 Família Madalosso. Todos os direitos reservados.</p>
+    </div>
+  </footer>
+
+  <script>
+    const form = document.getElementById('formSolicitacaoTaxa');
+    const btnSubmit = document.getElementById('btnSubmit');
+    
+    // Toggle Evento details
+    const motivos = document.querySelectorAll('input[name="motivo"]');
+    const eventoArea = document.getElementById('eventoArea');
+    const detalheInput = document.getElementById('detalhe_motivo');
+    const labelDetalhe = document.getElementById('labelDetalhe');
+
+    motivos.forEach(radio => {
+        radio.addEventListener('change', () => {
+            if (radio.value === 'evento' || radio.value === 'falta_ferias') {
+                eventoArea.hidden = false;
+                detalheInput.setAttribute('required', 'required');
+                
+                if (radio.value === 'evento') {
+                    labelDetalhe.textContent = 'Nome do Evento';
+                    detalheInput.placeholder = 'Ex: Dia das Mães, Casamento Silva...';
+                } else {
+                    labelDetalhe.textContent = 'Nome do Colaborador a ser Substituído';
+                    detalheInput.placeholder = 'Nome do funcionário que faltou ou está de férias';
+                }
+                
+                // Focus on the input for better UX
+                setTimeout(() => detalheInput.focus(), 100);
+            } else {
+                eventoArea.hidden = true;
+                detalheInput.removeAttribute('required');
+                detalheInput.value = '';
+            }
+        });
+    });
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        // Visual feedback
+        const originalBtnText = btnSubmit.innerText;
+        btnSubmit.innerText = '';
+        btnSubmit.classList.add('btn-loading');
+        btnSubmit.disabled = true;
+
+        const payload = {
+            solicitante: document.getElementById('solicitante').value,
+            email_solicitante: document.getElementById('email_solicitante').value,
+            departamento: document.getElementById('departamento').value,
+            funcao_necessaria: document.getElementById('funcao_necessaria').value,
+            motivo: document.querySelector('input[name="motivo"]:checked').value,
+            detalhe_motivo: document.getElementById('detalhe_motivo').value,
+            data_necessaria: document.getElementById('data_necessaria').value,
+            horario_inicio: document.getElementById('horario_inicio').value,
+            horario_fim: document.getElementById('horario_fim').value,
+            quantidade_vagas: document.getElementById('quantidade_vagas').value,
+            observacoes: document.getElementById('observacoes').value
+        };
+
+        try {
+            const res = await fetch('/api/solicitacao-taxa', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            if (res.ok) {
+                alert('✅ Solicitação enviada com sucesso!');
+                form.reset();
+                eventoArea.hidden = true;
+                window.location.href = '/'; // Optional redirect
+            } else {
+                alert('❌ Erro ao enviar solicitação. Tente novamente.');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('❌ Erro de conexão.');
+        } finally {
+            btnSubmit.innerText = originalBtnText;
+            btnSubmit.classList.remove('btn-loading');
+            btnSubmit.disabled = false;
+        }
+    });
+  </script>
+</body>
+</html>

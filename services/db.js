@@ -234,13 +234,13 @@ const taxasRepo = {
         return parseJsonFields(row, ['motivo', 'valores']);
     },
     create: async (data) => {
-        await run(`INSERT INTO taxas (id, nome_taxa, cpf, funcao, forma_pagamento, chave_pix, banco, agencia, conta, tipo_conta, departamento, motivo, antecessor, valores, status, email_gestor, email_solicitante, signature_token, assinatura, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-            [data.id, data.nome_taxa, data.cpf, data.funcao, data.forma_pagamento, data.chave_pix, data.banco, data.agencia, data.conta, data.tipo_conta, data.departamento, JSON.stringify(data.motivo), data.antecessor, JSON.stringify(data.valores), data.status, data.email_gestor, data.email_solicitante, data.signatureToken, data.assinatura, data.createdAt, data.updatedAt]);
+        await run(`INSERT INTO taxas (id, nome_taxa, cpf, funcao, forma_pagamento, chave_pix, banco, agencia, conta, tipo_conta, departamento, motivo, detalhe_motivo, antecessor, valores, status, email_gestor, email_solicitante, signature_token, assinatura, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+            [data.id, data.nome_taxa, data.cpf, data.funcao, data.forma_pagamento, data.chave_pix, data.banco, data.agencia, data.conta, data.tipo_conta, data.departamento, JSON.stringify(data.motivo), data.detalhe_motivo, data.antecessor, JSON.stringify(data.valores), data.status, data.email_gestor, data.email_solicitante, data.signatureToken, data.assinatura, data.createdAt, data.updatedAt]);
         return data;
     },
     update: async (id, data) => {
-        await run(`UPDATE taxas SET nome_taxa=?, cpf=?, funcao=?, forma_pagamento=?, chave_pix=?, banco=?, agencia=?, conta=?, tipo_conta=?, departamento=?, motivo=?, antecessor=?, valores=?, status=?, email_gestor=?, email_solicitante=?, signature_token=?, assinatura=?, updated_at=? WHERE id=?`,
-            [data.nome_taxa, data.cpf, data.funcao, data.forma_pagamento, data.chave_pix, data.banco, data.agencia, data.conta, data.tipo_conta, data.departamento, JSON.stringify(data.motivo), data.antecessor, JSON.stringify(data.valores), data.status, data.email_gestor, data.email_solicitante, data.signatureToken, data.assinatura, data.updatedAt, id]);
+        await run(`UPDATE taxas SET nome_taxa=?, cpf=?, funcao=?, forma_pagamento=?, chave_pix=?, banco=?, agencia=?, conta=?, tipo_conta=?, departamento=?, motivo=?, detalhe_motivo=?, antecessor=?, valores=?, status=?, email_gestor=?, email_solicitante=?, signature_token=?, assinatura=?, updated_at=? WHERE id=?`,
+            [data.nome_taxa, data.cpf, data.funcao, data.forma_pagamento, data.chave_pix, data.banco, data.agencia, data.conta, data.tipo_conta, data.departamento, JSON.stringify(data.motivo), data.detalhe_motivo, data.antecessor, JSON.stringify(data.valores), data.status, data.email_gestor, data.email_solicitante, data.signatureToken, data.assinatura, data.updatedAt, id]);
         return data;
     },
     read: () => { throw new Error("Use async methods for taxas"); },
@@ -256,6 +256,24 @@ module.exports = {
     solicitacoes: solicitacoesRepo,
     funcionarios: funcionariosRepo,
     taxas: taxasRepo,
+    solicitacoesTaxa: {
+        getAll: async () => {
+            return await all('SELECT * FROM solicitacoes_taxa');
+        },
+        getById: async (id) => {
+            return await get('SELECT * FROM solicitacoes_taxa WHERE id = ?', [id]);
+        },
+        create: async (data) => {
+            await run(`INSERT INTO solicitacoes_taxa (id, solicitante, email_solicitante, departamento, funcao_necessaria, motivo, detalhe_motivo, data_necessaria, horario_inicio, horario_fim, quantidade_vagas, observacoes, status, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+                [data.id, data.solicitante, data.email_solicitante, data.departamento, data.funcao_necessaria, data.motivo, data.detalhe_motivo, data.data_necessaria, data.horario_inicio, data.horario_fim, data.quantidade_vagas, data.observacoes, data.status, data.created_at, data.updated_at]);
+            return data;
+        },
+        update: async (id, data) => {
+            await run(`UPDATE solicitacoes_taxa SET solicitante=?, email_solicitante=?, departamento=?, funcao_necessaria=?, motivo=?, detalhe_motivo=?, data_necessaria=?, horario_inicio=?, horario_fim=?, quantidade_vagas=?, observacoes=?, status=?, updated_at=? WHERE id=?`,
+                [data.solicitante, data.email_solicitante, data.departamento, data.funcao_necessaria, data.motivo, data.detalhe_motivo, data.data_necessaria, data.horario_inicio, data.horario_fim, data.quantidade_vagas, data.observacoes, data.status, data.updatedAt || new Date().toISOString(), id]);
+            return data;
+        }
+    },
     // Hybrid: Keep using JSON for these until migrated
     vagas: { // Migrated in schema, but let's stick to JSON for a second or migrate fully?
              // init.js migrated them. Let's do it.
@@ -447,8 +465,8 @@ module.exports = {
             return rows.map(r => parseJsonFields(r, ['itens_retirados', 'itens_devolvidos']));
         },
         create: async (data) => {
-            await run(`INSERT INTO movimentacoes_epis (id, funcionario_id, itens_retirados, itens_devolvidos, evidencia, tipo_evidencia, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [data.id, data.funcionario_id, JSON.stringify(data.itens_retirados), JSON.stringify(data.itens_devolvidos), data.evidencia, data.tipo_evidencia, data.createdAt]);
+            await run(`INSERT INTO movimentacoes_epis (id, funcionario_id, itens_retirados, itens_devolvidos, evidencia, tipo_evidencia, termo, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                [data.id, data.funcionario_id, JSON.stringify(data.itens_retirados), JSON.stringify(data.itens_devolvidos), data.evidencia, data.tipo_evidencia, data.termo || null, data.createdAt]);
             return data;
         },
         read: () => { throw new Error("Use async methods for movimentacoesEpis"); },

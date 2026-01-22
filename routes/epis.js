@@ -61,6 +61,33 @@ router.get('/rh/epis', sesmtAuth, async (req, res) => {
     }
 });
 
+router.get('/rh/epis/movimentacoes', sesmtAuth, async (req, res) => {
+    try {
+        const [movs, funcionarios] = await Promise.all([
+            db.movimentacoesEpis.getAll(),
+            db.funcionarios.getAll()
+        ]);
+
+        const mapped = movs.map(m => {
+            const func = funcionarios.find(f => f.id === m.funcionario_id);
+            return {
+                ...m,
+                nome_funcionario: func ? func.nome : 'Desconhecido',
+                // Normalizar data (sqlite retorna created_at)
+                createdAt: m.created_at || m.createdAt
+            };
+        });
+
+        // Ordenar mais recente primeiro
+        mapped.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        res.json(mapped);
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao listar movimentações de EPIs' });
+    }
+});
+
 router.post('/rh/epis', sesmtAuth, async (req, res) => {
     try {
         const { nome, valor, estoque, ca_validade } = req.body;

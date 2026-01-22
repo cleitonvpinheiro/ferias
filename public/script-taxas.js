@@ -218,6 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
             pix: (formaPagamentoVal === 'pix') ? getVal('pix') : '',
             departamento: getVal('departamento'),
             motivo: getChecked('motivo'),
+            detalhe_motivo: getVal('nome_evento'), // Novo campo
             antecessor: getVal('antecessor'),
             valores: {
                 taxa: {
@@ -271,6 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Toggle Vaga Aberta Input ---
     const checkVagaAberta = document.getElementById('checkVagaAberta');
     const antecessorArea = document.getElementById('antecessorArea');
+    const eventoArea = document.getElementById('eventoArea');
     
     // Listen to all checkboxes named "motivo"
     const motivos = document.querySelectorAll('input[name="motivo"]');
@@ -279,6 +281,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (cb.value === 'vaga_aberta') {
                 antecessorArea.hidden = !cb.checked;
                 const input = document.getElementById('antecessor');
+                if (cb.checked) input.setAttribute('required', 'required');
+                else input.removeAttribute('required');
+            }
+            if (cb.value === 'evento') {
+                eventoArea.hidden = !cb.checked;
+                const input = document.getElementById('nome_evento');
                 if (cb.checked) input.setAttribute('required', 'required');
                 else input.removeAttribute('required');
             }

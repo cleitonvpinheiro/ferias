@@ -318,12 +318,15 @@
           <label class="selection-card">
             <input type="checkbox" name="motivo" value="evento">
             <div class="selection-content">
-                <div class="selection-icon">🎉</div>
-                <span>Evento</span>
-            </div>
-          </label>
-          <label class="selection-card">
-            <input type="checkbox" name="motivo" value="vaga_aberta" id="checkVagaAberta">
+            <div class="selection-icon">🎉</div>
+            <span>Evento</span>
+        </div>
+      </label>
+      <div id="eventoArea" hidden style="margin-top: 10px; grid-column: 1 / -1;">
+          <input type="text" id="nome_evento" placeholder="Nome do Evento (Ex: Dia das Mães)">
+      </div>
+      <label class="selection-card">
+        <input type="checkbox" name="motivo" value="vaga_aberta" id="checkVagaAberta">
             <div class="selection-content">
                 <div class="selection-icon">👤</div>
                 <span>Vaga Aberta (Antecessor)</span>

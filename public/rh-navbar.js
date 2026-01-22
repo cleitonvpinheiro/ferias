@@ -10,7 +10,8 @@ function renderRHNavbar(activePage) {
         </a>
         <div class="rh-navbar-menu">
             <a href="/protected/dashboard-rh.html" class="rh-nav-link ${activePage === 'ferias' ? 'active' : ''}">Férias</a>
-            <a href="/protected/dashboard-taxas.html" class="rh-nav-link ${activePage === 'taxas' ? 'active' : ''}">Taxas</a>
+            <a href="/protected/dashboard-taxas.html" class="rh-nav-link ${activePage === 'taxas' ? 'active' : ''}">Pgto Taxas</a>
+            <a href="/protected/dashboard-solicitacoes-taxa.html" class="rh-nav-link ${activePage === 'req_taxas' ? 'active' : ''}">Req. Taxas</a>
             <a href="/protected/dashboard-candidatos.html" class="rh-nav-link ${activePage === 'candidatos' ? 'active' : ''}">Candidatos</a>
             <a href="/protected/dashboard-recrutamento.html" class="rh-nav-link ${activePage === 'recrutamento' ? 'active' : ''}">Recrutamento Interno</a>
             <a href="/protected/dashboard-onthejob.html" class="rh-nav-link ${activePage === 'onthejob' ? 'active' : ''}">On The Job</a>
