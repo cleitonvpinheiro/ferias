@@ -5,7 +5,7 @@ const db = require('../services/db');
 const { sesmtAuth } = require('../middleware/auth');
 const pdfService = require('../services/pdfService');
 
-router.get('/uniformes', async (req, res) => {
+router.get('/uniformes', sesmtAuth, async (req, res) => {
     try {
         const data = await db.uniformes.getAll();
         res.json(data);
@@ -15,7 +15,7 @@ router.get('/uniformes', async (req, res) => {
     }
 });
 
-router.post('/uniformes', async (req, res) => {
+router.post('/uniformes', sesmtAuth, async (req, res) => {
     try {
         const payload = req.body;
         if (!payload.nome || !payload.itens) {

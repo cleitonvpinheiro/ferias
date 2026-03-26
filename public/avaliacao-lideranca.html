@@ -7,16 +7,17 @@
     <link rel="icon" href="/assets/logo.png" type="image/png">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="avaliacao-styles.css">
+    <script src="/lang-switcher.js" defer></script>
 </head>
-<body>
+<body data-page="avaliacao-lideranca">
     <div class="container">
         <div style="margin-bottom: 20px;">
-        <a href="/" style="color: #64748b; text-decoration: none; font-size: 0.9rem;">&larr; Voltar ao Menu</a>
+        <a href="/" style="color: var(--muted); text-decoration: none; font-size: 0.9rem;" data-translate="public_back_menu">&larr; Voltar ao Menu</a>
     </div>
         <div class="header">
             <img src="/assets/logo.png" alt="Logo" class="logo">
-            <h1>Avaliação de Performance - Liderança</h1>
-            <p>Formulário de avaliação de gestores e líderes</p>
+            <h1 data-translate="avaliacao_lideranca_title">Avaliação de Performance - Liderança</h1>
+            <p data-translate="avaliacao_lideranca_subtitle">Formulário de avaliação de gestores e líderes</p>
         </div>
 
         <form id="evaluationForm">
@@ -27,7 +28,7 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Funcionário(a) Avaliado(a):</label>
-                        <select name="funcionario" id="funcionarioSelect" required style="width:100%; padding:0.75rem; border-radius:0.5rem; border:1px solid #e2e8f0; background-color: white; font-family: inherit; font-size: 1rem;">
+                        <select name="funcionario" id="funcionarioSelect" required style="width:100%; padding:0.75rem; border-radius:0.5rem; border:1px solid var(--border); background-color: var(--card); color: var(--text); font-family: inherit; font-size: 1rem;">
                             <option value="">Selecione um funcionário...</option>
                         </select>
                     </div>
@@ -102,13 +103,13 @@
 
                 <div class="form-group">
                     <label>Por que? Comente:</label>
-                    <textarea name="statusComentario" rows="3" style="width:100%; padding:0.75rem; border-radius:0.5rem; border:1px solid #e2e8f0; font-family:inherit;"></textarea>
+                    <textarea name="statusComentario" rows="3" style="width:100%; padding:0.75rem; border-radius:0.5rem; border:1px solid var(--border); background: var(--card); color: var(--text); font-family:inherit;"></textarea>
                 </div>
 
-                <hr style="margin: 2rem 0; border: 0; border-top: 1px solid #e2e8f0;">
+                <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border);">
 
-                <div class="commitment-box" style="background:#f8fafc; padding:1.5rem; border-radius:0.5rem; border:1px solid #e2e8f0; margin-bottom:1.5rem; text-align:center;">
-                    <p style="font-weight:600; color:#1e293b; margin-bottom:1rem; line-height:1.5;">
+                <div class="commitment-box" style="background:var(--bg); padding:1.5rem; border-radius:0.5rem; border:1px solid var(--border); margin-bottom:1.5rem; text-align:center;">
+                    <p style="font-weight:600; color:var(--text); margin-bottom:1rem; line-height:1.5;">
                         EU, ESTOU CIENTE PELA PONTUAÇÃO E SINALIZAÇÕES ACIMA E ME COMPROMETO(A) A DESENVOLVER E MELHORAR TODOS OS PONTOS ACIMA.
                     </p>
                     <label style="display:inline-flex; align-items:center; gap:0.5rem; cursor:pointer;">
@@ -117,7 +118,7 @@
                     </label>
                 </div>
 
-                <div class="score-display" style="display:flex; justify-content:space-between; align-items:center; background:#1e293b; color:white; padding:1.5rem; border-radius:0.5rem; margin-bottom:2rem; flex-wrap:wrap; gap:1rem;">
+                <div class="score-display" style="display:flex; justify-content:space-between; align-items:center; background:var(--brand-bg); color:var(--brand-text); padding:1.5rem; border-radius:0.5rem; margin-bottom:2rem; flex-wrap:wrap; gap:1rem;">
                     <div style="font-size:0.85rem; opacity:0.8;">OBS.: MÍNIMO PARA PONTUAÇÃO SATISFATÓRIA É DE 80 PONTOS.</div>
                     <div style="text-align:right;">
                         <div style="font-size:0.9rem; opacity:0.9;">TOTAL DE PONTUAÇÃO:</div>
@@ -127,15 +128,15 @@
 
                 <div class="form-group">
                     <label>01. Após avaliação, cite 02 pontos positivos que lhe destacam como profissional:</label>
-                    <textarea name="pontosPositivos" rows="4" style="width:100%; padding:0.75rem; border-radius:0.5rem; border:1px solid #e2e8f0; font-family:inherit;" required></textarea>
+                    <textarea name="pontosPositivos" rows="4" style="width:100%; padding:0.75rem; border-radius:0.5rem; border:1px solid var(--border); background: var(--card); color: var(--text); font-family:inherit;" required></textarea>
                 </div>
 
                 <div class="form-group">
                     <label>02. Cite 05 pontos a melhorar:</label>
-                    <textarea name="pontosMelhorar" rows="4" style="width:100%; padding:0.75rem; border-radius:0.5rem; border:1px solid #e2e8f0; font-family:inherit;" required></textarea>
+                    <textarea name="pontosMelhorar" rows="4" style="width:100%; padding:0.75rem; border-radius:0.5rem; border:1px solid var(--border); background: var(--card); color: var(--text); font-family:inherit;" required></textarea>
                 </div>
 
-                <hr style="margin: 2rem 0; border: 0; border-top: 1px solid #e2e8f0;">
+                <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border);">
 
                 <div class="form-row">
                     <div class="form-group">
@@ -148,11 +149,11 @@
                     </div>
                 </div>
                 
-                <p style="text-align:center; font-size:0.85rem; color:#64748b;">CONFIRMAM QUE A AVALIAÇÃO ACIMA FOI DISCUTIDA E ACEITA</p>
+                <p style="text-align:center; font-size:0.85rem; color:var(--muted);">CONFIRMAM QUE A AVALIAÇÃO ACIMA FOI DISCUTIDA E ACEITA</p>
             </div>
 
             <div class="form-actions">
-                <button type="submit" class="submit-btn">Enviar Avaliação</button>
+                <button type="submit" class="submit-btn" data-translate="avaliacao_submit">Enviar Avaliação</button>
             </div>
         </form>
     </div>

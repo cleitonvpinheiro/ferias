@@ -141,7 +141,7 @@ router.get('/rh/candidatos/arquivo-banco', recrutamentoAuth, async (req, res) =>
     }
 });
 
-router.get('/candidatos/pdf/:id', async (req, res) => {
+router.get('/candidatos/pdf/:id', recrutamentoAuth, async (req, res) => {
     try {
         const item = await db.candidatos.getById(req.params.id);
         if (!item) return res.status(404).send('Candidato não encontrado');

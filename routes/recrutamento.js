@@ -6,7 +6,7 @@ const pdfService = require('../services/pdfService');
 const { recrutamentoAuth } = require('../middleware/auth');
 
 // Public: Submit Application
-router.post('/recrutamento-interno', async (req, res) => {
+router.post('/recrutamento-interno', recrutamentoAuth, async (req, res) => {
     try {
         const payload = req.body;
         // Basic validation

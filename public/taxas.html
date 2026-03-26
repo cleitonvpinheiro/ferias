@@ -6,6 +6,7 @@
   <title>Pagamento de Taxas</title>
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="stylesheet" href="./styles.css">
+  <script src="/lang-switcher.js" defer></script>
   <style>
     .taxas-table {
         width: 100%;
@@ -14,14 +15,14 @@
         margin-bottom: 20px;
     }
     .taxas-table th, .taxas-table td {
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--border);
         padding: 8px;
         text-align: left;
     }
     .taxas-table th {
-        background-color: #f8fafc;
+        background-color: var(--bg);
         font-weight: 600;
-        color: #334155;
+        color: var(--text);
     }
     .taxas-table input {
         width: 100%;
@@ -32,8 +33,8 @@
         padding: 4px;
     }
     .taxas-table input:focus {
-        outline: 2px solid #2563eb;
-        background: white;
+        outline: 2px solid var(--accent);
+        background: var(--card);
     }
     .dates-grid {
         display: grid;
@@ -72,26 +73,26 @@
         align-items: center;
         justify-content: center;
         padding: 16px;
-        background: #fff;
-        border: 2px solid #e2e8f0;
+        background: var(--card);
+        border: 2px solid var(--border);
         border-radius: 12px;
         transition: all 0.2s ease;
         height: 100%;
         text-align: center;
-        color: #64748b;
+        color: var(--muted);
     }
 
     .selection-card:hover .selection-content {
-        border-color: #cbd5e1;
-        background: #f8fafc;
+        border-color: var(--border);
+        background: var(--bg);
     }
 
     .selection-card input:checked + .selection-content {
         border-color: var(--accent);
-        background: #eff6ff;
+        background: var(--accent-soft);
         color: var(--accent);
         font-weight: 600;
-        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.1);
+        box-shadow: var(--shadow-md);
     }
 
     .selection-icon {
@@ -110,8 +111,8 @@
 
     /* Form Header Bar */
     .form-header-bar {
-        background-color: #5A636A;
-        color: white;
+        background-color: var(--brand-bg);
+        color: var(--brand-text);
         padding: 12px 16px;
         border-radius: 6px;
         font-weight: 700;
@@ -149,29 +150,30 @@
     .input-group label {
         font-size: 0.85rem;
         font-weight: 600;
-        color: #64748b;
+        color: var(--muted);
         margin-bottom: 6px;
         display: block;
     }
     .input-group input, .input-group select {
         width: 100%;
         padding: 10px 12px;
-        border: 1px solid #cbd5e1;
+        border: 1px solid var(--border);
         border-radius: 8px;
         font-size: 0.95rem;
         transition: border-color 0.2s, box-shadow 0.2s;
-        background: white;
+        background: var(--card);
+        color: var(--text);
     }
     .input-group input:focus, .input-group select:focus {
-        border-color: #2563eb;
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        border-color: var(--accent);
+        box-shadow: var(--focus-ring);
         outline: none;
     }
     
     /* Segmented Control for Account Type */
     .segmented-control {
         display: flex;
-        background: #e2e8f0;
+        background: var(--bg);
         padding: 4px;
         border-radius: 8px;
         width: fit-content;
@@ -193,15 +195,15 @@
         padding: 6px 16px;
         border-radius: 6px;
         font-size: 0.85rem;
-        color: #64748b;
+        color: var(--muted);
         font-weight: 600;
         transition: all 0.2s;
         user-select: none;
     }
     .segmented-option input:checked + .segmented-label {
-        background: white;
-        color: #2563eb;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        background: var(--card);
+        color: var(--accent);
+        box-shadow: var(--shadow-xs);
     }
     
     @media (max-width: 640px) {
@@ -209,20 +211,19 @@
     }
   </style>
 </head>
-<body>
- 
+<body data-page="taxas">
   <main class="container">
     <div style="margin-bottom: 20px;">
-        <a href="/" style="color: #64748b; text-decoration: none; font-size: 0.9rem;">&larr; Voltar ao Menu</a>
+        <a href="/" style="color: var(--muted); text-decoration: none; font-size: 0.9rem;" data-translate="public_back_menu">&larr; Voltar ao Menu</a>
     </div>
      
    <div class="brand-inner">
       <img class="brand-logo" src="/assets/logo.png" alt="Logo Família Madalosso">
-      <div class="brand-title">Formulário de Pagamento de Taxas</div>
+      <div class="brand-title" data-translate="taxas_title">Formulário de Pagamento de Taxas</div>
     </div>
     
     <form id="formTaxas" novalidate>
-      <div class="input-group full-width" style="margin-bottom: 24px; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+      <div class="input-group full-width" style="margin-bottom: 24px; background: var(--bg); padding: 16px; border-radius: 8px; border: 1px solid var(--border);">
           <label for="select_funcionario">SELECIONE O COLABORADOR (Preenchimento Automático)</label>
           <select id="select_funcionario">
               <option value="">Carregando colaboradores...</option>
@@ -230,7 +231,7 @@
           <input type="hidden" id="taxa_id_draft">
       </div>
 
-      <h2 class="section-title">Dados da Taxa</h2>
+      <h2 class="section-title" data-translate="taxas_section_fee">Dados da Taxa</h2>
       <label>
         Nome Completo
         <input type="text" id="nome_taxa" required>
@@ -247,7 +248,7 @@
           </label>
       </div>
 
-      <h2 class="section-title">Dados Bancários</h2>
+      <h2 class="section-title" data-translate="taxas_section_banking">Dados Bancários</h2>
       <div class="banking-wrapper">
        
           
@@ -306,7 +307,7 @@
         </label>
       </div>
 
-      <h2 class="section-title">Motivo</h2>
+      <h2 class="section-title" data-translate="taxas_section_reason">Motivo</h2>
       <div class="selection-grid">
           <label class="selection-card">
             <input type="checkbox" name="motivo" value="aumento_demanda">
@@ -425,10 +426,10 @@
             </select>
         </div>
       </div>
-      <button type="button" id="btnAddDate" style="margin-top: 10px; font-size: 0.8rem; background: #e2e8f0; color: #334155; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">+ Adicionar Data</button>
+      <button type="button" id="btnAddDate" style="margin-top: 10px; font-size: 0.8rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; cursor: pointer;">+ Adicionar Data</button>
 
       <h2 class="section-title">Observações de Pagamento</h2>
-      <div style="background: #1e293b; color: #f1f5f9; padding: 16px; border-radius: 8px; font-size: 0.9rem; margin-bottom: 24px;">
+      <div style="background: var(--brand-bg); color: var(--brand-text); padding: 16px; border-radius: 8px; font-size: 0.9rem; margin-bottom: 24px;">
           <ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px;">
               <li>Os formulários devem ser entregues na segunda-feira até as 12:00 e serão pagos na terça-feira.</li>
               <li>Formulários entregues na quinta-feira até as 12:00 serão pagos na sexta-feira.</li>
@@ -457,9 +458,9 @@
           </div>
           <canvas id="assinaturaTaxa" aria-label="Assinatura Taxa"></canvas>
         </div>
-        <div id="taxaSignatureOverlay" class="signature-overlay" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; border-radius: 8px;">
+        <div id="taxaSignatureOverlay" class="signature-overlay" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--overlay-bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; border-radius: 8px;">
            <span style="font-size: 2rem;">🔒</span>
-           <p style="color: #64748b; font-weight: 500;">A assinatura será solicitada após aprovação do RH</p>
+           <p style="color: var(--muted); font-weight: 500;">A assinatura será solicitada após aprovação do RH</p>
         </div>
       </div>
 
@@ -475,8 +476,8 @@
       </div>
 
       <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-          <button class="enviar" type="submit" id="btnSubmit">Enviar Solicitação</button>
-          <button type="button" id="btnEnviarNovo" class="enviar" style="background-color: #2563eb; display: none;">Enviar e Preencher Outra</button>
+          <button class="enviar" type="submit" id="btnSubmit" data-translate="public_submit">Enviar Solicitação</button>
+          <button type="button" id="btnEnviarNovo" class="enviar" style="background-color: var(--accent); display: none;" data-translate="taxas_submit_another">Enviar e Preencher Outra</button>
       </div>
     </form>
     <div id="feedback" class="feedback" role="alert" hidden></div>
@@ -485,9 +486,9 @@
   <footer class="app-footer">
     <div class="footer-content">
       <img src="/assets/logo.png" alt="Logo" class="footer-logo">
-      <p>&copy; 2025 Família Madalosso. Todos os direitos reservados.</p>
+      <p data-translate="public_footer_rights">&copy; 2025 Família Madalosso. Todos os direitos reservados.</p>
       <div style="display: flex; gap: 12px; align-items: center;">
-          <a href="/dashboard-taxas.html" style="font-size: 0.75rem; color: #94a3b8; text-decoration: none;">Acesso RH</a>
+          <a href="/dashboard-taxas.html" style="font-size: 0.75rem; color: var(--muted); text-decoration: none;" data-translate="public_footer_rh_access">Acesso RH</a>
       </div>
     </div>
   </footer>

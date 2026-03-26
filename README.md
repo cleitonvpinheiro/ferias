@@ -78,7 +78,7 @@ O sistema é dividido em módulos integrados:
     ```
 
 3.  Configure as variáveis de ambiente:
-    Crie um arquivo `.env` na raiz do projeto (use `.env.example` como base) e configure as chaves necessárias (SMTP, Autentique, Credenciais RH/Portaria).
+    Crie um arquivo `.env` na raiz do projeto (use `.env.example` como base). O sistema funciona sem integrações externas, mas exige `JWT_SECRET` em produção.
 
 4.  Inicialize o banco de dados (se necessário):
     O sistema cria/migra as tabelas automaticamente ao iniciar (`database/init.js`), mas você pode verificar o schema em `database/schema.sql`.
@@ -96,9 +96,53 @@ A aplicação estará disponível em `http://localhost:8080` (ou a porta definid
 ### Principais Rotas de Acesso:
 
 - **Portal do Colaborador:** `/` (Menu principal)
-- **Painel do RH:** `/protected/dashboard-rh.html` (Requer login RH)
+- **Login:** `/login.html`
+- **Portal RH (restrito):** `/protected/index.html`
+- **Painel do RH:** `/protected/dashboard-rh.html` (Requer login)
 - **Painel da Portaria:** `/protected/dashboard-portaria.html` (Requer login Portaria)
-- **Solicitação de Férias:** `/public/ferias.html`
+- **Solicitação de Férias:** `/ferias.html`
+
+## 🔐 Autenticação e Perfis
+
+- **Login:** `POST /api/login` (retorna `{ ok, redirect }` e grava cookie `token`)
+- **Usuário logado:** `GET /api/me`
+- **Logout:** `POST /api/logout`
+- **Perfis (roles) principais:** `admin`, `rh_geral`, `dp`, `recrutamento`, `td`, `sesmt`, `portaria`, `gestor`, `endomarketing`
+- **Observação (legado):** também existe login via `.env` (`RH_USER`/`RH_PASS`, `PORTARIA_USER`/`PORTARIA_PASS`) e opcionalmente via LDAP, mas o padrão atual é via tabela `users` no SQLite.
+
+## 🧪 Usuários de teste (ambiente dev)
+
+Por padrão, o script [setup_auth.js](file:///c:/FormFerias/scripts/setup_auth.js) cria/atualiza os usuários abaixo com a senha `123456`:
+
+- `admin`, `rh`, `dp`, `recrutamento`, `td`, `sesmt`, `portaria`, `gestor`, `endomkt`
+
+Para recriar/resetar os usuários padrão:
+
+```bash
+node scripts/setup_auth.js
+```
+
+## 🧩 Variáveis de ambiente
+
+- **Obrigatórias (produção):**
+  - `JWT_SECRET`: segredo do JWT (sem isso o servidor encerra em produção)
+- **Básicas:**
+  - `PORT`: porta do servidor (default: `8080`)
+  - `BASE_URL`: usado em links de e-mail (default: `localhost:8080`)
+- **E-mail (opcional):**
+  - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_SECURE`, `MAIL_FROM`
+  - `DP_EMAIL`, `GESTOR_EMAIL`
+- **Autentique (opcional):**
+  - `AUTENTIQUE_TOKEN`, `AUTENTIQUE_SANDBOX`
+- **LDAP (opcional):**
+  - `LDAP_URL`, `LDAP_DN_FORMAT`, `LDAP_SEARCH_BASE`, `LDAP_ADMIN_DN`, `LDAP_ADMIN_PASSWORD`
+- **Questor (opcional):**
+  - `QUESTOR_API_URL`, `QUESTOR_API_TOKEN`
+
+## 🧯 Solução de problemas
+
+- **“Credenciais inválidas” em usuários padrão:** rode `node scripts/setup_auth.js` para resetar a senha para `123456`.
+- **“EADDRINUSE: 8080” (porta em uso):** encerre o processo que está usando a porta ou altere `PORT` no `.env`.
 
 ## 📂 Estrutura do Projeto
 

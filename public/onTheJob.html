@@ -6,24 +6,13 @@
   <title>Formulário On The Job</title>
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="stylesheet" href="./styles.css">
+  <script src="/lang-switcher.js" defer></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --primary: #c0392b;
-      --primary-hover: #a93226;
-      --secondary: #1e293b;
-      --bg-color: #f1f5f9;
-      --card-bg: #ffffff;
-      --text-main: #334155;
-      --text-light: #64748b;
-      --border: #e2e8f0;
-      --focus-ring: rgba(192, 57, 43, 0.25);
-    }
-
     body {
       font-family: 'Inter', sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-main);
+      background-color: var(--bg);
+      color: var(--text);
       margin: 0;
       padding: 40px 20px;
       line-height: 1.6;
@@ -32,10 +21,10 @@
     .container {
       max-width: 900px;
       margin: 0 auto;
-      background: var(--card-bg);
+      background: var(--card);
       padding: 48px;
       border-radius: 16px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      box-shadow: var(--shadow-sm);
     }
 
     /* Brand Header */
@@ -57,7 +46,7 @@
     .brand-title {
       font-size: 1.75rem;
       font-weight: 700;
-      color: var(--secondary);
+      color: var(--text);
       text-transform: uppercase;
       letter-spacing: -0.025em;
     }
@@ -66,7 +55,7 @@
     .section-title {
       font-size: 1.25rem;
       font-weight: 600;
-      color: var(--secondary);
+      color: var(--text);
       margin: 40px 0 24px 0;
       padding-bottom: 8px;
       border-bottom: 2px solid var(--border);
@@ -79,7 +68,7 @@
       display: block;
       width: 6px;
       height: 24px;
-      background-color: var(--primary);
+      background-color: var(--accent);
       margin-right: 12px;
       border-radius: 2px;
     }
@@ -88,7 +77,7 @@
     label {
       display: block;
       font-weight: 500;
-      color: var(--secondary);
+      color: var(--text);
       margin-bottom: 6px;
       font-size: 0.9rem;
     }
@@ -102,16 +91,16 @@
       border: 1px solid var(--border);
       border-radius: 6px;
       font-size: 0.95rem;
-      color: var(--text-main);
-      background-color: #fff;
+      color: var(--text);
+      background-color: var(--card);
       transition: all 0.2s ease;
       box-sizing: border-box;
     }
 
     input:focus {
       outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px var(--focus-ring);
+      border-color: var(--accent);
+      box-shadow: var(--focus-ring);
     }
 
     /* Grid Layouts */
@@ -134,7 +123,7 @@
       border-radius: 8px;
       overflow: hidden;
       margin-bottom: 32px;
-      background-color: #fff;
+      background-color: var(--card);
     }
 
     .table-cell {
@@ -150,9 +139,9 @@
     }
 
     .table-header {
-      background-color: #f8fafc;
+      background-color: var(--bg);
       font-weight: 600;
-      color: var(--secondary);
+      color: var(--text);
       font-size: 0.85rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -167,8 +156,8 @@
       padding: 8px;
       font-size: 0.9rem;
     }
-    .table-input:hover { background: #f1f5f9; border-radius: 4px; }
-    .table-input:focus { background: #fff; border: 1px solid var(--primary); border-radius: 4px; outline: none; }
+    .table-input:hover { background: var(--bg); border-radius: 4px; }
+    .table-input:focus { background: var(--card); border: 1px solid var(--accent); border-radius: 4px; outline: none; }
 
     .grid-cols-3 { grid-template-columns: 1fr 1fr 1fr; }
     .grid-cols-4 { grid-template-columns: 2fr 1fr 1fr 1fr; }
@@ -205,30 +194,30 @@
       align-items: center;
       justify-content: center;
       padding: 16px 20px;
-      background-color: #fff;
+      background-color: var(--card);
       border: 2px solid var(--border);
       border-radius: 12px;
-      color: var(--text-main);
+      color: var(--text);
       font-weight: 500;
       font-size: 0.95rem;
       transition: all 0.2s ease;
       height: 100%;
       text-align: center;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      box-shadow: var(--shadow-xs);
     }
 
     .option-content:hover {
-      border-color: #94a3b8;
-      background-color: #f8fafc;
+      border-color: var(--border);
+      background-color: var(--bg);
       transform: translateY(-2px);
     }
 
     .option-card input:checked + .option-content {
-      border-color: var(--primary);
-      background-color: #fef2f2; /* Light red tint matching primary */
-      color: var(--primary);
+      border-color: var(--accent);
+      background-color: var(--accent-soft);
+      color: var(--accent);
       font-weight: 600;
-      box-shadow: 0 4px 6px -1px rgba(192, 57, 43, 0.15);
+      box-shadow: var(--shadow-md);
       transform: translateY(-2px);
     }
     
@@ -240,7 +229,7 @@
     }
 
     .option-card input:focus + .option-content {
-      box-shadow: 0 0 0 4px var(--focus-ring);
+      box-shadow: var(--focus-ring);
     }
     
     /* Specific adjustments for number scale */
@@ -260,7 +249,7 @@
     
     .section-label {
         font-weight: 600;
-        color: var(--secondary);
+        color: var(--text);
         margin-bottom: 8px;
         display: block;
         font-size: 1rem;
@@ -271,8 +260,8 @@
       display: block;
       width: 100%;
       padding: 16px;
-      background-color: var(--primary);
-      color: white;
+      background-color: var(--accent);
+      color: var(--brand-text);
       font-size: 1rem;
       font-weight: 600;
       text-align: center;
@@ -283,21 +272,21 @@
       margin-top: 40px;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      box-shadow: 0 4px 6px -1px rgba(192, 57, 43, 0.2);
+      box-shadow: var(--shadow-md);
     }
     .enviar:hover {
-      background-color: var(--primary-hover);
+      background-color: var(--accent-hover);
       transform: translateY(-1px);
-      box-shadow: 0 6px 8px -1px rgba(192, 57, 43, 0.3);
+      box-shadow: var(--shadow-lg);
     }
     .enviar:active { transform: translateY(0); }
-    .enviar:disabled { background-color: #94a3b8; cursor: not-allowed; transform: none; box-shadow: none; }
+    .enviar:disabled { background-color: var(--muted); cursor: not-allowed; transform: none; box-shadow: none; }
 
     /* Footer */
     .app-footer {
       text-align: center;
       margin-top: 60px;
-      color: var(--text-light);
+      color: var(--muted);
       font-size: 0.85rem;
       border-top: 1px solid var(--border);
       padding-top: 32px;
@@ -313,113 +302,112 @@
       font-weight: 500;
     }
     .feedback.success {
-      background-color: #dcfce7;
-      color: #166534;
-      border: 1px solid #bbf7d0;
+      background-color: var(--success-bg);
+      color: var(--success-text);
+      border: 1px solid var(--success-border);
     }
     .feedback.error {
-      background-color: #fee2e2;
-      color: #991b1b;
-      border: 1px solid #fecaca;
+      background-color: var(--danger-bg);
+      color: var(--danger-text);
+      border: 1px solid var(--danger-border);
     }
   </style>
 </head>
-<body>
- 
+<body data-page="onthejob">
   <main class="container">
     <div style="margin-bottom: 24px;">
-        <a href="/" style="color: var(--text-light); text-decoration: none; font-size: 0.9rem; font-weight: 500; display: inline-flex; align-items: center; transition: color 0.2s;">
-          <span style="margin-right: 6px;">&larr;</span> Voltar ao Menu
+        <a href="/" style="color: var(--muted); text-decoration: none; font-size: 0.9rem; font-weight: 500; display: inline-flex; align-items: center; transition: color 0.2s;">
+          <span style="margin-right: 6px;">&larr;</span> <span data-translate="public_back_menu">Voltar ao Menu</span>
         </a>
     </div>
      
    <div class="brand-inner">
       <img class="brand-logo" src="/assets/logo.png" alt="Logo Família Madalosso">
-      <div class="brand-title">FORMULÁRIO ON THE JOB</div>
+      <div class="brand-title" data-translate="onthejob_title">FORMULÁRIO ON THE JOB</div>
     </div>
     
     <form id="formOnTheJob" novalidate>
       
       <!-- Cabeçalho do Colaborador -->
-      <h2 class="section-title">Dados Iniciais</h2>
+      <h2 class="section-title" data-translate="onthejob_section_initial">Dados Iniciais</h2>
       
       <div class="form-grid grid-2">
         <label>
-          Colaborador
-          <select id="colaborador" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; background-color: #fff; font-size: 0.95rem; color: var(--text-main);">
-              <option value="">Selecione um colaborador...</option>
+          <span data-translate="onthejob_label_colaborador">Colaborador</span>
+          <select id="colaborador" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; background-color: var(--card); font-size: 0.95rem; color: var(--text);">
+              <option value="" data-translate="onthejob_select_colaborador_placeholder">Selecione um colaborador...</option>
           </select>
         </label>
         <label>
-          Empresa
-          <input type="text" id="empresa" required placeholder="Unidade/Empresa">
+          <span data-translate="onthejob_label_empresa">Empresa</span>
+          <input type="text" id="empresa" required placeholder="Unidade/Empresa" data-translate="onthejob_placeholder_empresa">
         </label>
       </div>
       
       <div class="form-grid grid-3">
         <label>
-            Data da Proposta
+            <span data-translate="onthejob_label_data_proposta">Data da Proposta</span>
             <input type="date" id="dataProposta" required>
         </label>
         <label>
-            Vigorar a partir de
+            <span data-translate="onthejob_label_vigorar_inicio">Vigorar a partir de</span>
             <input type="date" id="vigorarInicio" required>
         </label>
         <label>
-            Até
+            <span data-translate="onthejob_label_vigorar_fim">Até</span>
             <input type="date" id="vigorarFim" required>
         </label>
       </div>
 
       <!-- Tabela Comparativa -->
-      <h2 class="section-title">Comparativo</h2>
+      <h2 class="section-title" data-translate="onthejob_section_compare">Comparativo</h2>
       <div class="table-grid grid-cols-3">
         <!-- Header -->
-        <div class="table-cell table-header">Informações</div>
-        <div class="table-cell table-header">Atual</div>
-        <div class="table-cell table-header">Proposta</div>
+        <div class="table-cell table-header" data-translate="onthejob_table_header_info">Informações</div>
+        <div class="table-cell table-header" data-translate="onthejob_table_header_atual">Atual</div>
+        <div class="table-cell table-header" data-translate="onthejob_table_header_proposta">Proposta</div>
         
         <!-- Cargo -->
-        <div class="table-cell table-header">Cargo:</div>
+        <div class="table-cell table-header" data-translate="onthejob_field_cargo">Cargo:</div>
         <div class="table-cell"><input type="text" class="table-input" id="cargoAtual"></div>
         <div class="table-cell"><input type="text" class="table-input" id="cargoProposta"></div>
 
         <!-- Horário -->
-        <div class="table-cell table-header">Horário:</div>
+        <div class="table-cell table-header" data-translate="onthejob_field_horario">Horário:</div>
         <div class="table-cell"><input type="text" class="table-input" id="horarioAtual"></div>
         <div class="table-cell"><input type="text" class="table-input" id="horarioProposta"></div>
 
         <!-- Setor -->
-        <div class="table-cell table-header">Setor:</div>
+        <div class="table-cell table-header" data-translate="onthejob_field_setor">Setor:</div>
         <div class="table-cell"><input type="text" class="table-input" id="setorAtual"></div>
         <div class="table-cell"><input type="text" class="table-input" id="setorProposta"></div>
 
         <!-- Observação -->
-        <div class="table-cell table-header">Observação:</div>
+        <div class="table-cell table-header" data-translate="onthejob_field_obs">Observação:</div>
         <div class="table-cell"><input type="text" class="table-input" id="obsAtual"></div>
         <div class="table-cell"><input type="text" class="table-input" id="obsProposta"></div>
       </div>
 
       <!-- Checkboxes / Radios -->
-      <h2 class="section-title">Detalhes da Movimentação</h2>
+      <h2 class="section-title" data-translate="onthejob_section_details">Detalhes da Movimentação</h2>
       
-      <div class="section-label">Nível da Movimentação/Promoção:</div>
+      <div class="section-label" data-translate="onthejob_label_nivel">Nível da Movimentação/Promoção:</div>
       <div class="radio-group">
         <label class="option-card">
           <input type="radio" name="nivel" value="junior">
-          <span class="option-content">Júnior</span>
+          <span class="option-content" data-translate="onthejob_opt_junior">Júnior</span>
         </label>
         <label class="option-card">
           <input type="radio" name="nivel" value="pleno">
-          <span class="option-content">Pleno</span>
+          <span class="option-content" data-translate="onthejob_opt_pleno">Pleno</span>
         </label>
         <label class="option-card">
           <input type="radio" name="nivel" value="senior">
-          <span class="option-content">Sênior</span>
+          <span class="option-content" data-translate="onthejob_opt_senior">Sênior</span>
         </label>
       </div>
 
-      <div class="section-label">Faixa de Enquadramento salário:</div>
+      <div class="section-label" data-translate="onthejob_label_faixa">Faixa de Enquadramento salário:</div>
       <div class="radio-group scale-group">
         <label class="option-card"><input type="radio" name="faixa" value="1"><span class="option-content">1</span></label>
         <label class="option-card"><input type="radio" name="faixa" value="2"><span class="option-content">2</span></label>
@@ -433,74 +421,74 @@
         <label class="option-card"><input type="radio" name="faixa" value="10"><span class="option-content">10</span></label>
       </div>
 
-      <div class="section-label">O Processo de ON THE JOB se encaixa:</div>
+      <div class="section-label" data-translate="onthejob_label_processo">O Processo de ON THE JOB se encaixa:</div>
       <div class="radio-group">
         <label class="option-card">
             <input type="radio" name="processo" value="promocao">
-            <span class="option-content">Promoção</span>
+            <span class="option-content" data-translate="onthejob_opt_promocao">Promoção</span>
         </label>
         <label class="option-card">
             <input type="radio" name="processo" value="mudanca">
-            <span class="option-content">Mudança de Função</span>
+            <span class="option-content" data-translate="onthejob_opt_mudanca">Mudança de Função</span>
         </label>
         <label class="option-card">
             <input type="radio" name="processo" value="enquadramento">
-            <span class="option-content">Enquadramento</span>
+            <span class="option-content" data-translate="onthejob_opt_enquadramento">Enquadramento</span>
         </label>
       </div>
 
-      <div class="section-label">Jornada semanal:</div>
+      <div class="section-label" data-translate="onthejob_label_jornada">Jornada semanal:</div>
       <div class="radio-group">
         <label class="option-card">
             <input type="radio" name="jornada" value="flexivel">
-            <span class="option-content">Flexível</span>
+            <span class="option-content" data-translate="onthejob_opt_flexivel">Flexível</span>
         </label>
         <label class="option-card">
             <input type="radio" name="jornada" value="44h">
-            <span class="option-content">44h</span>
+            <span class="option-content" data-translate="onthejob_opt_44h">44h</span>
         </label>
         <label class="option-card">
             <input type="radio" name="jornada" value="confianca">
-            <span class="option-content">Cargo de Confiança</span>
+            <span class="option-content" data-translate="onthejob_opt_confianca">Cargo de Confiança</span>
         </label>
         <label class="option-card">
             <input type="radio" name="jornada" value="horista">
-            <span class="option-content">Horista</span>
+            <span class="option-content" data-translate="onthejob_opt_horista">Horista</span>
         </label>
       </div>
 
-      <div class="section-label">Será necessário realizar exame de mudança de função:</div>
+      <div class="section-label" data-translate="onthejob_label_exame">Será necessário realizar exame de mudança de função:</div>
       <div class="radio-group">
         <label class="option-card">
             <input type="radio" name="exame" value="sim">
-            <span class="option-content">Sim</span>
+            <span class="option-content" data-translate="onthejob_opt_sim">Sim</span>
         </label>
         <label class="option-card">
             <input type="radio" name="exame" value="nao">
-            <span class="option-content">Não</span>
+            <span class="option-content" data-translate="onthejob_opt_nao">Não</span>
         </label>
         <label class="option-card">
             <input type="radio" name="exame" value="na">
-            <span class="option-content">N/A</span>
+            <span class="option-content" data-translate="onthejob_opt_na">N/A</span>
         </label>
       </div>
 
       <!-- Tabela Salarial -->
-      <h2 class="section-title">Alteração Salarial</h2>
+      <h2 class="section-title" data-translate="onthejob_section_salary">Alteração Salarial</h2>
       <div class="table-grid grid-cols-3">
-        <div class="table-cell table-header">Informações / Data</div>
-        <div class="table-cell table-header">De: Atual (R$)</div>
-        <div class="table-cell table-header">Para: Proposta (R$)</div>
+        <div class="table-cell table-header" data-translate="onthejob_salary_header_info">Informações / Data</div>
+        <div class="table-cell table-header" data-translate="onthejob_salary_header_de">De: Atual (R$)</div>
+        <div class="table-cell table-header" data-translate="onthejob_salary_header_para">Para: Proposta (R$)</div>
 
         <div class="table-cell">
-            <span style="margin-right:8px; font-weight:bold;">Salário:</span>
+            <span style="margin-right:8px; font-weight:bold;" data-translate="onthejob_salary_label">Salário:</span>
             <input type="date" class="table-input" id="salarioData1">
         </div>
         <div class="table-cell"><input type="number" step="0.01" class="table-input" id="salarioDe1"></div>
         <div class="table-cell"><input type="number" step="0.01" class="table-input" id="salarioPara1"></div>
 
         <div class="table-cell">
-            <span style="margin-right:8px; font-weight:bold;">Salário:</span>
+            <span style="margin-right:8px; font-weight:bold;" data-translate="onthejob_salary_label">Salário:</span>
             <input type="date" class="table-input" id="salarioData2">
         </div>
         <div class="table-cell"><input type="number" step="0.01" class="table-input" id="salarioDe2"></div>
@@ -508,12 +496,12 @@
       </div>
 
       <!-- Tabela Benefícios -->
-      <h2 class="section-title">Benefícios</h2>
+      <h2 class="section-title" data-translate="onthejob_section_benefits">Benefícios</h2>
       <div class="table-grid grid-cols-4">
-        <div class="table-cell table-header">Benefício</div>
-        <div class="table-cell table-header">Imediato</div>
-        <div class="table-cell table-header">Após 90 dias</div>
-        <div class="table-cell table-header">Após 180 dias</div>
+        <div class="table-cell table-header" data-translate="onthejob_beneficio">Benefício</div>
+        <div class="table-cell table-header" data-translate="onthejob_imediato">Imediato</div>
+        <div class="table-cell table-header" data-translate="onthejob_apos90">Após 90 dias</div>
+        <div class="table-cell table-header" data-translate="onthejob_apos180">Após 180 dias</div>
 
         <!-- 6 Rows of benefits -->
         <script>
@@ -528,7 +516,7 @@
         </script>
       </div>
 
-      <button class="enviar" type="submit" id="btnSubmit">Enviar Formulário</button>
+      <button class="enviar" type="submit" id="btnSubmit" data-translate="onthejob_submit">Enviar Formulário</button>
     </form>
     <div id="feedback" class="feedback" role="alert" hidden></div>
   </main>
@@ -536,12 +524,30 @@
   <footer class="app-footer">
     <div class="footer-content">
       <img src="/assets/logo.png" alt="Logo" class="footer-logo">
-      <p>&copy; 2025 Família Madalosso. Todos os direitos reservados.</p>
+      <p data-translate="public_footer_rights">&copy; 2025 Família Madalosso. Todos os direitos reservados.</p>
     </div>
   </footer>
 
   <script>
-    // Carregar lista de funcionários
+    (async function() {
+        try {
+            const res = await fetch('/api/me');
+            if (!res.ok) {
+                window.location.href = '/login.html';
+                return;
+            }
+            const data = await res.json();
+            const role = data.user && data.user.role;
+            const allowedRoles = ['td', 'rh', 'rh_geral', 'admin'];
+            if (!allowedRoles.includes(role)) {
+                alert('Acesso não autorizado a este formulário.');
+                window.location.href = '/';
+            }
+        } catch (e) {
+            window.location.href = '/login.html';
+        }
+    })();
+
     fetch('/api/funcionarios')
         .then(r => r.json())
         .then(funcionarios => {
@@ -575,7 +581,7 @@
         const feedback = document.getElementById('feedback');
         
         btn.disabled = true;
-        btn.textContent = 'Enviando...';
+        btn.textContent = (window.__APP_I18N__ && window.__APP_I18N__[(localStorage.getItem('app_lang')||'pt')].responder_form_sending) || 'Enviando...';
         feedback.hidden = true;
         feedback.className = 'feedback';
 
@@ -646,7 +652,7 @@
             const data = await res.json();
 
             if (data.ok) {
-                feedback.textContent = 'Formulário enviado com sucesso!';
+                feedback.textContent = (window.__APP_I18N__ && window.__APP_I18N__[(localStorage.getItem('app_lang')||'pt')].responder_form_success_title) || 'Formulário Enviado!';
                 feedback.classList.add('success');
                 feedback.hidden = false;
                 document.getElementById('formOnTheJob').reset();
@@ -659,7 +665,7 @@
             feedback.hidden = false;
         } finally {
             btn.disabled = false;
-            btn.textContent = 'Enviar Formulário';
+            btn.textContent = (window.__APP_I18N__ && window.__APP_I18N__[(localStorage.getItem('app_lang')||'pt')].onthejob_submit) || 'Enviar Formulário';
         }
     });
   </script>

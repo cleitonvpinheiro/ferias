@@ -6,45 +6,54 @@
   <title>Formulário de Desligamento</title>
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="stylesheet" href="/rh-styles.css">
+  <script src="/lang-switcher.js" defer></script>
   <style>
-      body { background-color: #f3f4f6; min-height: 100vh; display: flex; flex-direction: column; }
-      .form-page-container { max-width: 900px; margin: 2rem auto; width: 95%; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+      body { background-color: var(--bg-body); min-height: 100vh; display: flex; flex-direction: column; }
+      .form-page-container { max-width: 980px; margin: 2rem auto; width: min(96%, 980px); background: var(--bg-surface); padding: clamp(16px, 3vw, 28px); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); border: 1px solid var(--border); }
       
       .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
       .form-full { grid-column: 1 / -1; }
       .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
-      .form-label { font-weight: 600; font-size: 0.9rem; color: #374151; }
+      .form-label { font-weight: 600; font-size: 0.9rem; color: var(--text-primary); }
       .form-input { 
           width: 100%; 
           padding: 0.625rem 0.875rem; 
-          border: 1px solid #d1d5db; 
-          border-radius: 6px; 
+          border: 1px solid var(--border); 
+          border-radius: var(--radius-sm); 
           font-size: 0.95rem; 
-          transition: border-color 0.2s, box-shadow 0.2s;
+          color: var(--text-primary);
+          transition: border-color 0.2s, background-color 0.2s, outline-color 0.2s;
           box-sizing: border-box;
-          background-color: #f9fafb;
+          background-color: var(--bg-body);
       }
       .form-input:focus { 
           outline: none; 
-          border-color: #2563eb; 
-          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); 
-          background-color: #fff;
+          border-color: var(--accent); 
+          background-color: var(--bg-surface);
+          outline: 2px solid var(--accent);
+          outline-offset: 2px;
       }
       textarea.form-input { resize: vertical; min-height: 100px; }
       
-      .radio-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }
+      .radio-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }
       .radio-item { 
           display: flex; 
           align-items: center; 
           gap: 0.5rem; 
-          padding: 0.5rem;
-          border-radius: 4px;
+          padding: 0.75rem 0.85rem;
+          border-radius: var(--radius-sm);
           cursor: pointer;
+          background: var(--bg-body);
+          border: 1px solid var(--border);
+          user-select: none;
       }
-      .radio-item:hover { background-color: #f3f4f6; }
+      .radio-item input { margin: 0; accent-color: var(--accent); }
+      .radio-item:hover { background-color: var(--accent-soft); border-color: var(--accent); }
       
-      .table-eval th, .table-eval td { border: 1px solid #e5e7eb; padding: 0.75rem; text-align: center; }
-      .table-eval th { background-color: #f9fafb; font-weight: 600; color: #374151; }
+      .table-wrap { overflow-x: auto; border-radius: var(--radius-md); border: 1px solid var(--border); }
+      .table-eval { width: 100%; border-collapse: collapse; min-width: 640px; background: var(--bg-surface); }
+      .table-eval th, .table-eval td { border: 1px solid var(--border); padding: 0.75rem; text-align: center; }
+      .table-eval th { background-color: var(--bg-body); font-weight: 700; color: var(--text-primary); }
       .table-eval td:first-child { text-align: left; font-weight: 500; }
       
       .section-title { 
@@ -52,8 +61,8 @@
           margin-top: 2rem; 
           margin-bottom: 1rem; 
           padding-bottom: 0.5rem; 
-          border-bottom: 2px solid #e5e7eb; 
-          color: #1f2937;
+          border-bottom: 2px solid var(--border); 
+          color: var(--primary);
           font-size: 1.1rem;
           text-transform: uppercase;
           letter-spacing: 0.05em;
@@ -61,16 +70,21 @@
 
       .header-logo { text-align: center; margin-bottom: 2rem; }
       .header-logo img { height: 60px; margin-bottom: 1rem; }
-      .header-logo h1 { font-size: 1.5rem; color: #1f2937; margin: 0; }
+      .header-logo h1 { font-size: 1.5rem; color: var(--text-primary); margin: 0; }
+      .header-logo p { color: var(--text-secondary); margin-top: 0.5rem; }
+
+      .subsection-title { font-weight: 700; color: var(--text-primary); margin: 0.5rem 0 0.75rem; }
+      .form-actions { margin-top: 2rem; display: flex; justify-content: flex-end; }
+      .form-actions .btn { width: min(420px, 100%); padding: 1rem; font-size: 1.05rem; border-radius: var(--radius-md); }
   </style>
 </head>
-<body>
+<body data-page="rh-entrevista-desligamento">
 
   <div class="form-page-container">
         <div class="header-logo">
             <img src="/assets/logo.png" alt="Família Madalosso" style="height: 80px; margin-bottom: 1rem;">
-            <h1>Entrevista de Desligamento</h1>
-            <p style="color: #6b7280; margin-top: 0.5rem;">Por favor, preencha as informações abaixo.</p>
+            <h1 data-translate="rh_exit_form_title">Entrevista de Desligamento</h1>
+            <p data-translate="rh_exit_form_subtitle">Por favor, preencha as informações abaixo.</p>
         </div>
 
         <form id="form-desligamento" onsubmit="salvarEntrevista(event)">
@@ -102,7 +116,7 @@
                 </div>
             </div>
 
-            <div class="section-title">TIPO DE DESLIGAMENTO</div>
+            <div class="section-title" data-translate="rh_exit_form_section_type">TIPO DE DESLIGAMENTO</div>
             <div class="radio-grid">
                 <label class="radio-item"><input type="radio" name="tipo_desligamento" value="Sem justa causa" required> Sem justa causa</label>
                 <label class="radio-item"><input type="radio" name="tipo_desligamento" value="Por justa causa"> Por justa causa</label>
@@ -113,8 +127,8 @@
                 <label class="radio-item"><input type="radio" name="tipo_desligamento" value="Outros"> Outros</label>
             </div>
 
-            <div class="section-title">MOTIVO DO DESLIGAMENTO</div>
-            <p><strong>Por Pedido:</strong></p>
+            <div class="section-title" data-translate="rh_exit_form_section_reason">MOTIVO DO DESLIGAMENTO</div>
+            <div class="subsection-title">Por Pedido:</div>
             <div class="radio-grid">
                 <label class="radio-item"><input type="radio" name="motivo_desligamento" value="Salário"> Salário</label>
                 <label class="radio-item"><input type="radio" name="motivo_desligamento" value="Oportunidade de trabalho"> Oportunidade de trabalho</label>
@@ -125,7 +139,7 @@
                 <label class="radio-item"><input type="radio" name="motivo_desligamento" value="Distrato"> Distrato</label>
                 <label class="radio-item"><input type="radio" name="motivo_desligamento" value="Outros"> Outros</label>
             </div>
-            <p style="margin-top: 10px;"><strong>Por Dispensa:</strong></p>
+            <div class="subsection-title">Por Dispensa:</div>
             <div class="radio-grid">
                 <label class="radio-item"><input type="radio" name="motivo_desligamento" value="Baixo desempenho"> Baixo desempenho</label>
                 <label class="radio-item"><input type="radio" name="motivo_desligamento" value="Pontualidade, assiduidade"> Pontualidade, assiduidade</label>
@@ -138,7 +152,7 @@
 
             <div id="eval-container"></div>
 
-            <div class="section-title">PERGUNTAS FINAIS</div>
+            <div class="section-title" data-translate="rh_exit_form_section_final">PERGUNTAS FINAIS</div>
             <div class="form-grid" style="grid-template-columns: 1fr; gap: 1.5rem;">
                 <div class="form-group">
                     <label class="form-label">Como você percebia o atendimento do setor de RH?</label>
@@ -184,8 +198,8 @@
                 </div>
             </div>
 
-            <div style="margin-top: 2rem; text-align: right;">
-                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem;">Enviar Entrevista</button>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary" data-translate="rh_exit_form_submit">Enviar Entrevista</button>
             </div>
         </form>
   </div>
@@ -246,7 +260,8 @@
           for (const [key, section] of Object.entries(evaluations)) {
               const div = document.createElement('div');
               div.innerHTML = `<div class="section-title">${section.title}</div>
-                  <table class="table-eval" style="width:100%">
+                  <div class="table-wrap">
+                  <table class="table-eval">
                       <thead>
                           <tr>
                               <th>Item</th>
@@ -267,7 +282,8 @@
                               </tr>
                           `).join('')}
                       </tbody>
-                  </table>`;
+                  </table>
+                  </div>`;
               container.appendChild(div);
           }
       }

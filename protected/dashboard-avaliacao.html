@@ -6,6 +6,7 @@
     <title>Dashboard RH - Avaliações de Performance</title>
     <link rel="icon" href="/assets/logo.png" type="image/png">
     <link rel="stylesheet" href="/rh-styles.css">
+  <script src="/lang-switcher.js" defer></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -13,11 +14,11 @@
             padding: 4px 8px;
             border-radius: 4px;
             font-weight: bold;
-            color: white;
+            color: var(--brand-text);
         }
-        .score-high { background-color: #28a745; }
-        .score-medium { background-color: #ffc107; color: #333; }
-        .score-low { background-color: #dc3545; }
+        .score-high { background-color: var(--success); }
+        .score-medium { background-color: var(--warning); color: var(--text-primary); }
+        .score-low { background-color: var(--danger); }
         
         .modal-body {
             max-height: 70vh;
@@ -27,7 +28,7 @@
             display: flex;
             justify-content: space-between;
             padding: 8px 0;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--border);
         }
         .detail-question {
             flex: 1;
@@ -37,15 +38,15 @@
             font-weight: bold;
         }
 
-        .score-val-high { color: #10b981; }
-        .score-val-med { color: #f59e0b; }
-        .score-val-low { color: #ef4444; }
+        .score-val-high { color: var(--success); }
+        .score-val-med { color: var(--warning); }
+        .score-val-low { color: var(--danger); }
 
         .filters-bar {
-            background: white;
+            background: var(--bg-surface);
             padding: 16px;
             border-radius: 12px;
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--border);
             display: flex;
             gap: 16px;
             align-items: flex-end;
@@ -62,20 +63,14 @@
         .filter-group label {
             font-size: 0.85rem;
             font-weight: 600;
-            color: #64748b;
-        }
-
-        .filter-input, .filter-select {
-            padding: 8px 12px;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            font-size: 0.9rem;
+            color: var(--text-secondary);
+        
             min-width: 200px;
         }
 
         .btn-action {
             background: none;
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--border);
             padding: 4px 8px;
             border-radius: 6px;
             cursor: pointer;
@@ -84,12 +79,12 @@
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            color: #475569;
+            color: var(--text-secondary);
         }
         .btn-action:hover {
-            background: #f8fafc;
-            border-color: #cbd5e1;
-            color: #1e293b;
+            background: var(--bg-body);
+            border-color: var(--text-secondary);
+            color: var(--text-primary);
         }
         .stats-overview {
             display: grid;
@@ -98,21 +93,21 @@
             margin-bottom: 24px;
         }
         .overview-card {
-            background: white;
+            background: var(--bg-surface);
             padding: 20px;
             border-radius: 12px;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-xs);
             text-align: center;
         }
         .overview-value {
             font-size: 2rem;
             font-weight: 800;
-            color: #1e293b;
+            color: var(--text-primary);
             margin: 8px 0;
         }
         .overview-label {
-            color: #64748b;
+            color: var(--text-secondary);
             font-size: 0.875rem;
             font-weight: 600;
             text-transform: uppercase;
@@ -125,21 +120,21 @@
             margin-bottom: 32px;
         }
         .chart-card {
-            background: white;
+            background: var(--bg-surface);
             padding: 24px;
             border-radius: 12px;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-xs);
         }
         .chart-title {
             font-size: 1rem;
             font-weight: 700;
-            color: #1e293b;
+            color: var(--text-primary);
             margin-bottom: 16px;
         }
     </style>
 </head>
-<body>
+<body data-page="rh-avaliacoes">
     <div id="navbar-container"></div>
     <script src="/rh-navbar.js"></script>
     <script>renderRHNavbar('avaliacoes');</script>
@@ -147,59 +142,59 @@
     <div class="dashboard-container">
         <div class="page-header">
             <div>
-                <h1 class="page-title">Avaliações de Performance</h1>
-                <p class="page-subtitle">Acompanhe as avaliações de Liderança, ADM e Operacional</p>
+                <h1 class="page-title" data-translate="rh_dash_avaliacoes_title">Avaliações de Performance</h1>
+                <p class="page-subtitle" data-translate="rh_dash_avaliacoes_subtitle">Acompanhe as avaliações de Liderança, ADM e Operacional</p>
             </div>
             <div class="last-update">
-                <span id="lastUpdate">Atualizado agora</span>
+                <span id="lastUpdate" data-translate="rh_dash_last_update_now">Atualizado agora</span>
             </div>
         </div>
 
         <div class="filters-bar">
             <div class="filter-group">
-                <label>Buscar Funcionário</label>
-                <input type="text" id="searchInput" class="filter-input" placeholder="Nome..." onkeyup="filtrarAvaliacoes()">
+                <label data-translate="rh_dash_avaliacoes_search_label">Buscar Funcionário</label>
+                <input type="text" id="searchInput" class="filter-input" placeholder="Nome..." data-translate="rh_dash_avaliacoes_search_placeholder" onkeyup="filtrarAvaliacoes()">
             </div>
             <div class="filter-group">
-                <label>Tipo de Avaliação</label>
+                <label data-translate="rh_dash_avaliacoes_type_label">Tipo de Avaliação</label>
                 <select id="typeFilter" class="filter-select" onchange="filtrarAvaliacoes()">
-                    <option value="">Todos</option>
-                    <option value="lideranca">Liderança</option>
-                    <option value="adm">Administrativo</option>
-                    <option value="operacional">Operacional</option>
+                    <option value="" data-translate="rh_dash_filter_all">Todos</option>
+                    <option value="lideranca" data-translate="rh_dash_avaliacoes_type_leadership">Liderança</option>
+                    <option value="adm" data-translate="rh_dash_avaliacoes_type_admin">Administrativo</option>
+                    <option value="operacional" data-translate="rh_dash_avaliacoes_type_operational">Operacional</option>
                 </select>
             </div>
-            <button class="btn-primary" onclick="exportarExcel()">📥 Exportar Excel</button>
+            <button class="btn-primary" onclick="exportarExcel()">📥 <span data-translate="rh_dash_export_excel">Exportar Excel</span></button>
         </div>
 
         <!-- KPI Cards -->
         <div class="stats-overview">
             <div class="overview-card">
-                <div class="overview-label">Total de Avaliações</div>
+                <div class="overview-label" data-translate="rh_dash_avaliacoes_kpi_total">Total de Avaliações</div>
                 <div class="overview-value" id="totalCount">0</div>
             </div>
             <div class="overview-card">
-                <div class="overview-label">Média Geral</div>
+                <div class="overview-label" data-translate="rh_dash_avaliacoes_kpi_avg">Média Geral</div>
                 <div class="overview-value" id="avgScore">0.0</div>
             </div>
             <div class="overview-card">
-                <div class="overview-label">Aprovados (>80%)</div>
-                <div class="overview-value" id="approvedCount" style="color: #10b981;">0</div>
+                <div class="overview-label" data-translate="rh_dash_avaliacoes_kpi_approved">Aprovados (>80%)</div>
+                <div class="overview-value" id="approvedCount" style="color: var(--success);">0</div>
             </div>
             <div class="overview-card">
-                <div class="overview-label">Em Atenção (<50%)</div>
-                <div class="overview-value" id="attentionCount" style="color: #ef4444;">0</div>
+                <div class="overview-label" data-translate="rh_dash_avaliacoes_kpi_attention">Em Atenção (<50%)</div>
+                <div class="overview-value" id="attentionCount" style="color: var(--danger);">0</div>
             </div>
         </div>
 
         <!-- Charts -->
         <div class="charts-container">
             <div class="chart-card">
-                <div class="chart-title">Distribuição por Tipo</div>
+                <div class="chart-title" data-translate="rh_dash_avaliacoes_chart_dist">Distribuição por Tipo</div>
                 <canvas id="typeChart"></canvas>
             </div>
             <div class="chart-card">
-                <div class="chart-title">Média de Pontuação por Tipo</div>
+                <div class="chart-title" data-translate="rh_dash_avaliacoes_chart_avg">Média de Pontuação por Tipo</div>
                 <canvas id="scoreChart"></canvas>
             </div>
         </div>
@@ -208,13 +203,13 @@
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>Data</th>
-                        <th>Funcionário</th>
-                        <th>Função</th>
-                        <th>Tipo</th>
-                        <th>Avaliador</th>
-                        <th>Pontuação</th>
-                        <th>Ações</th>
+                        <th data-translate="rh_dash_th_data">Data</th>
+                        <th data-translate="rh_dash_avaliacoes_th_funcionario">Funcionário</th>
+                        <th data-translate="rh_dash_taxas_th_funcao">Função</th>
+                        <th data-translate="rh_dash_avaliacoes_th_tipo">Tipo</th>
+                        <th data-translate="rh_dash_avaliacoes_th_avaliador">Avaliador</th>
+                        <th data-translate="rh_dash_avaliacoes_th_pontuacao">Pontuação</th>
+                        <th data-translate="rh_dash_th_acao">Ações</th>
                     </tr>
                 </thead>
                 <tbody id="lista-corpo">
@@ -228,7 +223,7 @@
     <div class="modal-overlay" id="modalDetalhes">
         <div class="modal">
             <div class="modal-header">
-                <h2 class="modal-title">Detalhes da Avaliação</h2>
+                <h2 class="modal-title" data-translate="rh_dash_avaliacoes_modal_title">Detalhes da Avaliação</h2>
                 <button class="close-modal" onclick="fecharModal()">×</button>
             </div>
             <div class="modal-body" id="modalBody">
@@ -277,7 +272,20 @@
             document.getElementById('attentionCount').innerText = attention;
         }
 
+        function currentLang() {
+            try { return localStorage.getItem('app_lang') || 'pt'; } catch { return 'pt'; }
+        }
+        function i18n(key, fallback) {
+            const lang = currentLang();
+            const dict = (window.__APP_I18N__ && window.__APP_I18N__[lang]) || {};
+            return dict[key] || fallback || key;
+        }
+
         function renderizarCharts(data) {
+            const cs = getComputedStyle(document.documentElement);
+            const accentColor = cs.getPropertyValue('--accent').trim();
+            const successColor = cs.getPropertyValue('--success').trim();
+            const warningColor = cs.getPropertyValue('--warning').trim();
             // Data prep for Type Chart
             const types = { 'lideranca': 0, 'adm': 0, 'operacional': 0 };
             const typeScores = { 'lideranca': {sum:0, count:0}, 'adm': {sum:0, count:0}, 'operacional': {sum:0, count:0} };
@@ -302,10 +310,14 @@
             typeChartInstance = new Chart(ctxType, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Liderança', 'Administrativo', 'Operacional'],
+                    labels: [
+                        i18n('rh_dash_avaliacoes_type_leadership','Liderança'),
+                        i18n('rh_dash_avaliacoes_type_admin','Administrativo'),
+                        i18n('rh_dash_avaliacoes_type_operational','Operacional')
+                    ],
                     datasets: [{
                         data: [types.lideranca, types.adm, types.operacional],
-                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b'],
+                        backgroundColor: [accentColor, successColor, warningColor],
                         borderWidth: 0
                     }]
                 },
@@ -326,11 +338,15 @@
             scoreChartInstance = new Chart(ctxScore, {
                 type: 'bar',
                 data: {
-                    labels: ['Liderança', 'Administrativo', 'Operacional'],
+                    labels: [
+                        i18n('rh_dash_avaliacoes_type_leadership','Liderança'),
+                        i18n('rh_dash_avaliacoes_type_admin','Administrativo'),
+                        i18n('rh_dash_avaliacoes_type_operational','Operacional')
+                    ],
                     datasets: [{
-                        label: 'Média de Pontuação (%)',
+                        label: i18n('rh_dash_avaliacoes_chart_avg','Média de Pontuação por Tipo'),
                         data: [avgLideranca, avgAdm, avgOperacional],
-                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b'],
+                        backgroundColor: [accentColor, successColor, warningColor],
                         borderRadius: 6
                     }]
                 },
@@ -357,12 +373,12 @@
                 const dataFormatada = new Date(item.createdAt).toLocaleDateString();
                 
                 // Format type
-                const tipoMap = {
-                    'lideranca': 'Liderança',
-                    'adm': 'Administrativo',
-                    'operacional': 'Operacional'
-                };
-                const tipoFormatado = tipoMap[item.tipo] || item.tipo;
+            const tipoMap = {
+                'lideranca': i18n('rh_dash_avaliacoes_type_leadership','Liderança'),
+                'adm': i18n('rh_dash_avaliacoes_type_admin','Administrativo'),
+                'operacional': i18n('rh_dash_avaliacoes_type_operational','Operacional')
+            };
+            const tipoFormatado = tipoMap[item.tipo] || item.tipo;
 
                 // Score badge
                 const percentage = (item.totalScore / item.maxScore) * 100;
@@ -378,7 +394,7 @@
                     <td>${item.avaliador}</td>
                     <td><span class="score-badge ${badgeClass}">${item.totalScore.toFixed(1)} / ${item.maxScore.toFixed(1)}</span></td>
                     <td>
-                        <button class="btn-action" onclick='verDetalhes(${JSON.stringify(item)})'>👁️ Ver</button>
+                        <button class="btn-action" onclick='verDetalhes(${JSON.stringify(item)})'>👁️ ${i18n('rh_dash_preview','Visualizar')}</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -429,27 +445,27 @@
             modalBody.innerHTML = `
                 <div class="info-card">
                     <div class="info-item">
-                        <label>Funcionário</label>
+                        <label>${i18n('rh_dash_avaliacoes_th_funcionario','Funcionário')}</label>
                         <span>${item.funcionario}</span>
                     </div>
                     <div class="info-item">
-                        <label>Avaliador</label>
+                        <label>${i18n('rh_dash_avaliacoes_th_avaliador','Avaliador')}</label>
                         <span>${item.avaliador}</span>
                     </div>
                     <div class="info-item">
-                        <label>Setor</label>
+                        <label>${i18n('rh_dash_th_setor','Setor')}</label>
                         <span>${item.setor}</span>
                     </div>
                     <div class="info-item">
-                        <label>Data</label>
+                        <label>${i18n('rh_dash_th_data','Data')}</label>
                         <span>${new Date(item.data).toLocaleDateString()}</span>
                     </div>
                     <div class="info-item">
-                        <label>Pontuação Total</label>
+                        <label>${i18n('rh_dash_avaliacoes_th_pontuacao','Pontuação')}</label>
                         <span class="${totalClass}" style="font-size: 1.2rem;">${item.totalScore.toFixed(1)} / ${item.maxScore.toFixed(1)}</span>
                     </div>
                 </div>
-                <h3 style="margin-bottom: 16px; color: #1e293b;">Respostas Detalhadas</h3>
+                <h3 style="margin-bottom: 16px; color: var(--text-primary);">${i18n('rh_dash_preview_title','Pré-visualização')}</h3>
                 ${answersHtml}
             `;
             
@@ -462,14 +478,14 @@
 
         function exportarExcel() {
             const ws = XLSX.utils.json_to_sheet(allAvaliacoes.map(item => ({
-                Data: new Date(item.createdAt).toLocaleDateString(),
-                Funcionario: item.funcionario,
-                Funcao: item.funcao,
-                Setor: item.setor,
-                Tipo: item.tipo,
-                Avaliador: item.avaliador,
-                Pontos: item.totalScore,
-                Maximo: item.maxScore
+                [i18n('rh_dash_th_data','Data')]: new Date(item.createdAt).toLocaleDateString(),
+                [i18n('rh_dash_avaliacoes_th_funcionario','Funcionário')]: item.funcionario,
+                [i18n('rh_dash_th_cargo','Função')]: item.funcao,
+                [i18n('rh_dash_th_setor','Setor')]: item.setor,
+                [i18n('rh_dash_type','Tipo')]: item.tipo,
+                [i18n('rh_dash_avaliacoes_th_avaliador','Avaliador')]: item.avaliador,
+                [i18n('rh_dash_avaliacoes_th_pontuacao','Pontuação')]: item.totalScore,
+                Max: item.maxScore
             })));
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Avaliacoes");

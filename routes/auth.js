@@ -3,8 +3,9 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
-const { SECRET, verifyToken } = require('../middleware/auth');
+const { SECRET, verifyToken, PUBLIC_PAGE_ACCESS, PROTECTED_PAGE_ACCESS, ROLES } = require('../middleware/auth');
 const ldapService = require('../services/ldapService');
 const db = require('../services/db');
 
@@ -12,8 +13,44 @@ router.get('/me', verifyToken, (req, res) => {
     res.json({ ok: true, user: req.user });
 });
 
-router.post('/login', async (req, res) => {
-    const { username, password } = req.body;
+router.get('/access', verifyToken, (req, res) => {
+    const role = req.user && req.user.role;
+    const allowAll = process.env.SHOW_ALL_DASH === '1';
+    const publicPaths = allowAll
+        ? Object.keys(PUBLIC_PAGE_ACCESS)
+        : Object.entries(PUBLIC_PAGE_ACCESS)
+            .filter(([, roles]) => role === 'admin' || roles.includes(role))
+            .map(([path]) => path);
+    const protectedPaths = allowAll
+        ? Object.keys(PROTECTED_PAGE_ACCESS).map(p => `/protected${p}`)
+        : Object.entries(PROTECTED_PAGE_ACCESS)
+            .filter(([, roles]) => role === 'admin' || roles.includes(role))
+            .map(([path]) => `/protected${path}`);
+
+    res.json({
+        ok: true,
+        user: req.user,
+        access: { publicPaths, protectedPaths, allowAll }
+    });
+});
+
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { ok: false, erro: 'Muitas tentativas de login. Tente novamente mais tarde.' }
+});
+
+router.post('/login', loginLimiter, async (req, res) => {
+    const rawUsername = req.body && typeof req.body.username === 'string' ? req.body.username : '';
+    const rawPassword = req.body && typeof req.body.password === 'string' ? req.body.password : '';
+    const username = rawUsername.trim().toLowerCase();
+    const password = rawPassword;
+
+    if (!username || !password) {
+        return res.status(400).json({ ok: false, erro: 'Dados de login inválidos' });
+    }
 
     // 0. Check Database Users (Priority)
     try {
@@ -26,6 +63,7 @@ router.post('/login', async (req, res) => {
                 res.cookie('token', token, { 
                     httpOnly: true, 
                     secure: process.env.NODE_ENV === 'production', 
+                    sameSite: 'lax',
                     maxAge: 8 * 60 * 60 * 1000 
                 });
 
@@ -41,30 +79,34 @@ router.post('/login', async (req, res) => {
     }
 
     // 1. Check Local Admin/System Accounts (Legacy)
-    const rhUser = process.env.RH_USER || (process.env.NODE_ENV !== 'production' ? 'rh' : null);
-    const rhPass = process.env.RH_PASS || (process.env.NODE_ENV !== 'production' ? 'rh' : null);
-    const portariaUser = process.env.PORTARIA_USER || (process.env.NODE_ENV !== 'production' ? 'portaria' : null);
-    const portariaPass = process.env.PORTARIA_PASS || (process.env.NODE_ENV !== 'production' ? 'portaria' : null);
+    const isDevLoginEnabled = process.env.NODE_ENV !== 'production';
 
-    if (rhUser && rhPass && username === rhUser && password === rhPass) {
-        // Upgrade legacy RH to rh_geral role
-        const token = jwt.sign({ username, role: 'rh_geral' }, SECRET, { expiresIn: '8h' });
-        res.cookie('token', token, { 
-            httpOnly: true, 
-            secure: process.env.NODE_ENV === 'production', 
-            maxAge: 8 * 60 * 60 * 1000 
-        });
-        return res.json({ ok: true, redirect: '/protected/index.html' });
+    const rhAccounts = [];
+    if (process.env.RH_USER && process.env.RH_PASS) {
+        rhAccounts.push({ username: String(process.env.RH_USER).trim().toLowerCase(), password: String(process.env.RH_PASS), role: ROLES.RH_GERAL, redirect: '/protected/index.html' });
+    }
+    if (isDevLoginEnabled) {
+        rhAccounts.push({ username: 'rh', password: 'rh', role: ROLES.RH_GERAL, redirect: '/protected/index.html' });
     }
 
-    if (portariaUser && portariaPass && username === portariaUser && password === portariaPass) {
-        const token = jwt.sign({ username, role: 'portaria' }, SECRET, { expiresIn: '8h' });
-        res.cookie('token', token, { 
-            httpOnly: true, 
+    const portariaAccounts = [];
+    if (process.env.PORTARIA_USER && process.env.PORTARIA_PASS) {
+        portariaAccounts.push({ username: String(process.env.PORTARIA_USER).trim().toLowerCase(), password: String(process.env.PORTARIA_PASS), role: ROLES.PORTARIA, redirect: '/protected/dashboard-portaria.html' });
+    }
+    if (isDevLoginEnabled) {
+        portariaAccounts.push({ username: 'portaria', password: 'portaria', role: ROLES.PORTARIA, redirect: '/protected/dashboard-portaria.html' });
+    }
+
+    const matchedLegacy = [...rhAccounts, ...portariaAccounts].find(a => username === a.username && password === a.password);
+    if (matchedLegacy) {
+        const token = jwt.sign({ username, role: matchedLegacy.role }, SECRET, { expiresIn: '8h' });
+        res.cookie('token', token, {
+            httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
             maxAge: 8 * 60 * 60 * 1000
         });
-        return res.json({ ok: true, redirect: '/protected/dashboard-portaria.html' }); 
+        return res.json({ ok: true, redirect: matchedLegacy.redirect });
     }
 
     // 2. Try LDAP
@@ -77,10 +119,12 @@ router.post('/login', async (req, res) => {
             if (!user) {
                 // JIT Provisioning: Create user in DB on first login
                 console.log(`JIT Provisioning for LDAP user: ${username}`);
+                const randomPassword = crypto.randomBytes(32).toString('hex');
+                const passwordHash = await bcrypt.hash(randomPassword, 10);
                 const newUser = {
                     username,
-                    password: crypto.randomBytes(16).toString('hex'), // Random password, auth is via LDAP
-                    role: 'rh_geral', // Default role for new users
+                    password: passwordHash,
+                    role: ROLES.PENDENTE,
                     name: ldapResult.user.name || username
                 };
                 await db.users.create(newUser);
@@ -92,12 +136,14 @@ router.post('/login', async (req, res) => {
             res.cookie('token', token, { 
                 httpOnly: true, 
                 secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
                 maxAge: 8 * 60 * 60 * 1000
             });
 
             // Redirect based on role
             let redirect = '/protected/index.html';
             if (user.role === 'portaria') redirect = '/protected/dashboard-portaria.html';
+            if (user.role === ROLES.PENDENTE) redirect = '/login.html?error=pendente';
 
             return res.json({ ok: true, redirect });
         }

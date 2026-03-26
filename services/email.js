@@ -3,6 +3,19 @@ const axios = require('axios');
 const FormData = require('form-data');
 require('dotenv').config();
 
+function resolveBaseUrl(protocol) {
+  const raw = String(process.env.BASE_URL || '').trim();
+  if (raw) {
+    if (/^https?:\/\//i.test(raw)) return raw;
+    const p = protocol || 'http';
+    return `${p}://${raw}`;
+  }
+  const port = parseInt(String(process.env.ACTUAL_PORT || process.env.PORT || 8080), 10);
+  const safePort = Number.isFinite(port) && port >= 0 && port < 65536 ? port : 8080;
+  const p = protocol || 'http';
+  return `${p}://localhost:${safePort}`;
+}
+
 async function enviarEmailComPDF(buffer, filename, payload) {
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT || 587);
@@ -34,14 +47,14 @@ async function enviarEmailComPDF(buffer, filename, payload) {
 }
 
 async function notificarGestor(payload, protocol) {
-  console.log('DEBUG: notificarGestor called', { id: payload.id, protocol, statusRH: payload.statusRH });
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT || 587);
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
   const secure = String(process.env.SMTP_SECURE || 'false') === 'true';
   const from = process.env.MAIL_FROM || user;
-  const to = payload.gestorEmail;
+  const emailOk = (e) => typeof e === 'string' && /[^\s@]+@[^\s@]+\.[^\s@]+/.test(e);
+  const to = emailOk(payload.gestorEmail) ? payload.gestorEmail : process.env.GESTOR_EMAIL;
   
   const aprovado = payload.statusRH === 'aprovado';
   const subject = `Status Solicitação de Férias – ${payload.nome}`;
@@ -49,7 +62,7 @@ async function notificarGestor(payload, protocol) {
   
   if (aprovado) {
     if (payload.status === 'aguardando_assinatura') {
-        const baseUrl = `${protocol}://${process.env.BASE_URL || 'localhost:8080'}`;
+        const baseUrl = resolveBaseUrl(protocol);
         const linkAssinatura = payload.signatureToken 
             ? `${baseUrl}/ferias.html?token=${payload.signatureToken}` 
             : 'Link indisponível';
@@ -67,7 +80,7 @@ async function notificarGestor(payload, protocol) {
     // Gera link de edição se tivermos ID e protocol
     let linkEdicao = '';
     if (payload.id && protocol) {
-        const baseUrl = `${protocol}://${process.env.BASE_URL || 'localhost:8080'}`;
+        const baseUrl = resolveBaseUrl(protocol);
         linkEdicao = `\n\nPara ajustar a solicitação e reenviar, clique aqui: ${baseUrl}/ferias.html?id=${payload.id}`;
     }
 
@@ -80,7 +93,12 @@ async function notificarGestor(payload, protocol) {
     text += `\n\nFavor realizar as alterações necessárias.${linkEdicao}`;
   }
 
-  if (!host || !port || !user || !pass || !to) {
+  if (!to) {
+    console.error('Email do gestor não informado para notificação', { id: payload.id });
+    return { ok: false, erro: 'Email do gestor não informado' };
+  }
+
+  if (!host || !port || !user || !pass) {
     console.log('--- EMAIL MOCK (Gestor) ---');
     console.log(`To: ${to}`);
     console.log(`Subject: ${subject}`);
@@ -156,7 +174,7 @@ async function enviarLinkRH(payload, protocol, id) {
     params.append('mode', 'rh');
     params.append('id', id);
 
-    const baseUrl = `${protocol}://${process.env.BASE_URL || 'localhost:8080'}`;
+    const baseUrl = resolveBaseUrl(protocol);
     const link = `${baseUrl}/ferias.html?${params.toString()}`;
 
     const subject = `Nova Solicitação de Férias – ${payload.nome}`;
@@ -214,7 +232,7 @@ async function enviarEmailAprovacaoTaxa(payload, token) {
     const to = payload.email_gestor;
     const from = process.env.MAIL_FROM || user;
 
-    const baseUrl = process.env.BASE_URL || 'http://localhost:8080';
+    const baseUrl = resolveBaseUrl('http');
     const linkAprovar = `${baseUrl}/api/taxas/responder-aprovacao?token=${token}&acao=aprovar`;
     const linkReprovar = `${baseUrl}/api/taxas/responder-aprovacao?token=${token}&acao=reprovar`;
 
@@ -333,7 +351,7 @@ async function enviarSolicitacaoAssinaturaTaxa(payload, token) {
     const to = payload.email_solicitante;
     const from = process.env.MAIL_FROM || user;
 
-    const baseUrl = process.env.BASE_URL || 'http://localhost:8080';
+    const baseUrl = resolveBaseUrl('http');
     const linkAssinatura = `${baseUrl}/taxas.html?token=${token}`;
 
     const subject = `Assinatura Pendente: Taxa - ${payload.nome_taxa}`;

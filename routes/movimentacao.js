@@ -4,7 +4,9 @@ const crypto = require('crypto');
 const db = require('../services/db');
 const emailService = require('../services/email');
 const pdfService = require('../services/pdfService');
-const { dpAuth } = require('../middleware/auth');
+const { dpAuth, verifyToken, checkRole, ROLES } = require('../middleware/auth');
+
+const movimentacaoFormAuth = [verifyToken, checkRole([ROLES.DP, ROLES.TD, ROLES.RH_GERAL, ROLES.RH])];
 
 router.get('/rh/movimentacoes', dpAuth, async (req, res) => {
     try {
@@ -16,7 +18,7 @@ router.get('/rh/movimentacoes', dpAuth, async (req, res) => {
     }
 });
 
-router.post('/movimentacao', async (req, res) => {
+router.post('/movimentacao', movimentacaoFormAuth, async (req, res) => {
     try {
         const payload = req.body;
         const id = crypto.randomUUID();

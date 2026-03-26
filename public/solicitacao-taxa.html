@@ -6,6 +6,7 @@
   <title>Solicitação de Mão de Obra (Taxa)</title>
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="stylesheet" href="./styles.css">
+  <script src="/lang-switcher.js" defer></script>
   <style>
       /* Custom styles for this page */
       .navbar {
@@ -33,11 +34,11 @@
       }
       .form-header h1 {
           font-size: 1.75rem;
-          color: #1e293b;
+          color: var(--text);
           margin-bottom: 8px;
       }
       .form-header p {
-          color: #64748b;
+          color: var(--muted);
       }
 
       /* Enhanced Selection Grid */
@@ -56,27 +57,27 @@
           align-items: center; 
           justify-content: center; 
           padding: 20px; 
-          background: #fff; 
-          border: 2px solid #e2e8f0; 
+          background: var(--card); 
+          border: 2px solid var(--border); 
           border-radius: 16px; 
           transition: all 0.2s ease; 
           height: 100%; 
           text-align: center; 
-          color: #64748b; 
+          color: var(--muted); 
       }
       
       .selection-card:hover .selection-content { 
-          border-color: #cbd5e1; 
-          background: #f8fafc; 
+          border-color: var(--border); 
+          background: var(--bg); 
           transform: translateY(-2px);
       }
       
       .selection-card input:checked + .selection-content { 
           border-color: var(--accent); 
-          background: #eff6ff; 
+          background: var(--accent-soft); 
           color: var(--accent); 
           font-weight: 600; 
-          box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.1); 
+          box-shadow: var(--shadow-md); 
       }
       
       .selection-icon { 
@@ -104,23 +105,23 @@
           position: absolute;
           left: 12px;
           top: 42px; /* Adjust based on label height */
-          color: #94a3b8;
+          color: var(--muted);
           pointer-events: none;
       }
       
       /* Section separation */
       .form-section {
-          background: #f8fafc;
+          background: var(--bg);
           border-radius: 12px;
           padding: 20px;
           margin-bottom: 24px;
-          border: 1px solid #e2e8f0;
+          border: 1px solid var(--border);
       }
       .form-section-title {
           font-size: 0.9rem;
           text-transform: uppercase;
           letter-spacing: 0.05em;
-          color: #64748b;
+          color: var(--muted);
           font-weight: 600;
           margin-bottom: 16px;
           display: flex;
@@ -140,7 +141,7 @@
           top: 50%;
           left: 50%;
           margin: -10px 0 0 -10px;
-          border: 2px solid #fff;
+          border: 2px solid var(--card);
           border-top-color: transparent;
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
@@ -148,13 +149,14 @@
       @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
-<body>
+<body data-page="solicitacao-taxa">
+ 
 
   <main class="container">
     <nav class="navbar">
         <a href="/" class="back-link">
             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-            Voltar ao Menu
+            <span data-translate="public_back_menu">Voltar ao Menu</span>
         </a>
         <div style="display: flex; align-items: center; gap: 10px;">
             <img src="/assets/logo.png" alt="Logo" style="height: 32px;">
@@ -162,8 +164,8 @@
     </nav>
 
     <div class="form-header">
-      <h1>Solicitação de Mão de Obra</h1>
-      <p>Requisição de taxa extra para eventos, cobertura ou aumento de demanda.</p>
+      <h1 data-translate="solicitacao_taxa_title">Solicitação de Mão de Obra</h1>
+      <p data-translate="solicitacao_taxa_subtitle">Requisição de taxa extra para eventos, cobertura ou aumento de demanda.</p>
     </div>
 
     <form id="formSolicitacaoTaxa">
@@ -207,7 +209,7 @@
               <input type="text" id="funcao_necessaria" required placeholder="Ex: Garçom, Cozinheiro, Commim...">
           </label>
 
-          <label style="margin-top: 20px; font-weight: 600; color: #334155;">Qual o motivo da solicitação?</label>
+          <label style="margin-top: 20px; font-weight: 600; color: var(--text);">Qual o motivo da solicitação?</label>
           <div class="selection-grid">
               <label class="selection-card">
                 <input type="radio" name="motivo" value="aumento_demanda" required>
@@ -232,7 +234,7 @@
               </label>
           </div>
           
-          <div id="eventoArea" hidden class="fade-enter" style="background: #fff; padding: 16px; border-radius: 8px; border: 1px dashed #cbd5e1; margin-bottom: 16px;">
+          <div id="eventoArea" hidden class="fade-enter" style="background: var(--card); padding: 16px; border-radius: 8px; border: 1px dashed var(--border); margin-bottom: 16px;">
               <label style="margin: 0;">
                   <span id="labelDetalhe">Detalhes do Evento</span>
                   <input type="text" id="detalhe_motivo" placeholder="Digite aqui...">
@@ -276,14 +278,14 @@
       </label>
 
       <div style="margin-top: 30px;">
-          <button class="enviar" type="submit" id="btnSubmit">Enviar Solicitação</button>
+          <button class="enviar" type="submit" id="btnSubmit" data-translate="public_submit">Enviar Solicitação</button>
       </div>
     </form>
   </main>
 
   <footer class="app-footer">
     <div class="footer-content">
-      <p>&copy; 2025 Família Madalosso. Todos os direitos reservados.</p>
+      <p data-translate="public_footer_rights">&copy; 2025 Família Madalosso. Todos os direitos reservados.</p>
     </div>
   </footer>
 
@@ -297,19 +299,30 @@
     const detalheInput = document.getElementById('detalhe_motivo');
     const labelDetalhe = document.getElementById('labelDetalhe');
 
+    function __i18n(key, fallback) {
+        try {
+            const lang = (localStorage.getItem('app_lang') || 'pt');
+            const dict = (window.__APP_I18N__ && window.__APP_I18N__[lang]) || {};
+            return dict[key] || fallback || key;
+        } catch { return fallback || key; }
+    }
+
+    function setDetalheLabel(radioVal) {
+        if (radioVal === 'evento') {
+            labelDetalhe.textContent = __i18n('solicitacao_taxa_label_evento','Nome do Evento');
+            detalheInput.placeholder = __i18n('solicitacao_taxa_ph_evento','Ex: Dia das Mães, Casamento Silva...');
+        } else {
+            labelDetalhe.textContent = __i18n('solicitacao_taxa_label_substituto','Nome do Colaborador a ser Substituído');
+            detalheInput.placeholder = __i18n('solicitacao_taxa_ph_substituto','Nome do funcionário que faltou ou está de férias');
+        }
+    }
+
     motivos.forEach(radio => {
         radio.addEventListener('change', () => {
             if (radio.value === 'evento' || radio.value === 'falta_ferias') {
                 eventoArea.hidden = false;
                 detalheInput.setAttribute('required', 'required');
-                
-                if (radio.value === 'evento') {
-                    labelDetalhe.textContent = 'Nome do Evento';
-                    detalheInput.placeholder = 'Ex: Dia das Mães, Casamento Silva...';
-                } else {
-                    labelDetalhe.textContent = 'Nome do Colaborador a ser Substituído';
-                    detalheInput.placeholder = 'Nome do funcionário que faltou ou está de férias';
-                }
+                setDetalheLabel(radio.value);
                 
                 // Focus on the input for better UX
                 setTimeout(() => detalheInput.focus(), 100);
@@ -319,6 +332,13 @@
                 detalheInput.value = '';
             }
         });
+    });
+
+    window.addEventListener('languagechange', () => {
+        const selected = document.querySelector('input[name="motivo"]:checked');
+        if (selected && (selected.value === 'evento' || selected.value === 'falta_ferias')) {
+            setDetalheLabel(selected.value);
+        }
     });
 
     form.addEventListener('submit', async (e) => {

@@ -6,6 +6,7 @@
   <title>Dashboard RH - Funcionários</title>
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="stylesheet" href="/rh-styles.css">
+  <script src="/lang-switcher.js" defer></script>
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
   <style>
       .actions-panel {
@@ -55,7 +56,7 @@
       }
   </style>
 </head>
-<body>
+<body data-page="rh-funcionarios">
   <div id="navbar-container"></div>
   <script src="/rh-navbar.js"></script>
   <script>renderRHNavbar('funcionarios');</script>
@@ -63,15 +64,15 @@
   <main class="dashboard-container">
     <div class="page-header">
         <div>
-            <h1 class="page-title">Gestão de Funcionários</h1>
-            <p class="page-subtitle">Importe a base de dados para validação de biometria e cadastro</p>
+            <h1 class="page-title" data-translate="rh_dash_funcionarios_title">Gestão de Funcionários</h1>
+            <p class="page-subtitle" data-translate="rh_dash_funcionarios_subtitle">Importe a base de dados para validação de biometria e cadastro</p>
         </div>
         <div style="display: flex; gap: 10px;">
             <button class="btn btn-primary" onclick="syncQuestor()" style="background-color: #6366f1; border-color: #6366f1;">
-                🔄 Sincronizar Questor
+                🔄 <span data-translate="rh_dash_funcionarios_sync_questor">Sincronizar Questor</span>
             </button>
             <button class="btn btn-outline" onclick="downloadTemplate()">
-                📥 Baixar Modelo Excel
+                📥 <span data-translate="rh_dash_funcionarios_download_template">Baixar Modelo Excel</span>
             </button>
         </div>
     </div>
@@ -79,16 +80,16 @@
     <div class="actions-panel">
         <div class="upload-box" onclick="document.getElementById('fileInput').click()">
             <div style="font-size: 2rem; margin-bottom: 10px;">📂</div>
-            <p style="margin: 0; color: var(--text-secondary);">Clique para importar Excel/CSV</p>
+            <p style="margin: 0; color: var(--text-secondary);" data-translate="rh_dash_funcionarios_upload_hint">Clique para importar Excel/CSV</p>
             <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" style="display: none" onchange="handleFile(this)">
         </div>
         
         <div style="flex: 2;">
-            <h3 style="margin-top: 0;">Instruções</h3>
+            <h3 style="margin-top: 0;" data-translate="rh_dash_instructions">Instruções</h3>
             <ul style="color: var(--text-secondary); font-size: 0.9rem; padding-left: 20px;">
-                <li>O arquivo deve conter as colunas: <strong>Nome, CPF, Cargo, Setor, Data Admissão</strong>.</li>
-                <li>O CPF deve conter apenas números ou pontuação padrão.</li>
-                <li>Esta importação <strong>substitui/atualiza</strong> a base existente.</li>
+                <li data-translate="rh_dash_funcionarios_inst_cols">O arquivo deve conter as colunas: <strong>Nome, CPF, Cargo, Setor, Data Admissão</strong>.</li>
+                <li data-translate="rh_dash_funcionarios_inst_cpf">O CPF deve conter apenas números ou pontuação padrão.</li>
+                <li data-translate="rh_dash_funcionarios_inst_replace">Esta importação <strong>substitui/atualiza</strong> a base existente.</li>
             </ul>
         </div>
     </div>
@@ -97,16 +98,16 @@
         <table class="func-table" id="tabelaFuncionarios">
             <thead>
                 <tr>
-                    <th>Nome</th>
-                    <th>CPF</th>
-                    <th>Cargo</th>
-                    <th>Setor</th>
-                    <th>Admissão</th>
-                    <th>Ações</th>
+                    <th data-translate="rh_dash_th_nome">Nome</th>
+                    <th data-translate="rh_dash_th_cpf">CPF</th>
+                    <th data-translate="rh_dash_th_cargo">Cargo</th>
+                    <th data-translate="rh_dash_th_setor">Setor</th>
+                    <th data-translate="rh_dash_th_admissao">Admissão</th>
+                    <th data-translate="rh_dash_th_acao">Ações</th>
                 </tr>
             </thead>
             <tbody id="listaFuncionarios">
-                <tr><td colspan="6" style="text-align: center;">Carregando...</td></tr>
+                <tr><td colspan="6" style="text-align: center;" data-translate="rh_dash_loading">Carregando...</td></tr>
             </tbody>
         </table>
     </div>

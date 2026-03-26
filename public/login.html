@@ -4,34 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Portal RH</title>
+    <script src="/lang-switcher.js" defer></script>
+    <link rel="stylesheet" href="./styles.css">
     <style>
-        :root {
-            --primary: #2c3e50;
-            --secondary: #34495e;
-            --accent: #3498db;
-            --light: #ecf0f1;
-            --danger: #e74c3c;
-        }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--light);
+            background:
+                radial-gradient(1200px circle at 20% 10%, rgba(96, 165, 250, 0.16), transparent 45%),
+                radial-gradient(900px circle at 80% 85%, rgba(34, 197, 94, 0.10), transparent 55%),
+                var(--bg-color);
+            color: var(--text-main);
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
+            padding: 24px;
             margin: 0;
         }
         .login-container {
-            background: white;
+            background: var(--card-bg);
             padding: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-radius: 14px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
             width: 100%;
-            max-width: 400px;
+            max-width: 460px;
         }
         h2 {
             text-align: center;
-            color: var(--primary);
+            color: var(--text-main);
             margin-bottom: 1.5rem;
         }
         .form-group {
@@ -40,21 +41,28 @@
         label {
             display: block;
             margin-bottom: 0.5rem;
-            color: var(--secondary);
+            color: var(--text-secondary);
         }
         input {
             width: 100%;
             padding: 0.75rem;
-            border: 1px solid #bdc3c7;
+            border: 1px solid var(--border-color);
             border-radius: 4px;
             font-size: 1rem;
             box-sizing: border-box;
+            background: var(--input-bg, var(--card-bg));
+            color: var(--text-main);
+        }
+        input:focus {
+            outline: none;
+            border-color: var(--accent-color, var(--accent, #2563eb));
+            box-shadow: var(--focus-ring, 0 0 0 3px rgba(37, 99, 235, 0.35));
         }
         button {
             width: 100%;
             padding: 0.75rem;
-            background-color: var(--accent);
-            color: white;
+            background-color: var(--accent-color, var(--accent, #2563eb));
+            color: #ffffff;
             border: none;
             border-radius: 4px;
             font-size: 1rem;
@@ -62,30 +70,39 @@
             transition: background 0.2s;
         }
         button:hover {
-            background-color: #2980b9;
+            background-color: var(--accent-hover, var(--primary-hover, #1d4ed8));
         }
         .error-message {
-            color: var(--danger);
+            color: var(--danger-color);
             text-align: center;
             margin-top: 1rem;
             display: none;
         }
     </style>
 </head>
-<body>
+<body data-page="login">
     <div class="login-container">
-        <h2>Acesso Restrito</h2>
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="/assets/logo.png" alt="Logo" style="height: 180px; width: auto; max-width: 120%; object-fit: contain;">
+        </div>
+        <h2 data-translate="login_title">Acesso Restrito</h2>
         <form id="loginForm">
             <div class="form-group">
-                <label for="username">Usuário</label>
+                <label for="username" data-translate="login_username">Usuário</label>
                 <input type="text" id="username" name="username" required autofocus>
             </div>
             <div class="form-group">
-                <label for="password">Senha</label>
+                <label for="password" data-translate="login_password">Senha</label>
                 <input type="password" id="password" name="password" required>
             </div>
-            <button type="submit">Entrar</button>
+            <button type="submit" data-translate="login_submit">Entrar</button>
             <div id="errorMsg" class="error-message"></div>
+            <div id="forbiddenActions" style="margin-top: 12px; display: none; text-align: center;">
+                <a href="/protected/index.html" style="color: var(--accent); text-decoration: none; font-size: 0.95rem;" data-translate="login_go_portal">Ir para o Portal</a>
+            </div>
+            <div id="pendingActions" style="margin-top: 12px; display: none; text-align: center;">
+                <a href="#" id="logoutLink" style="color: var(--accent); text-decoration: none; font-size: 0.95rem;" data-translate="rh_nav_sair">Sair</a>
+            </div>
         </form>
     </div>
 
@@ -121,8 +138,50 @@
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('error') === 'forbidden') {
             const errorMsg = document.getElementById('errorMsg');
-            errorMsg.textContent = 'Acesso negado. Faça login com uma conta autorizada.';
+            const forbiddenActions = document.getElementById('forbiddenActions');
             errorMsg.style.display = 'block';
+            forbiddenActions.style.display = 'block';
+
+            (async () => {
+                try {
+                    const res = await fetch('/api/me');
+                    if (!res.ok) throw new Error('unauth');
+                    const data = await res.json();
+                    const label = data?.user?.username ? `Você está logado como ${data.user.username}.` : 'Você já está logado.';
+                    errorMsg.textContent = `${label} Seu perfil não tem permissão para acessar esta página.`;
+                } catch (_) {
+                    errorMsg.textContent = 'Acesso negado. Faça login com uma conta autorizada.';
+                }
+            })();
+        }
+
+        if (urlParams.get('error') === 'pendente') {
+            const errorMsg = document.getElementById('errorMsg');
+            const pendingActions = document.getElementById('pendingActions');
+            const logoutLink = document.getElementById('logoutLink');
+            errorMsg.style.display = 'block';
+            pendingActions.style.display = 'block';
+
+            logoutLink.addEventListener('click', async (e) => {
+                e.preventDefault();
+                try {
+                    await fetch('/api/logout', { method: 'POST' });
+                } finally {
+                    window.location.href = '/login.html';
+                }
+            });
+
+            (async () => {
+                try {
+                    const res = await fetch('/api/me');
+                    if (!res.ok) throw new Error('unauth');
+                    const data = await res.json();
+                    const label = data?.user?.username ? `Você está logado como ${data.user.username}.` : 'Você já está logado.';
+                    errorMsg.textContent = `${label} Seu acesso está pendente de liberação pelo RH/Administrador.`;
+                } catch (_) {
+                    errorMsg.textContent = 'Seu acesso está pendente de liberação pelo RH/Administrador.';
+                }
+            })();
         }
     </script>
 </body>

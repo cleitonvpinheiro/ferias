@@ -6,11 +6,12 @@
   <title>Dashboard RH - Férias</title>
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="stylesheet" href="/rh-styles.css">
+  <script src="/lang-switcher.js" defer></script>
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 </head>
-<body>
+<body data-page="rh-ferias">
   <div id="navbar-container"></div>
   <script src="/rh-navbar.js"></script>
   <script>renderRHNavbar('ferias');</script>
@@ -18,32 +19,32 @@
   <main class="dashboard-container">
     <div class="page-header">
         <div>
-            <h1 class="page-title">Gestão de Férias</h1>
-            <p class="page-subtitle">Gerencie as solicitações de férias dos colaboradores</p>
+            <h1 class="page-title" data-translate="rh_dash_ferias_title">Gestão de Férias</h1>
+            <p class="page-subtitle" data-translate="rh_dash_ferias_subtitle">Gerencie as solicitações de férias dos colaboradores</p>
         </div>
         <div class="last-update">
-            <span id="lastUpdate">Atualizado agora</span>
+            <span id="lastUpdate" data-translate="rh_dash_last_update_now">Atualizado agora</span>
         </div>
     </div>
 
     <div class="stats-grid">
         <div class="stat-card pending">
             <div class="stat-header">
-                <div class="stat-title">Pendentes RH</div>
+                <div class="stat-title" data-translate="rh_dash_stat_pending">Pendentes RH</div>
                 <div class="stat-icon">⏳</div>
             </div>
             <div class="stat-value" id="stat-pending">0</div>
         </div>
         <div class="stat-card approved">
             <div class="stat-header">
-                <div class="stat-title">Concluídas</div>
+                <div class="stat-title" data-translate="rh_dash_stat_done">Concluídas</div>
                 <div class="stat-icon">✅</div>
             </div>
             <div class="stat-value" id="stat-approved">0</div>
         </div>
         <div class="stat-card rejected">
             <div class="stat-header">
-                <div class="stat-title">Reprovadas</div>
+                <div class="stat-title" data-translate="rh_dash_stat_rejected">Reprovadas</div>
                 <div class="stat-icon">❌</div>
             </div>
             <div class="stat-value" id="stat-rejected">0</div>
@@ -51,7 +52,7 @@
     </div>
 
     <div class="action-bar">
-        <h2>Histórico de Solicitações</h2>
+        <h2 data-translate="rh_dash_history_title">Histórico de Solicitações</h2>
         <div class="action-buttons">
             <button class="btn btn-outline" onclick="exportarExcel()">
                 📊 Excel
@@ -60,7 +61,7 @@
                 📄 PDF
             </button>
             <button class="btn btn-primary" onclick="carregarSolicitacoes()">
-                🔄 Atualizar
+                🔄 <span data-translate="rh_dash_refresh">Atualizar</span>
             </button>
         </div>
     </div>
@@ -70,11 +71,11 @@
             <table id="tabela-solicitacoes">
                 <thead>
                     <tr>
-                        <th>Colaborador</th>
-                        <th>Setor</th>
-                        <th>Início Férias</th>
-                        <th>Status</th>
-                        <th>Ação</th>
+                        <th data-translate="rh_dash_th_colaborador">Colaborador</th>
+                        <th data-translate="rh_dash_th_setor">Setor</th>
+                        <th data-translate="rh_dash_th_inicio">Início Férias</th>
+                        <th data-translate="rh_dash_th_status">Status</th>
+                        <th data-translate="rh_dash_th_acao">Ação</th>
                     </tr>
                 </thead>
                 <tbody id="lista-corpo">
@@ -83,14 +84,14 @@
             </table>
         </div>
         <div id="empty-state" class="empty-state" hidden>
-            <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Nenhuma solicitação encontrada.</p>
-            <p style="font-size: 0.9rem;">Tudo limpo por aqui! 🎉</p>
+            <p style="font-size: 1.1rem; margin-bottom: 0.5rem;" data-translate="rh_dash_empty_title">Nenhuma solicitação encontrada.</p>
+            <p style="font-size: 0.9rem;" data-translate="rh_dash_empty_desc">Tudo limpo por aqui! 🎉</p>
         </div>
     </div>
   </main>
 
   <footer style="text-align: center; padding: 40px; color: var(--text-secondary); font-size: 0.875rem;">
-    <p>&copy; 2025 Família Madalosso. Acesso Restrito ao RH.</p>
+    <p data-translate="rh_footer">&copy; 2025 Família Madalosso. Acesso Restrito ao RH.</p>
   </footer>
 
   <script>

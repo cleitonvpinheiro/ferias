@@ -6,31 +6,31 @@
   <title>Solicitação de Férias</title>
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="stylesheet" href="./styles.css">
+  <script src="/lang-switcher.js" defer></script>
 </head>
-<body>
- 
+<body data-page="ferias">
   <main class="container">
     <div style="margin-bottom: 20px;">
-        <a href="/" style="color: #64748b; text-decoration: none; font-size: 0.9rem;">&larr; Voltar ao Menu</a>
+        <a href="/" style="color: var(--muted); text-decoration: none; font-size: 0.9rem;" data-translate="public_back_menu">&larr; Voltar ao Menu</a>
     </div>
      
    <div class="brand-inner">
       <img class="brand-logo" src="/assets/logo.png" alt="Logo Família Madalosso">
-      <div class="brand-title">Solicitação de Férias</div>
+      <div class="brand-title" data-translate="ferias_title">Solicitação de Férias</div>
     </div>
     
     <form id="formFerias" novalidate>
-      <h2 class="section-title">Dados do Colaborador</h2>
+      <h2 class="section-title" data-translate="ferias_section_employee">Dados do Colaborador</h2>
       
       <label>
           Selecione o Colaborador
-          <select id="select_funcionario" style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 0.5rem; margin-bottom: 1rem; background-color: #f8fafc;">
+          <select id="select_funcionario" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 0.5rem; margin-bottom: 1rem; background-color: var(--bg); color: var(--text);">
               <option value="">Carregando lista...</option>
           </select>
       </label>
 
-      <div id="historicoContainer" style="margin-bottom: 24px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;" hidden>
-        <h3 style="margin: 0 0 12px 0; font-size: 1rem; color: #334155; display: flex; align-items: center; gap: 8px;">
+      <div id="historicoContainer" style="margin-bottom: 24px; padding: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;" hidden>
+        <h3 style="margin: 0 0 12px 0; font-size: 1rem; color: var(--text); display: flex; align-items: center; gap: 8px;">
             <span>📜</span> Histórico de Alterações
         </h3>
         <ul id="historicoLista" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px;">
@@ -47,7 +47,7 @@
         Setor
         <input type="text" id="setor" required>
       </label>
-      <h2 class="section-title">Solicitação</h2>
+      <h2 class="section-title" data-translate="ferias_section_request">Solicitação</h2>
       <label>
         Início das férias
         <input type="date" id="inicio" required>
@@ -67,13 +67,7 @@
           <input type="date" id="inicio2">
         </label>
       </div>
-      <label>
-        Solicitação adiantamento 1ª parcela de 13º
-        <select id="decimo">
-          <option value="nao">Não</option>
-          <option value="sim">Sim</option>
-        </select>
-      </label>
+    
       
       <label>
         E-mail do gestor
@@ -88,7 +82,7 @@
           <p class="form-note" style="margin-top: 5px;">A assinatura do gestor será solicitada via Autentique (e-mail) após aprovação do RH.</p>
       </div>
 
-      <h2 class="section-title">Assinatura do Colaborador</h2>
+      <h2 class="section-title" data-translate="ferias_section_signature">Assinatura do Colaborador</h2>
       <div class="signature-wrapper">
         <div class="signature">
           <div class="signature-header">
@@ -134,7 +128,7 @@
             
             <label style="margin-top: 12px; display: block;">
               Justificativa da Reprovação
-              <textarea id="justificativaRH" rows="3" placeholder="Descreva o motivo..." style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; margin-top: 4px; font-family: inherit;"></textarea>
+          <textarea id="justificativaRH" rows="3" placeholder="Descreva o motivo..." style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; margin-top: 4px; font-family: inherit;"></textarea>
             </label>
         </div>
 
@@ -143,7 +137,7 @@
         </div>
       </div>
 
-      <button class="enviar" type="submit" id="btnSubmit">Encaminhar para RH</button>
+      <button class="enviar" type="submit" id="btnSubmit" data-translate="ferias_submit">Encaminhar para RH</button>
     </form>
     <div id="feedback" class="feedback" role="alert" hidden></div>
   </main>
@@ -151,11 +145,11 @@
   <footer class="app-footer">
     <div class="footer-content">
       <img src="/assets/logo.png" alt="Logo" class="footer-logo">
-      <p>&copy; 2025 Família Madalosso. Todos os direitos reservados.</p>
+      <p data-translate="public_footer_rights">&copy; 2025 Família Madalosso. Todos os direitos reservados.</p>
       <div style="display: flex; gap: 12px; align-items: center;">
-          <p style="font-size: 0.75rem; color: #94a3b8; margin: 0;">Sistema de Solicitação de Férias v1.0</p>
-          <span style="color: #cbd5e1;">|</span>
-          <a href="/dashboard-rh.html" style="font-size: 0.75rem; color: #94a3b8; text-decoration: none;">Acesso RH</a>
+          <p style="font-size: 0.75rem; color: var(--muted); margin: 0;">Sistema de Solicitação de Férias v1.0</p>
+          <span style="color: var(--border);">|</span>
+          <a href="/dashboard-rh.html" style="font-size: 0.75rem; color: var(--muted); text-decoration: none;" data-translate="public_footer_rh_access">Acesso RH</a>
       </div>
     </div>
   </footer>

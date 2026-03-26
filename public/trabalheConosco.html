@@ -5,38 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trabalhe Conosco - Família Madalosso</title>
     <link rel="stylesheet" href="styles.css">
-    <style>
-        .language-switcher {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-        }
-        .language-switcher select {
-            padding: 4px 8px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-        }
-    </style>
+    <script src="/lang-switcher.js" defer></script>
 </head>
-<body>
+<body data-page="trabalhe-conosco">
     <div class="brand-inner">
         <img class="brand-logo" src="/assets/logo.png" alt="Logo Família Madalosso">
-        <div class="brand-title">Banco de Talentos</div>
-        <div class="brand-mark">RECRUTAMENTO</div>
+        <div class="brand-title" data-translate="trabalhe_title">Banco de Talentos</div>
+        <div class="brand-mark" data-translate="trabalhe_mark">RECRUTAMENTO</div>
     </div>
 
     <div class="container">
         <div class="language-switcher">
-            <select id="language-select">
-                <option value="pt">Português</option>
-                <option value="es">Español</option>
-                <option value="en">English</option>
-            </select>
+            <div class="lang-card">
+                <div class="lang-group" role="group" aria-label="Selecionar idioma">
+                    <button class="lang-btn" type="button" data-lang="pt" aria-pressed="false" title="Português (Brasil)" aria-label="Português (Brasil)">
+                        <span class="lang-flag" aria-hidden="true"></span>
+                    </button>
+                    <button class="lang-btn" type="button" data-lang="es" aria-pressed="false" title="Español (España)" aria-label="Español (España)">
+                        <span class="lang-flag" aria-hidden="true"></span>
+                    </button>
+                    <button class="lang-btn" type="button" data-lang="en" aria-pressed="false" title="English (United States)" aria-label="English (United States)">
+                        <span class="lang-flag" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </div>
         </div>
 
         <form id="formTalentos">
             <h2 class="section-title" data-translate="formTitle">Formulário de Recrutamento</h2>
-            <div class="form-note">Preencha os dados abaixo para se candidatar.</div>
+            <div class="form-note" data-translate="formNote">Preencha os dados abaixo para se candidatar.</div>
 
             <!-- Dados Pessoais -->
             <h3 class="section-title" data-translate="personalData">Dados Pessoais</h3>
@@ -291,7 +288,7 @@
             <h3 class="section-title" data-translate="attachResume">Anexe seu Currículo</h3>
             <label style="border: 2px dashed #ccc; padding: 20px; text-align: center; border-radius: 8px; cursor: pointer;">
                 <span>Clique para selecionar arquivo (PDF, DOC, DOCX, Imagem - Máx 5MB)</span>
-                <input type="file" id="curriculo" name="curriculoFile" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" style="display: none;" onchange="this.previousElementSibling.textContent = this.files[0] ? this.files[0].name : 'Clique para selecionar arquivo'">
+                <input type="file" id="curriculo" name="curriculo" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" style="display: none;" onchange="this.previousElementSibling.textContent = this.files[0] ? this.files[0].name : 'Clique para selecionar arquivo'">
             </label>
 
             <!-- Termo -->

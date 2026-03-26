@@ -6,9 +6,10 @@
   <title>Portal RH - Família Madalosso</title>
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="stylesheet" href="/rh-styles.css">
+  <script src="/lang-switcher.js" defer></script>
 
 </head>
-<body>
+<body data-page="rh-index">
   
   <main class="portal-container">
     <div class="portal-logo-container">
@@ -16,99 +17,125 @@
     </div>
 
     <div class="portal-header">
-        <h1 class="page-title">Portal do RH</h1>
-        <p class="page-subtitle">Selecione o módulo que deseja acessar</p>
+        <h1 class="page-title" data-translate="rh_portal_title">Portal do RH</h1>
+        <p class="page-subtitle" data-translate="rh_portal_subtitle">Selecione o módulo que deseja acessar</p>
     </div>
 
     <div class="portal-grid">
         <a href="/protected/dashboard-rh.html" class="portal-card">
             <div class="card-icon">🏖️</div>
-            <h2>Gestão de Férias</h2>
-            <p>Aprovação de solicitações, visualização de calendário e histórico de férias.</p>
+            <h2 data-translate="rh_card_ferias_title">Gestão de Férias</h2>
+            <p data-translate="rh_card_ferias_desc">Aprovação de solicitações, visualização de calendário e histórico de férias.</p>
         </a>
 
         <a href="/protected/dashboard-taxas.html" class="portal-card">
             <div class="card-icon">💰</div>
-            <h2>Pagamento de Taxas</h2>
-            <p>Controle de solicitações de pagamento, aprovações e geração de comprovantes.</p>
+            <h2 data-translate="rh_card_taxas_title">Pagamento de Taxas</h2>
+            <p data-translate="rh_card_taxas_desc">Controle de solicitações de pagamento, aprovações e geração de comprovantes.</p>
         </a>
 
         <a href="/protected/dashboard-candidatos.html" class="portal-card">
             <div class="card-icon">👥</div>
-            <h2>Banco de Talentos</h2>
-            <p>Gestão de candidatos, triagem de currículos e processos seletivos.</p>
+            <h2 data-translate="rh_card_candidatos_title">Banco de Talentos</h2>
+            <p data-translate="rh_card_candidatos_desc">Gestão de candidatos, triagem de currículos e processos seletivos.</p>
         </a>
 
         <a href="/protected/dashboard-recrutamento.html" class="portal-card">
             <div class="card-icon">📋</div>
-            <h2>Recrutamento Interno</h2>
-            <p>Acompanhamento de candidaturas internas de colaboradores.</p>
+            <h2 data-translate="rh_card_recrutamento_title">Recrutamento Interno</h2>
+            <p data-translate="rh_card_recrutamento_desc">Acompanhamento de candidaturas internas de colaboradores.</p>
         </a>
 
         <a href="/protected/dashboard-onthejob.html" class="portal-card">
             <div class="card-icon">🚀</div>
-            <h2>On The Job</h2>
-            <p>Gestão de processos de movimentação e promoção.</p>
+            <h2 data-translate="rh_card_onthejob_title">On The Job</h2>
+            <p data-translate="rh_card_onthejob_desc">Gestão de processos de movimentação e promoção.</p>
         </a>
 
         <a href="/protected/dashboard-vagas.html" class="portal-card">
             <div class="card-icon">📢</div>
-            <h2>Gestão de Vagas</h2>
-            <p>Publicação e controle das vagas disponíveis no site.</p>
+            <h2 data-translate="rh_card_vagas_title">Gestão de Vagas</h2>
+            <p data-translate="rh_card_vagas_desc">Publicação e controle das vagas disponíveis no site.</p>
         </a>
 
         <a href="/protected/dashboard-epis.html" class="portal-card">
             <div class="card-icon">🦺</div>
-            <h2>Gestão de EPIs</h2>
-            <p>Catálogo de equipamentos e uniformes para controle da portaria.</p>
+            <h2 data-translate="rh_card_epis_title">Gestão de EPIs</h2>
+            <p data-translate="rh_card_epis_desc">Catálogo de equipamentos e uniformes para controle da portaria.</p>
+        </a>
+
+        <a href="/protected/dashboard-portaria.html" class="portal-card">
+            <div class="card-icon">🏢</div>
+            <h2 data-translate="rh_card_portaria_title">Portaria</h2>
+            <p data-translate="rh_card_portaria_desc">Controle de entrega e devolução de EPIs por colaborador.</p>
         </a>
 
         <a href="/protected/dashboard-funcionarios.html" class="portal-card">
             <div class="card-icon">👷</div>
-            <h2>Funcionários</h2>
-            <p>Cadastro e importação de base de funcionários (CPF/Matrícula).</p>
+            <h2 data-translate="rh_card_funcionarios_title">Funcionários</h2>
+            <p data-translate="rh_card_funcionarios_desc">Cadastro e importação de base de funcionários (CPF/Matrícula).</p>
         </a>
 
         <a href="/protected/dashboard-desligamento.html" class="portal-card">
             <div class="card-icon">🚪</div>
-            <h2>Desligamento</h2>
-            <p>Formulário de entrevistas de saída e relatórios.</p>
+            <h2 data-translate="rh_card_desligamento_title">Desligamento</h2>
+            <p data-translate="rh_card_desligamento_desc">Formulário de entrevistas de saída e relatórios.</p>
         </a>
 
         <a href="/protected/dashboard-avaliacao.html" class="portal-card">
             <div class="card-icon">📊</div>
-            <h2>Avaliações</h2>
-            <p>Dashboard de performance: Liderança, ADM e Operacional.</p>
+            <h2 data-translate="rh_card_avaliacoes_title">Avaliações</h2>
+            <p data-translate="rh_card_avaliacoes_desc">Dashboard de performance: Liderança, ADM e Operacional.</p>
         </a>
 
         <a href="/protected/dashboard-experiencia.html" class="portal-card">
             <div class="card-icon">⏳</div>
-            <h2>Experiências</h2>   
-            <p>Acompanhamento de período de experiência (45 e 90 dias).</p>
+            <h2 data-translate="rh_card_experiencia_title">Experiências</h2>   
+            <p data-translate="rh_card_experiencia_desc">Acompanhamento de período de experiência (45 e 90 dias).</p>
         </a>
 
         <a href="/protected/dashboard-formularios.html" class="portal-card">
             <div class="card-icon">📝</div>
-            <h2>Formulários</h2>   
-            <p>Criação e edição de formulários de pesquisa e avaliação.</p>
+            <h2 data-translate="rh_card_formularios_title">Formulários</h2>   
+            <p data-translate="rh_card_formularios_desc">Criação e edição de formulários de pesquisa e avaliação.</p>
         </a>
 
         <a href="/protected/gerenciar-usuarios.html" class="portal-card">
             <div class="card-icon">🔐</div>
-            <h2>Gestão de Usuários</h2>
-            <p>Gerenciamento de acessos e perfis do portal.</p>
+            <h2 data-translate="rh_card_usuarios_title">Gestão de Usuários</h2>
+            <p data-translate="rh_card_usuarios_desc">Gerenciamento de acessos e perfis do portal.</p>
         </a>
+    </div>
+    <div id="gestor-equipe-section" style="display:none; margin-top: 24px;">
+        <h2 style="margin: 0 0 10px 0; font-size: 1.1rem; color: var(--text-primary);">Minha equipe</h2>
+        <div id="gestor-equipe-card" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+            <div id="gestor-equipe-loading" style="color: var(--text-secondary); font-size: 0.9rem;">Carregando...</div>
+            <div id="gestor-equipe-empty" style="display:none; color: var(--text-secondary); font-size: 0.9rem;">Nenhum colaborador vinculado.</div>
+            <div style="overflow-x:auto;">
+                <table id="gestor-equipe-table" style="width:100%; border-collapse: collapse; display:none;">
+                    <thead>
+                        <tr style="text-align:left; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 0.85rem;">
+                            <th style="padding: 8px 6px;">Nome</th>
+                            <th style="padding: 8px 6px;">Cargo</th>
+                            <th style="padding: 8px 6px;">Setor</th>
+                            <th style="padding: 8px 6px;">Matrícula</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gestor-equipe-body"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
   </main>
 
   <footer style="text-align: center; padding: 40px; color: var(--text-secondary); font-size: 0.875rem;">
-    <p>&copy; 2025 Família Madalosso. Acesso Restrito ao RH.</p>
+    <p data-translate="rh_footer">&copy; 2025 Família Madalosso. Acesso Restrito ao RH.</p>
   </footer>
 
   <script>
     async function checkAccess() {
         try {
-            const res = await fetch('/api/me');
+            const res = await fetch('/api/access');
             if (res.status === 401 || res.status === 403) {
                 window.location.href = '/login.html';
                 return;
@@ -118,69 +145,12 @@
             const data = await res.json();
             const user = data.user;
             const role = user.role;
-            
-            // Definição de Permissões por Role
-            const accessMap = {
-                'admin': '*',
-                'rh': [
-                    '/protected/dashboard-rh.html',
-                    '/protected/dashboard-taxas.html',
-                    '/protected/dashboard-candidatos.html',
-                    '/protected/dashboard-recrutamento.html',
-                    '/protected/dashboard-onthejob.html',
-                    '/protected/dashboard-vagas.html',
-                    '/protected/dashboard-epis.html',
-                    '/protected/dashboard-funcionarios.html',
-                    '/protected/dashboard-desligamento.html',
-                    '/protected/dashboard-avaliacao.html',
-                    '/protected/dashboard-experiencia.html',
-                    '/protected/gerenciar-usuarios.html'
-                ],
-                'rh_geral': [
-                    '/protected/dashboard-rh.html',
-                    '/protected/dashboard-taxas.html',
-                    '/protected/dashboard-candidatos.html',
-                    '/protected/dashboard-recrutamento.html',
-                    '/protected/dashboard-onthejob.html',
-                    '/protected/dashboard-vagas.html',
-                    '/protected/dashboard-epis.html',
-                    '/protected/dashboard-funcionarios.html',
-                    '/protected/dashboard-desligamento.html',
-                    '/protected/dashboard-avaliacao.html',
-                    '/protected/dashboard-experiencia.html',
-                    '/protected/gerenciar-usuarios.html'
-                ],
-                'dp': [
-                    '/protected/dashboard-rh.html',
-                    '/protected/dashboard-taxas.html',
-                    '/protected/dashboard-funcionarios.html',
-                    '/protected/dashboard-desligamento.html',
-                    '/protected/dashboard-experiencia.html',
-                    '/protected/dashboard-onthejob.html'
-                ],
-                'recrutamento': [
-                    '/protected/dashboard-candidatos.html',
-                    '/protected/dashboard-recrutamento.html',
-                    '/protected/dashboard-vagas.html'
-                ],
-                'td': [
-                    '/protected/dashboard-onthejob.html',
-                    '/protected/dashboard-avaliacao.html'
-                ],
-                'sesmt': [
-                    '/protected/dashboard-epis.html'
-                ],
-                'portaria': [] 
-            };
-
-            const allowed = accessMap[role] || [];
+            const allowed = new Set((data.access && data.access.protectedPaths) ? data.access.protectedPaths : []);
             
             const cards = document.querySelectorAll('.portal-card');
             cards.forEach(card => {
                 const href = card.getAttribute('href');
-                // Check if href is in allowed list (ignoring query params if any)
-                // Using simple includes for now
-                if (allowed === '*' || allowed.includes(href)) {
+                if (role === 'admin' || allowed.has(href)) {
                     card.style.display = ''; 
                 } else {
                     card.style.display = 'none';
@@ -195,7 +165,7 @@
                 infoDiv.id = 'user-info';
                 infoDiv.style.marginTop = '15px';
                 infoDiv.style.padding = '8px 15px';
-                infoDiv.style.backgroundColor = 'rgba(0,0,0,0.05)';
+                infoDiv.style.backgroundColor = 'var(--control-hover-bg)';
                 infoDiv.style.borderRadius = '20px';
                 infoDiv.style.display = 'inline-block';
                 infoDiv.style.fontSize = '0.9rem';
@@ -224,14 +194,62 @@
                 infoDiv.appendChild(logoutBtn);
             }
 
+            if (role === 'gestor') {
+                renderEquipeGestor();
+            }
+
         } catch (e) {
             console.error(e);
             // window.location.href = '/login.html'; // Optional: Redirect on error
         }
     }
     
-    // Hide all initially to avoid flash
-    // document.querySelectorAll('.portal-card').forEach(c => c.style.display = 'none');
+    async function renderEquipeGestor() {
+        const section = document.getElementById('gestor-equipe-section');
+        const loading = document.getElementById('gestor-equipe-loading');
+        const empty = document.getElementById('gestor-equipe-empty');
+        const table = document.getElementById('gestor-equipe-table');
+        const tbody = document.getElementById('gestor-equipe-body');
+        section.style.display = '';
+        loading.style.display = '';
+        empty.style.display = 'none';
+        table.style.display = 'none';
+        try {
+            const res = await fetch('/api/gestor/equipe', { headers: { 'Accept': 'application/json' } });
+            if (!res.ok) throw new Error('Falha ao carregar equipe');
+            const equipe = await res.json();
+            loading.style.display = 'none';
+            if (!Array.isArray(equipe) || equipe.length === 0) {
+                empty.style.display = '';
+                return;
+            }
+            tbody.innerHTML = '';
+            equipe.forEach(f => {
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid var(--border)';
+                const tdNome = document.createElement('td');
+                tdNome.style.padding = '8px 6px';
+                tdNome.textContent = f.nome || '';
+                const tdCargo = document.createElement('td');
+                tdCargo.style.padding = '8px 6px';
+                tdCargo.textContent = f.cargo || '';
+                const tdSetor = document.createElement('td');
+                tdSetor.style.padding = '8px 6px';
+                tdSetor.textContent = f.setor || '';
+                const tdMatricula = document.createElement('td');
+                tdMatricula.style.padding = '8px 6px';
+                tdMatricula.textContent = f.matricula || '';
+                tr.appendChild(tdNome);
+                tr.appendChild(tdCargo);
+                tr.appendChild(tdSetor);
+                tr.appendChild(tdMatricula);
+                tbody.appendChild(tr);
+            });
+            table.style.display = '';
+        } catch (e) {
+            loading.textContent = 'Erro ao carregar equipe';
+        }
+    }
     
     checkAccess();
   </script>

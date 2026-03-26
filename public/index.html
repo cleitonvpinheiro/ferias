@@ -6,6 +6,7 @@
   <title>Portal de Formulários - Família Madalosso</title>
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="stylesheet" href="./styles.css">
+  <script src="/lang-switcher.js" defer></script>
   <style>
       .navbar {
           display: flex;
@@ -29,26 +30,26 @@
           gap: 8px;
       }
       .btn-login:hover {
-          background: white;
+          background: var(--card);
           border-color: var(--accent);
           color: var(--accent);
-          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+          box-shadow: var(--shadow-sm);
       }
       
       .hero {
           text-align: center;
           margin-bottom: 60px;
           padding: 40px 20px;
-          background: white;
+          background: var(--card);
           border-radius: 24px;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-          border: 1px solid rgba(0,0,0,0.05);
+          box-shadow: var(--shadow-sm);
+          border: 1px solid var(--border);
       }
       
       .hero h1 {
           font-size: 2.5rem;
           margin: 20px 0 10px;
-          background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+          background: linear-gradient(135deg, var(--text) 0%, var(--muted) 100%);
           -webkit-background-clip: text;
           background-clip: text;
           -webkit-text-fill-color: transparent;
@@ -58,7 +59,7 @@
       .modal-overlay {
           position: fixed;
           top: 0; left: 0; right: 0; bottom: 0;
-          background: rgba(0,0,0,0.5);
+          background: var(--backdrop-bg);
           backdrop-filter: blur(4px);
           display: none;
           align-items: center;
@@ -72,137 +73,112 @@
           opacity: 1;
       }
       .login-modal {
-          background: white;
+          background: var(--card);
           padding: 32px;
           border-radius: 20px;
           width: 90%;
           max-width: 400px;
           transform: translateY(20px);
           transition: transform 0.3s;
-          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+          box-shadow: var(--shadow-lg);
+          border: 1px solid var(--border);
       }
       .modal-overlay.active .login-modal {
           transform: translateY(0);
       }
-      .login-options {
-          display: grid;
-          gap: 16px;
-          margin-top: 24px;
-      }
-      .login-btn {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          padding: 16px;
-          border: 1px solid var(--border);
-          border-radius: 12px;
-          text-decoration: none;
-          color: var(--text);
-          font-weight: 600;
-          transition: all 0.2s;
-      }
-      .login-btn:hover {
-          border-color: var(--accent);
-          background: #eff6ff;
-          color: var(--accent);
-          transform: translateY(-2px);
-      }
-      .login-icon {
-          font-size: 24px;
-          background: #f1f5f9;
-          width: 48px;
-          height: 48px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 10px;
-      }
+      
+      /* Login Form Styles */
+      .form-group { margin-bottom: 1rem; }
+      .form-group label { display: block; margin-bottom: 0.5rem; color: var(--muted); font-size: 0.9rem; }
+      .form-group input { width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; font-size: 1rem; background: var(--card); color: var(--text); }
+      .form-group input:focus { outline: none; border-color: var(--accent); box-shadow: var(--focus-ring); }
+      .login-submit-btn { width: 100%; padding: 0.75rem; background: var(--accent); color: var(--brand-text); border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 1rem; transition: background 0.2s; }
+      .login-submit-btn:hover { background: var(--accent-hover); }
+      .error-msg { color: var(--danger); margin-top: 1rem; display: none; text-align: center; font-size: 0.9rem; }
   </style>
 </head>
-<body>
+<body data-page="index">
 
   <main class="container">
      
     <nav class="navbar">
-        <div style="font-weight: 700; font-size: 1.2rem; color: #1e293b; display: flex; align-items: center; gap: 10px;">
+        <div style="font-weight: 700; font-size: 1.2rem; color: var(--text); display: flex; align-items: center; gap: 10px;">
             <img src="/assets/logo.png" alt="Logo" style="height: 40px;">
-            <span>Portal Interno</span>
+            <span data-translate="idx_brand">Portal Interno</span>
         </div>
         <button class="btn-login" onclick="toggleModal()">
-            🔒 Área Restrita
+            🔒 <span data-translate="idx_restricted">Área Restrita</span>
         </button>
     </nav>
     
     <div class="hero">
         <img class="brand-logo" src="/assets/logo.png" alt="Logo Família Madalosso" style="height: 120px; margin: 0 auto;">
-        <h1>Bem-vindo ao Portal</h1>
-        <p style="color: #64748b; font-size: 1.1rem; max-width: 600px; margin: 0 auto;">
-            Acesse abaixo os formulários de solicitação ou utilize o botão de acesso restrito para áreas administrativas.
-        </p>
+        <h1 data-translate="idx_welcome">Bem-vindo ao Portal</h1>
+        <p data-translate="idx_welcome_desc" style="color: var(--muted); font-size: 1.1rem; max-width: 600px; margin: 0 auto;">Acesse abaixo os formulários de solicitação ou utilize o botão de acesso restrito para áreas administrativas.</p>
     </div>
 
     <div class="menu-grid">
-        <a href="/ferias.html" class="menu-card">
+        <a href="/ferias.html" class="menu-card" id="card-ferias">
             <div class="menu-icon">🏖️</div>
-            <div class="menu-title">Solicitação de Férias</div>
-            <div class="menu-desc">Formulário para solicitação e programação de férias dos colaboradores.</div>
+            <div class="menu-title" data-translate="idx_card_ferias_title">Solicitação de Férias</div>
+            <div class="menu-desc" data-translate="idx_card_ferias_desc">Formulário para solicitação e programação de férias dos colaboradores.</div>
         </a>
 
-        <a href="/vagas.html" class="menu-card">
+        <a href="/vagas.html" class="menu-card" id="card-vagas">
             <div class="menu-icon">👔</div>
-            <div class="menu-title">Abertura de Vaga</div>
-            <div class="menu-desc">Formulário para requisição de abertura de novas vagas de trabalho.</div>
+            <div class="menu-title" data-translate="idx_card_vagas_title">Abertura de Vaga</div>
+            <div class="menu-desc" data-translate="idx_card_vagas_desc">Formulário para requisição de abertura de novas vagas de trabalho.</div>
         </a>
 
-        <a href="/taxas.html" class="menu-card">
+        <a href="/taxas.html" class="menu-card" id="card-taxas">
             <div class="menu-icon">💰</div>
-            <div class="menu-title">Pagamento de Taxas</div>
-            <div class="menu-desc">Formulário para solicitação de pagamento de taxas e VT.</div>
+            <div class="menu-title" data-translate="idx_card_taxas_title">Pagamento de Taxas</div>
+            <div class="menu-desc" data-translate="idx_card_taxas_desc">Formulário para solicitação de pagamento de taxas e VT.</div>
         </a>
 
-        <a href="/solicitacao-taxa.html" class="menu-card">
+        <a href="/solicitacao-taxa.html" class="menu-card" id="card-solicitacao-taxa">
             <div class="menu-icon">👷</div>
-            <div class="menu-title">Solicitação de Taxa</div>
-            <div class="menu-desc">Requisição de mão de obra extra (taxa) para eventos ou cobertura.</div>
+            <div class="menu-title" data-translate="idx_card_solicitacao_taxa_title">Solicitação de Taxa</div>
+            <div class="menu-desc" data-translate="idx_card_solicitacao_taxa_desc">Requisição de mão de obra extra (taxa) para eventos ou cobertura.</div>
         </a>
 
-        <a href="/trabalheConosco.html" class="menu-card">
+        <a href="/trabalheConosco.html" class="menu-card" id="card-trabalhe-conosco">
             <div class="menu-icon">🤝</div>
-            <div class="menu-title">Trabalhe Conosco</div>
-            <div class="menu-desc">Formulário para envio de currículo e cadastro no banco de talentos.</div>
+            <div class="menu-title" data-translate="idx_card_trabalhe_title">Trabalhe Conosco</div>
+            <div class="menu-desc" data-translate="idx_card_trabalhe_desc">Formulário para envio de currículo e cadastro no banco de talentos.</div>
         </a>
 
-        <a href="/recrutamentoInterno.html" class="menu-card">
+        <a href="/recrutamentoInterno.html" class="menu-card" id="card-recrutamento-interno">
             <div class="menu-icon">📋</div>
-            <div class="menu-title">Recrutamento Interno</div>
-            <div class="menu-desc">Formulário para candidatura interna a vagas disponíveis.</div>
+            <div class="menu-title" data-translate="idx_card_recrutamento_title">Recrutamento Interno</div>
+            <div class="menu-desc" data-translate="idx_card_recrutamento_desc">Formulário para candidatura interna a vagas disponíveis.</div>
         </a>
 
-        <a href="/onTheJob.html" class="menu-card">
+        <a href="/onTheJob.html" class="menu-card" id="card-onthejob">
             <div class="menu-icon">🚀</div>
-            <div class="menu-title">On The Job</div>
-            <div class="menu-desc">Formulário para processo de movimentação e promoção (On The Job).</div>
+            <div class="menu-title" data-translate="idx_card_onthejob_title">On The Job</div>
+            <div class="menu-desc" data-translate="idx_card_onthejob_desc">Formulário para processo de movimentação e promoção (On The Job).</div>
         </a>
 
-        <a href="/avaliacao-lideranca.html" class="menu-card">
+        <a href="/avaliacao-lideranca.html" class="menu-card" id="card-avaliacao-lideranca" data-eval="1" style="display:none">
             <div class="menu-icon">📊</div>
             <div class="menu-title">Avaliação Liderança</div>
             <div class="menu-desc">Avaliação de performance para gestores e líderes.</div>
         </a>
 
-        <a href="/avaliacao-adm.html" class="menu-card">
+        <a href="/avaliacao-adm.html" class="menu-card" id="card-avaliacao-adm" data-eval="1" style="display:none">
             <div class="menu-icon">📉</div>
             <div class="menu-title">Avaliação ADM</div>
             <div class="menu-desc">Avaliação de performance para equipe administrativa.</div>
         </a>
 
-        <a href="/avaliacao-operacional.html" class="menu-card">
+        <a href="/avaliacao-operacional.html" class="menu-card" id="card-avaliacao-operacional" data-eval="1" style="display:none">
             <div class="menu-icon">🛠️</div>
             <div class="menu-title">Avaliação Operacional</div>
             <div class="menu-desc">Avaliação de performance para equipe operacional.</div>
         </a>
 
-        <a href="/form-avaliacao-experiencia.html" class="menu-card">
+        <a href="/form-avaliacao-experiencia.html" class="menu-card" id="card-avaliacao-experiencia">
             <div class="menu-icon">⭐</div>
             <div class="menu-title">Avaliação Experiência</div>
             <div class="menu-desc">Acompanhamento de período de experiência (45/90 dias).</div>
@@ -214,33 +190,32 @@
   <!-- Login Modal -->
   <div class="modal-overlay" id="loginModal" onclick="if(event.target === this) toggleModal()">
       <div class="login-modal">
+          <div style="text-align: center; margin-bottom: 20px;">
+              <img src="/assets/logo.png" alt="Logo" style="height: 60px;">
+          </div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
               <h2 style="margin: 0; font-size: 1.5rem;">Acesso Restrito</h2>
-              <button onclick="toggleModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #94a3b8;">&times;</button>
+              <!-- Removed close button to enforce login if needed, or keep it if optional? Let's keep it but handle behavior in JS -->
+              <button onclick="toggleModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--muted);">&times;</button>
           </div>
-          <p style="color: #64748b; margin: 0;">Selecione o painel que deseja acessar:</p>
+          <p style="color: var(--muted); margin: 0 0 24px 0;">Faça login para acessar sua área.</p>
           
-          <div class="login-options">
-              <a href="/rh" class="login-btn">
-                  <div class="login-icon">💼</div>
-                  <div>
-                      <div style="font-size: 1.1rem;">Painel RH</div>
-                      <div style="font-size: 0.85rem; color: #64748b; font-weight: 400;">Gestão de férias e vagas</div>
-                  </div>
-              </a>
-              
-              <a href="/protected/dashboard-portaria.html" class="login-btn">
-                  <div class="login-icon">🦺</div>
-                  <div>
-                      <div style="font-size: 1.1rem;">Painel Portaria</div>
-                      <div style="font-size: 0.85rem; color: #64748b; font-weight: 400;">Controle de EPIs</div>
-                  </div>
-              </a>
-          </div>
+          <form id="loginForm">
+              <div class="form-group">
+                  <label for="username">Usuário</label>
+                  <input type="text" id="username" name="username" required autocomplete="username">
+              </div>
+              <div class="form-group">
+                  <label for="password">Senha</label>
+                  <input type="password" id="password" name="password" required autocomplete="current-password">
+              </div>
+              <button type="submit" class="login-submit-btn">Entrar</button>
+              <div id="errorMsg" class="error-msg"></div>
+          </form>
       </div>
   </div>
 
-  <footer style="text-align: center; padding: 40px 0; color: #94a3b8; font-size: 0.875rem;">
+  <footer style="text-align: center; padding: 40px 0; color: var(--muted); font-size: 0.875rem;">
     &copy; 2025 Família Madalosso. Todos os direitos reservados.
   </footer>
 
@@ -249,7 +224,139 @@
           const modal = document.getElementById('loginModal');
           modal.classList.toggle('active');
       }
-  </script>
 
+      const evalEnabled = {};
+
+      (async function liberarAvaliacoes() {
+          const cards = {
+              'avaliacao_lideranca': document.getElementById('card-avaliacao-lideranca'),
+              'avaliacao_adm': document.getElementById('card-avaliacao-adm'),
+              'avaliacao_operacional': document.getElementById('card-avaliacao-operacional')
+          };
+
+          for (const [formId, card] of Object.entries(cards)) {
+              if (!card) continue;
+              try {
+                  const res = await fetch(`/api/rh/formularios/public/${formId}`);
+                  evalEnabled[formId] = !!res.ok;
+                  card.dataset.active = res.ok ? '1' : '0';
+              } catch (e) {
+                  evalEnabled[formId] = false;
+                  card.dataset.active = '0';
+              }
+          }
+
+          if (window.__applyRoleCards && window.__currentRole) {
+              window.__applyRoleCards(window.__currentRole);
+          }
+      })();
+
+      (async function gateIndexByRole() {
+          const setBlockedUI = () => {
+              document.querySelectorAll('.menu-card').forEach(c => {
+                  c.style.display = 'none';
+              });
+              const heroDesc = document.querySelector('.hero p');
+              if (heroDesc) heroDesc.textContent = 'Acesso restrito: faça login para continuar.';
+          };
+
+          const setLoggedUI = (user) => {
+              // Mudar botão de Login para Dashboard/Logout
+              const navBtn = document.querySelector('.btn-login');
+              if (navBtn) {
+                  // Evita adicionar múltiplos botões se a função for chamada novamente
+                  if (navBtn.nextSibling && navBtn.nextSibling.textContent === 'Sair') return;
+
+                  navBtn.innerHTML = `👤 ${user.name || user.username}`;
+                  navBtn.onclick = (e) => {
+                      e.preventDefault();
+                      let dashLink = '/protected/index.html';
+                      if (user.role === 'portaria') dashLink = '/protected/dashboard-portaria.html';
+                      window.location.href = dashLink;
+                  };
+                  navBtn.title = "Ir para o Painel Administrativo";
+                  
+                  // Adicionar botão de logout
+                  const logoutBtn = document.createElement('button');
+                  logoutBtn.className = 'btn-login';
+                  logoutBtn.style.marginLeft = '10px';
+                  logoutBtn.style.borderColor = 'var(--danger)';
+                  logoutBtn.style.color = 'var(--danger)';
+                  logoutBtn.innerHTML = 'Sair';
+                  logoutBtn.onclick = async () => {
+                      await fetch('/api/logout', { method: 'POST' });
+                      window.location.reload();
+                  };
+                  navBtn.parentNode.insertBefore(logoutBtn, navBtn.nextSibling);
+              }
+          };
+
+          const applyAllowedPublicPaths = (publicPaths) => {
+              const allowed = new Set(publicPaths || []);
+              document.querySelectorAll('.menu-card').forEach(c => {
+                  c.style.display = 'none';
+              });
+
+              document.querySelectorAll('.menu-card').forEach(c => {
+                  const href = c.getAttribute('href') || '';
+                  const path = href.split('?')[0];
+                  if (!allowed.has(path)) return;
+                  if (c.dataset.eval === '1' && c.dataset.active !== '1') return;
+                  c.style.display = '';
+              });
+          };
+          window.__applyRoleCards = () => applyAllowedPublicPaths(window.__publicPaths);
+
+          try {
+              const res = await fetch('/api/access');
+              if (!res.ok) {
+                  setBlockedUI();
+                  toggleModal(); // Auto-open login modal
+                  return;
+              }
+              const data = await res.json();
+              window.__publicPaths = data.access && data.access.publicPaths ? data.access.publicPaths : [];
+              setLoggedUI(data.user);
+              window.__currentRole = data.user && data.user.role;
+              applyAllowedPublicPaths(window.__publicPaths);
+          } catch (e) {
+              setBlockedUI();
+              toggleModal();
+          }
+      })();
+
+      // Login Form Handler
+      const loginForm = document.getElementById('loginForm');
+      if (loginForm) {
+          loginForm.addEventListener('submit', async (e) => {
+              e.preventDefault();
+              const username = document.getElementById('username').value;
+              const password = document.getElementById('password').value;
+              const errorMsg = document.getElementById('errorMsg');
+              
+              try {
+                  const response = await fetch('/api/login', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ username, password })
+                  });
+                  
+                  const result = await response.json();
+                  
+                  if (result.ok) {
+                      // Ao logar, recarrega a página atual para mostrar os formulários
+                      // em vez de redirecionar imediatamente para o dashboard
+                      window.location.reload();
+                  } else {
+                      errorMsg.textContent = result.erro || 'Erro ao fazer login';
+                      errorMsg.style.display = 'block';
+                  }
+              } catch (err) {
+                  errorMsg.textContent = 'Erro de conexão';
+                  errorMsg.style.display = 'block';
+              }
+          });
+      }
+  </script>
 </body>
 </html>

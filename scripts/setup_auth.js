@@ -36,7 +36,10 @@ const setupAuth = async () => {
         { username: 'recrutamento', role: 'recrutamento', name: 'Recrutamento e Seleção' },
         { username: 'td', role: 'td', name: 'Treinamento e Desenv.' },
         { username: 'sesmt', role: 'sesmt', name: 'SESMT' },
-        { username: 'portaria', role: 'portaria', name: 'Portaria' }
+        { username: 'portaria', role: 'portaria', name: 'Portaria' },
+        { username: 'gestor', role: 'gestor', name: 'Gestor Padrão' }
+        ,
+        { username: 'endomkt', role: 'endomarketing', name: 'Endomarketing' }
     ];
 
     const defaultPass = '123456';
@@ -55,8 +58,8 @@ const setupAuth = async () => {
                 console.log(`Usuário ${u.username} já existe.`);
                 // Update password/role just in case
                 await run(
-                    `UPDATE users SET role = ?, name = ? WHERE username = ?`,
-                    [u.role, u.name, u.username]
+                    `UPDATE users SET password = ?, role = ?, name = ? WHERE username = ?`,
+                    [hash, u.role, u.name, u.username]
                 );
             } else {
                 console.error(`Erro ao criar ${u.username}:`, err.message);

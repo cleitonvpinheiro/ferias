@@ -3,10 +3,12 @@ const router = express.Router();
 const crypto = require('crypto');
 const db = require('../services/db');
 const questorService = require('../services/questorService');
-const { dpAuth } = require('../middleware/auth');
+const { dpAuth, verifyToken, checkRole, ROLES } = require('../middleware/auth');
+
+const funcionariosReadAuth = [verifyToken, checkRole([ROLES.DP, ROLES.TD, ROLES.RH_GERAL, ROLES.RH])];
 
 // Public
-router.get('/funcionarios', async (req, res) => {
+router.get('/funcionarios', funcionariosReadAuth, async (req, res) => {
     const data = await db.funcionarios.getAll();
     res.json(data);
 });
@@ -88,6 +90,52 @@ router.delete('/rh/funcionarios/:id', dpAuth, async (req, res) => {
     } catch (e) {
         console.error(e);
         res.status(500).json({ ok: false, erro: 'Erro ao excluir funcionário' });
+    }
+});
+
+router.get('/gestor/equipe', [verifyToken, checkRole([ROLES.GESTOR, ROLES.RH_GERAL, ROLES.RH, ROLES.DP])], async (req, res) => {
+    try {
+        const username = req.user && req.user.username;
+        if (!username) return res.status(401).json({ ok: false, erro: 'Usuário não autenticado' });
+        const equipe = await db.gestorEquipes.getEquipeByGestor(username);
+        res.json(equipe);
+    } catch (e) {
+        console.error('Erro ao obter equipe do gestor:', e);
+        res.status(500).json({ ok: false, erro: 'Erro ao carregar equipe' });
+    }
+});
+
+const equipeManageAuth = [verifyToken, checkRole([ROLES.ADMIN, ROLES.RH_GERAL, ROLES.RH])];
+
+router.get('/rh/equipe/:gestor', equipeManageAuth, async (req, res) => {
+    try {
+        const equipe = await db.gestorEquipes.getEquipeByGestor(req.params.gestor);
+        res.json(equipe);
+    } catch (e) {
+        console.error('Erro ao obter equipe:', e);
+        res.status(500).json({ ok: false, erro: 'Erro ao obter equipe' });
+    }
+});
+
+router.post('/rh/equipe/:gestor', equipeManageAuth, async (req, res) => {
+    try {
+        const { funcionario_id } = req.body;
+        if (!funcionario_id) return res.status(400).json({ ok: false, erro: 'funcionario_id é obrigatório' });
+        await db.gestorEquipes.addMembro(req.params.gestor, funcionario_id);
+        res.json({ ok: true });
+    } catch (e) {
+        console.error('Erro ao adicionar membro na equipe:', e);
+        res.status(500).json({ ok: false, erro: 'Erro ao adicionar membro' });
+    }
+});
+
+router.delete('/rh/equipe/:gestor/:funcionarioId', equipeManageAuth, async (req, res) => {
+    try {
+        await db.gestorEquipes.removeMembro(req.params.gestor, req.params.funcionarioId);
+        res.json({ ok: true });
+    } catch (e) {
+        console.error('Erro ao remover membro da equipe:', e);
+        res.status(500).json({ ok: false, erro: 'Erro ao remover membro' });
     }
 });
 

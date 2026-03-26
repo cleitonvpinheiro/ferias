@@ -5,12 +5,11 @@ const db = require('../services/db');
 const { tdAuth } = require('../middleware/auth');
 const { pdfBufferFromOnTheJobData } = require('../services/pdfService');
 
-// Public: Submit On The Job
-router.post('/on-the-job', async (req, res) => {
+router.post('/on-the-job', tdAuth, async (req, res) => {
     try {
         const payload = req.body;
-        // Validation could be more extensive
-        if (!payload.colaboradorNome || !payload.empresa) {
+        const colaboradorNome = payload.colaboradorNome || payload.colaborador;
+        if (!colaboradorNome || !payload.empresa) {
             return res.status(400).json({ ok: false, erro: 'Campos obrigatórios ausentes' });
         }
 
@@ -18,6 +17,7 @@ router.post('/on-the-job', async (req, res) => {
         const novo = {
             id,
             ...payload,
+            colaboradorNome,
             status: 'pendente',
             createdAt: new Date().toISOString()
         };

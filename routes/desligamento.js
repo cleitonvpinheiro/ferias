@@ -1,15 +1,22 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
+const rateLimit = require('express-rate-limit');
 const db = require('../services/db');
 const { dpAuth } = require('../middleware/auth');
 const pdfService = require('../services/pdfService');
 
+const desligamentoPublicLimiter = rateLimit({
+    windowMs: 2 * 60 * 1000,
+    max: 10,
+    message: { ok: false, erro: 'Muitas tentativas. Tente novamente mais tarde.' }
+});
+
 // Public: Submit Interview
-router.post('/entrevistas-desligamento', async (req, res) => {
+router.post('/entrevistas-desligamento', desligamentoPublicLimiter, async (req, res) => {
     try {
         const payload = req.body;
-        if (!payload.nome || !payload.setor) {
+        if (!payload || !payload.nome || !payload.setor || !payload.cargo || !payload.data_admissao || !payload.tipo_desligamento || !payload.motivo_desligamento) {
             return res.status(400).json({ ok: false, erro: 'Campos obrigatórios ausentes' });
         }
 

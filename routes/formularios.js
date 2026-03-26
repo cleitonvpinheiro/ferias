@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../services/db');
-const { tdAuth, adminAuth } = require('../middleware/auth');
+const { tdAuth, adminAuth, verifyToken, checkRole, ROLES } = require('../middleware/auth');
 const crypto = require('crypto');
 
 // --- Rotas Públicas ---
@@ -63,7 +63,7 @@ router.post('/public/:id/responder', async (req, res) => {
 // --- Rotas Administrativas (RH) ---
 
 // Listar todos os formulários
-router.get('/', adminAuth, async (req, res) => {
+router.get('/', [verifyToken, checkRole([ROLES.TD, ROLES.RH_GERAL, ROLES.RH, ROLES.ADMIN, ROLES.ENDOMARKETING || 'endomarketing'])], async (req, res) => {
     try {
         const forms = await db.formularios.getAll();
         res.json(forms);
@@ -74,7 +74,7 @@ router.get('/', adminAuth, async (req, res) => {
 });
 
 // Obter um formulário específico
-router.get('/:id', adminAuth, async (req, res) => {
+router.get('/:id', [verifyToken, checkRole([ROLES.TD, ROLES.RH_GERAL, ROLES.RH, ROLES.ADMIN, ROLES.ENDOMARKETING || 'endomarketing'])], async (req, res) => {
     try {
         const form = await db.formularios.getById(req.params.id);
         if (!form) {

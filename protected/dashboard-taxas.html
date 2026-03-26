@@ -6,11 +6,12 @@
   <title>Dashboard RH - Taxas</title>
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="stylesheet" href="/rh-styles.css">
+  <script src="/lang-switcher.js" defer></script>
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 </head>
-<body>
+<body data-page="rh-taxas">
   <div id="navbar-container"></div>
   <script src="/rh-navbar.js"></script>
   <script>renderRHNavbar('taxas');</script>
@@ -18,32 +19,32 @@
   <main class="dashboard-container">
     <div class="page-header">
         <div>
-            <h1 class="page-title">Gestão de Taxas</h1>
-            <p class="page-subtitle">Acompanhe e aprove as solicitações de pagamento</p>
+            <h1 class="page-title" data-translate="rh_dash_taxas_title">Gestão de Taxas</h1>
+            <p class="page-subtitle" data-translate="rh_dash_taxas_subtitle">Acompanhe e aprove as solicitações de pagamento</p>
         </div>
         <div class="last-update">
-            <span id="lastUpdate">Atualizado agora</span>
+            <span id="lastUpdate" data-translate="rh_dash_last_update_now">Atualizado agora</span>
         </div>
     </div>
 
     <div class="stats-grid">
         <div class="stat-card pending">
             <div class="stat-header">
-                <div class="stat-title">Pendentes</div>
+                <div class="stat-title" data-translate="rh_dash_taxas_stat_pending">Pendentes</div>
                 <div class="stat-icon">⏳</div>
             </div>
             <div class="stat-value" id="stat-pending">0</div>
         </div>
         <div class="stat-card approved">
             <div class="stat-header">
-                <div class="stat-title">Aprovadas</div>
+                <div class="stat-title" data-translate="rh_dash_taxas_stat_approved">Aprovadas</div>
                 <div class="stat-icon">✅</div>
             </div>
             <div class="stat-value" id="stat-approved">0</div>
         </div>
         <div class="stat-card rejected">
             <div class="stat-header">
-                <div class="stat-title">Reprovadas</div>
+                <div class="stat-title" data-translate="rh_dash_stat_rejected">Reprovadas</div>
                 <div class="stat-icon">❌</div>
             </div>
             <div class="stat-value" id="stat-rejected">0</div>
@@ -51,16 +52,16 @@
     </div>
 
     <div class="action-bar">
-        <h2>Solicitações Recentes</h2>
+        <h2 data-translate="rh_dash_taxas_recent_title">Solicitações Recentes</h2>
         <div class="action-buttons">
             <button class="btn btn-outline" onclick="exportarExcel()">
                 📊 Excel
             </button>
             <button class="btn btn-outline" onclick="gerarArquivoPagamento()">
-                💰 Gerar Pagamento
+                💰 <span data-translate="rh_dash_taxas_generate_payment">Gerar Pagamento</span>
             </button>
             <button class="btn btn-primary" onclick="carregarSolicitacoes()">
-                🔄 Atualizar
+                🔄 <span data-translate="rh_dash_refresh">Atualizar</span>
             </button>
         </div>
     </div>
@@ -70,12 +71,12 @@
             <table id="tabela-solicitacoes">
                 <thead>
                     <tr>
-                        <th>Colaborador</th>
-                        <th>Departamento</th>
-                        <th>Função</th>
-                        <th>Total</th>
-                        <th>Status</th>
-                        <th>Ação</th>
+                        <th data-translate="rh_dash_th_colaborador">Colaborador</th>
+                        <th data-translate="rh_dash_taxas_th_departamento">Departamento</th>
+                        <th data-translate="rh_dash_taxas_th_funcao">Função</th>
+                        <th data-translate="rh_dash_taxas_th_total">Total</th>
+                        <th data-translate="rh_dash_th_status">Status</th>
+                        <th data-translate="rh_dash_th_acao">Ação</th>
                     </tr>
                 </thead>
                 <tbody id="lista-corpo">
@@ -84,14 +85,14 @@
             </table>
         </div>
         <div id="empty-state" class="empty-state" hidden>
-            <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Nenhuma solicitação de taxa encontrada.</p>
-            <p style="font-size: 0.9rem;">As novas solicitações aparecerão aqui.</p>
+            <p style="font-size: 1.1rem; margin-bottom: 0.5rem;" data-translate="rh_dash_taxas_empty_title">Nenhuma solicitação de taxa encontrada.</p>
+            <p style="font-size: 0.9rem;" data-translate="rh_dash_taxas_empty_desc">As novas solicitações aparecerão aqui.</p>
         </div>
     </div>
   </main>
 
   <footer style="text-align: center; padding: 40px; color: var(--text-secondary); font-size: 0.875rem;">
-    <p>&copy; 2025 Família Madalosso. Acesso Restrito ao RH.</p>
+    <p data-translate="rh_footer">&copy; 2025 Família Madalosso. Acesso Restrito ao RH.</p>
   </footer>
 
   <script>
@@ -171,7 +172,7 @@
                 // But generally only pending needs fixing before approval.
                 // If approved, editing might be needed if bank info is wrong.
                 
-                const editBtn = `<button onclick="editarTaxa('${item.id}')" class="btn btn-sm btn-primary" style="background-color: #f59e0b; border-color: #f59e0b;" title="Editar">✏️</button>`;
+                const editBtn = `<button onclick="editarTaxa('${item.id}')" class="btn btn-sm btn-primary" style="background-color: var(--warning); border-color: var(--warning);" title="Editar">✏️</button>`;
                 
                 // Prepend edit button
                 if (item.status !== 'reprovado') {
@@ -275,11 +276,11 @@
     document.addEventListener('DOMContentLoaded', carregarSolicitacoes);
   </script>
   <!-- Modal de Edição -->
-  <div id="modal-edicao" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5);">
-      <div class="modal-content" style="background-color: #fefefe; margin: 5% auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 600px; border-radius: 8px;">
+  <div id="modal-edicao" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: var(--backdrop-bg);">
+      <div class="modal-content" style="background-color: var(--bg-surface); margin: 5% auto; padding: 20px; border: 1px solid var(--border); width: 90%; max-width: 600px; border-radius: 8px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
               <h2 style="margin: 0; color: var(--primary);">Editar Taxa</h2>
-              <span onclick="fecharModalEdicao()" style="color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+              <span onclick="fecharModalEdicao()" style="color: var(--text-secondary); font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
           </div>
           
           <form id="form-edicao" onsubmit="salvarEdicao(event)">
@@ -288,38 +289,38 @@
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                   <div class="form-group">
                       <label>Nome da Taxa / Beneficiário</label>
-                      <input type="text" id="edit-nome" class="form-control" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                      <input type="text" id="edit-nome" class="form-control" required style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
                   </div>
                   <div class="form-group">
                       <label>CPF</label>
-                      <input type="text" id="edit-cpf" class="form-control" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                      <input type="text" id="edit-cpf" class="form-control" required style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
                   </div>
                   <div class="form-group">
                       <label>Banco</label>
-                      <input type="text" id="edit-banco" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                      <input type="text" id="edit-banco" class="form-control" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
                   </div>
                   <div class="form-group">
                       <label>Agência</label>
-                      <input type="text" id="edit-agencia" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                      <input type="text" id="edit-agencia" class="form-control" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
                   </div>
                   <div class="form-group">
                       <label>Conta</label>
-                      <input type="text" id="edit-conta" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                      <input type="text" id="edit-conta" class="form-control" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
                   </div>
                   <div class="form-group">
                       <label>Tipo Conta</label>
-                      <select id="edit-tipo-conta" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                      <select id="edit-tipo-conta" class="form-control" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
                           <option value="corrente">Corrente</option>
                           <option value="poupanca">Poupança</option>
                       </select>
                   </div>
                   <div class="form-group">
                       <label>Chave PIX</label>
-                      <input type="text" id="edit-pix" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                      <input type="text" id="edit-pix" class="form-control" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
                   </div>
                   <div class="form-group">
                       <label>Valor Total (R$)</label>
-                      <input type="text" id="edit-valor" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                      <input type="text" id="edit-valor" class="form-control" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
                   </div>
               </div>
 

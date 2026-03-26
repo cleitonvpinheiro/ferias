@@ -4,21 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Responder Formulário | RH</title>
+    <script src="/lang-switcher.js" defer></script>
+    <link rel="stylesheet" href="./styles.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root {
-            --primary: #0f172a;
-            --secondary: #64748b;
-            --accent: #3b82f6;
-            --bg-light: #f8fafc;
-            --success: #10b981;
-        }
-
         body {
-            background-color: var(--bg-light);
+            background-color: var(--bg);
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            color: #1e293b;
+            color: var(--text);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -32,35 +26,35 @@
         }
 
         .form-card {
-            background: white;
+            background: var(--card);
             border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            box-shadow: var(--shadow-md);
             padding: 40px;
             margin-bottom: 20px;
-            border-top: 6px solid var(--primary);
+            border-top: 6px solid var(--accent);
         }
 
         .form-header {
             margin-bottom: 30px;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid var(--border);
             padding-bottom: 20px;
         }
 
         .form-title {
             font-size: 2rem;
             font-weight: 700;
-            color: var(--primary);
+            color: var(--text);
             margin-bottom: 10px;
         }
 
         .form-description {
-            color: var(--secondary);
+            color: var(--muted);
             font-size: 1.1rem;
         }
 
         .question-card {
-            background: #fff;
-            border: 1px solid #e2e8f0;
+            background: var(--card);
+            border: 1px solid var(--border);
             border-radius: 8px;
             padding: 24px;
             margin-bottom: 20px;
@@ -69,7 +63,7 @@
 
         .question-card:focus-within {
             border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            box-shadow: var(--focus-ring);
         }
 
         .question-label {
@@ -77,23 +71,25 @@
             font-size: 1.1rem;
             margin-bottom: 15px;
             display: block;
-            color: #334155;
+            color: var(--text);
         }
 
         .required-mark {
-            color: #ef4444;
+            color: var(--danger);
             margin-left: 4px;
         }
 
         .form-control, .form-select {
             padding: 12px;
             border-radius: 6px;
-            border: 1px solid #cbd5e1;
+            border: 1px solid var(--border);
+            background: var(--card);
+            color: var(--text);
         }
 
         .form-control:focus, .form-select:focus {
             border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            box-shadow: var(--focus-ring);
         }
 
         .rating-group {
@@ -117,7 +113,7 @@
             align-items: center;
             justify-content: center;
             padding: 12px;
-            border: 2px solid #e2e8f0;
+            border: 2px solid var(--border);
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s;
@@ -126,7 +122,7 @@
 
         .rating-option input[type="radio"]:checked + label {
             border-color: var(--accent);
-            background-color: #eff6ff;
+            background-color: var(--accent-soft);
             color: var(--accent);
             font-weight: 600;
         }
@@ -139,7 +135,7 @@
         .rating-label {
             font-size: 0.8rem;
             text-align: center;
-            color: var(--secondary);
+            color: var(--muted);
         }
 
         .rating-option input[type="radio"]:checked + label .rating-label {
@@ -147,7 +143,7 @@
         }
 
         .btn-submit {
-            background-color: var(--primary);
+            background-color: var(--accent);
             color: white;
             padding: 14px 28px;
             font-size: 1.1rem;
@@ -164,12 +160,12 @@
         }
 
         .btn-submit:hover {
-            background-color: #1e293b;
+            background-color: var(--accent-hover);
             transform: translateY(-1px);
         }
 
         .btn-submit:disabled {
-            background-color: #94a3b8;
+            background-color: var(--muted);
             cursor: not-allowed;
             transform: none;
         }
@@ -192,7 +188,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(255, 255, 255, 0.9);
+            background: var(--overlay-bg);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -206,7 +202,7 @@
             display: flex;
             align-items: center;
             padding: 10px;
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--border);
             border-radius: 6px;
             margin-bottom: 8px;
             cursor: pointer;
@@ -214,7 +210,7 @@
         }
         
         .custom-option:hover {
-            background-color: #f8fafc;
+            background-color: var(--bg);
         }
         
         .custom-option input {
@@ -225,14 +221,14 @@
         }
 
         .error-message {
-            color: #ef4444;
+            color: var(--danger);
             font-size: 0.875rem;
             margin-top: 5px;
             display: none;
         }
         
         .is-invalid {
-            border-color: #ef4444 !important;
+            border-color: var(--danger) !important;
         }
         
         .is-invalid + .error-message {
@@ -240,20 +236,20 @@
         }
     </style>
 </head>
-<body>
+<body data-page="responder-formulario">
 
     <div id="loading" class="loading-overlay">
         <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Carregando...</span>
+            <span class="visually-hidden" data-translate="public_loading">Carregando...</span>
         </div>
-        <p>Carregando formulário...</p>
+        <p data-translate="responder_form_loading">Carregando formulário...</p>
     </div>
 
     <div class="main-container" id="formContainer" style="display: none;">
         <div class="form-card">
             <div class="form-header">
                 <h1 class="form-title" id="formTitle">Título do Formulário</h1>
-                <p class="form-description" id="formType">Carregando...</p>
+                <p class="form-description" id="formType" data-translate="public_loading">Carregando...</p>
             </div>
 
             <form id="dynamicForm" onsubmit="submitForm(event)">
@@ -261,7 +257,7 @@
 
                 <div class="mt-4">
                     <button type="submit" class="btn-submit" id="submitBtn">
-                        <i class="fas fa-paper-plane"></i> Enviar Respostas
+                        <i class="fas fa-paper-plane"></i> <span data-translate="responder_form_submit">Enviar Respostas</span>
                     </button>
                 </div>
             </form>
@@ -273,9 +269,9 @@
             <div class="success-icon">
                 <i class="fas fa-check-circle"></i>
             </div>
-            <h2>Formulário Enviado!</h2>
-            <p class="text-muted mb-4">Suas respostas foram registradas com sucesso.</p>
-            <button class="btn btn-outline-primary" onclick="window.location.reload()">Preencher Novamente</button>
+            <h2 data-translate="responder_form_success_title">Formulário Enviado!</h2>
+            <p class="text-muted mb-4" data-translate="responder_form_success_desc">Suas respostas foram registradas com sucesso.</p>
+            <button class="btn btn-outline-primary" onclick="window.location.reload()" data-translate="responder_form_fill_again">Preencher Novamente</button>
         </div>
     </div>
     
@@ -284,9 +280,9 @@
             <div class="text-danger mb-3" style="font-size: 3rem;">
                 <i class="fas fa-exclamation-triangle"></i>
             </div>
-            <h2 class="text-danger">Erro</h2>
+            <h2 class="text-danger" data-translate="public_error">Erro</h2>
             <p id="errorText" class="text-muted mb-4">Não foi possível carregar o formulário.</p>
-            <button class="btn btn-primary" onclick="window.location.reload()">Tentar Novamente</button>
+            <button class="btn btn-primary" onclick="window.location.reload()" data-translate="public_try_again">Tentar Novamente</button>
         </div>
     </div>
 
@@ -295,10 +291,18 @@
         const urlParams = new URLSearchParams(window.location.search);
         const formId = urlParams.get('id');
         let formDefinition = null;
+        function currentLang() {
+            try { return localStorage.getItem('app_lang') || 'pt'; } catch { return 'pt'; }
+        }
+        function i18n(key, fallback) {
+            const lang = currentLang();
+            const dict = (window.__APP_I18N__ && window.__APP_I18N__[lang]) || {};
+            return dict[key] || fallback || key;
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             if (!formId) {
-                showError('ID do formulário não fornecido.');
+                showError(i18n('responder_form_error_no_id', 'ID do formulário não fornecido.'));
                 return;
             }
             loadForm();
@@ -330,13 +334,18 @@
 
         function renderForm(form) {
             document.getElementById('formTitle').textContent = form.titulo;
-            document.getElementById('formType').textContent = form.tipo === 'avaliacao' ? 'Avaliação de Desempenho' : 'Pesquisa / Formulário';
+            const typeLabel = (form.tipo === 'avaliacao')
+                ? i18n('responder_form_type_avaliacao', 'Avaliação de Desempenho')
+                : i18n('responder_form_type_pesquisa', 'Pesquisa / Formulário');
+            const formTypeEl = document.getElementById('formType');
+            formTypeEl.removeAttribute('data-translate');
+            formTypeEl.textContent = typeLabel;
             
             const container = document.getElementById('questionsContainer');
             container.innerHTML = '';
 
             if (!form.questoes || form.questoes.length === 0) {
-                container.innerHTML = '<p class="text-muted text-center">Este formulário não possui questões.</p>';
+                container.innerHTML = `<p class="text-muted text-center">${i18n('responder_form_no_questions', 'Este formulário não possui questões.')}</p>`;
                 document.getElementById('submitBtn').style.display = 'none';
                 return;
             }
@@ -353,15 +362,15 @@
                 const requiredAttr = q.required ? 'required' : '';
 
                 if (q.type === 'text') {
-                    inputHtml = `<input type="text" class="form-control" name="${name}" ${requiredAttr} placeholder="Sua resposta...">`;
+                    inputHtml = `<input type="text" class="form-control" name="${name}" ${requiredAttr} placeholder="${i18n('responder_form_answer_placeholder','Sua resposta...')}">`;
                 } else if (['date', 'number', 'email', 'tel', 'time'].includes(q.type)) {
-                    inputHtml = `<input type="${q.type}" class="form-control" name="${name}" ${requiredAttr} placeholder="Sua resposta...">`;
+                    inputHtml = `<input type="${q.type}" class="form-control" name="${name}" ${requiredAttr} placeholder="${i18n('responder_form_answer_placeholder','Sua resposta...')}">`;
                 } else if (q.type === 'textarea') {
-                    inputHtml = `<textarea class="form-control" name="${name}" rows="3" ${requiredAttr} placeholder="Sua resposta..."></textarea>`;
+                    inputHtml = `<textarea class="form-control" name="${name}" rows="3" ${requiredAttr} placeholder="${i18n('responder_form_answer_placeholder','Sua resposta...')}"></textarea>`;
                 } else if (q.type === 'select') {
                     inputHtml = `
                         <select class="form-select" name="${name}" ${requiredAttr}>
-                            <option value="">Selecione uma opção...</option>
+                            <option value="">${i18n('responder_form_select_placeholder','Selecione uma opção...')}</option>
                             ${(q.options || []).map(opt => `<option value="${opt}">${opt}</option>`).join('')}
                         </select>
                     `;
@@ -369,17 +378,17 @@
                     inputHtml = `
                         <div class="rating-group" style="max-width: 300px;">
                             <div class="rating-option">
-                                <input type="radio" name="${name}" id="${name}_yes" value="Sim" ${requiredAttr}>
+                                <input type="radio" name="${name}" id="${name}_yes" value="${i18n('responder_form_yes','Sim')}" ${requiredAttr}>
                                 <label for="${name}_yes">
                                     <div class="rating-value"><i class="fas fa-check"></i></div>
-                                    <div class="rating-label">Sim</div>
+                                    <div class="rating-label">${i18n('responder_form_yes','Sim')}</div>
                                 </label>
                             </div>
                             <div class="rating-option">
-                                <input type="radio" name="${name}" id="${name}_no" value="Não" ${requiredAttr}>
+                                <input type="radio" name="${name}" id="${name}_no" value="${i18n('responder_form_no','Não')}" ${requiredAttr}>
                                 <label for="${name}_no">
                                     <div class="rating-value"><i class="fas fa-times"></i></div>
-                                    <div class="rating-label">Não</div>
+                                    <div class="rating-label">${i18n('responder_form_no','Não')}</div>
                                 </label>
                             </div>
                         </div>
@@ -412,11 +421,11 @@
                 } else if (q.type === 'file') {
                     inputHtml = `
                         <input type="file" class="form-control" name="${name}" ${requiredAttr} accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
-                        <small class="text-muted">Formatos aceitos: PDF, DOC, DOCX, Imagem (Máx 5MB)</small>
+                        <small class="text-muted">${i18n('responder_form_file_formats','Formatos aceitos: PDF, DOC, DOCX, Imagem (Máx 5MB)')}</small>
                     `;
                 }
 
-                qDiv.innerHTML = label + inputHtml + `<div class="error-message">Este campo é obrigatório</div>`;
+                qDiv.innerHTML = label + inputHtml + `<div class="error-message">${i18n('responder_form_required_field','Este campo é obrigatório')}</div>`;
                 container.appendChild(qDiv);
             });
 
@@ -436,7 +445,7 @@
             const btn = document.getElementById('submitBtn');
             const originalBtnText = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${i18n('responder_form_sending','Enviando...')}`;
 
             // Collect answers
             const formData = new FormData(e.target);
@@ -461,7 +470,7 @@
                     if (fileInput && fileInput.files.length > 0) {
                         const file = fileInput.files[0];
                         if (file.size > 5 * 1024 * 1024) {
-                            Swal.fire('Erro', `O arquivo da questão "${q.question}" excede 5MB.`, 'error');
+                            Swal.fire(i18n('responder_form_error_title','Erro'), `O arquivo da questão "${q.question}" ${i18n('responder_form_error_file_too_big','O arquivo excede 5MB.')}`, 'error');
                             btn.disabled = false;
                             btn.innerHTML = originalBtnText;
                             return;
@@ -502,7 +511,7 @@
             if (hasError) {
                 btn.disabled = false;
                 btn.innerHTML = originalBtnText;
-                Swal.fire('Atenção', 'Por favor, verifique os campos obrigatórios.', 'warning');
+                Swal.fire(i18n('responder_form_alert_title','Atenção'), i18n('responder_form_alert_required','Por favor, verifique os campos obrigatórios.'), 'warning');
                 return;
             }
 
@@ -519,16 +528,20 @@
                     window.scrollTo(0, 0);
                 } else {
                     const err = await response.json();
-                    Swal.fire('Erro', err.error || 'Erro ao enviar respostas', 'error');
+                    Swal.fire(i18n('responder_form_error_title','Erro'), err.error || i18n('responder_form_error_send','Erro ao enviar respostas'), 'error');
                 }
             } catch (error) {
                 console.error(error);
-                Swal.fire('Erro', 'Erro de conexão', 'error');
+                Swal.fire(i18n('responder_form_error_title','Erro'), i18n('responder_form_error_connection','Erro de conexão'), 'error');
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = originalBtnText;
             }
         }
+
+        window.addEventListener('languagechange', () => {
+            if (formDefinition) renderForm(formDefinition);
+        });
         
         function markError(index, isError) {
             const inputs = document.getElementsByName(`q_${index}`);
@@ -537,10 +550,10 @@
                 if (isError) {
                     inputs.forEach(input => input.classList.add('is-invalid'));
                     // For radio/checkbox groups, we might need to style the container or labels
-                    if (container) container.style.borderColor = '#ef4444';
+                    if (container) container.style.borderColor = 'var(--danger)';
                 } else {
                     inputs.forEach(input => input.classList.remove('is-invalid'));
-                    if (container) container.style.borderColor = '#e2e8f0';
+                    if (container) container.style.borderColor = 'var(--border)';
                 }
             }
         }

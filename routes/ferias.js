@@ -5,9 +5,11 @@ const db = require('../services/db');
 const pdfService = require('../services/pdfService');
 const emailService = require('../services/email');
 const { validarPayloadFerias } = require('../utils/validation');
-const { dpAuth } = require('../middleware/auth');
+const { dpAuth, verifyToken, checkRole, ROLES } = require('../middleware/auth');
 
-router.get('/solicitacao/:id', async (req, res) => {
+const feriasFormAuth = [verifyToken, checkRole([ROLES.DP, ROLES.RH_GERAL, ROLES.RH, ROLES.GESTOR])];
+
+router.get('/solicitacao/:id', feriasFormAuth, async (req, res) => {
     try {
         const item = await db.solicitacoes.getById(req.params.id);
         if (!item) return res.status(404).json({ ok: false, erro: 'Solicitação não encontrada' });
@@ -36,7 +38,7 @@ router.get('/rh/solicitacoes', dpAuth, async (req, res) => {
     }
 });
 
-router.get('/pdf/:id', async (req, res) => {
+router.get('/pdf/:id', feriasFormAuth, async (req, res) => {
     try {
         const item = await db.solicitacoes.getById(req.params.id);
         if (!item) return res.status(404).send('Solicitação não encontrada');
@@ -52,7 +54,7 @@ router.get('/pdf/:id', async (req, res) => {
     }
 });
 
-router.post('/encaminhar', async (req, res) => {
+router.post('/encaminhar', feriasFormAuth, async (req, res) => {
     const { nome, setor, inicio, tipoGozo, id: existingId } = req.body;
     if (!nome || !setor || !inicio || !tipoGozo) return res.status(400).json({ ok: false, erro: 'Campos obrigatórios ausentes' });
 
@@ -123,11 +125,12 @@ router.post('/encaminhar', async (req, res) => {
     }
 });
 
-router.post('/solicitacao', async (req, res) => {
+router.post('/solicitacao', dpAuth, async (req, res) => {
   const valid = validarPayloadFerias(req.body);
   if (!valid.ok) return res.status(400).json({ ok: false, erro: valid.erro });
   try {
     let currentStatus = 'concluido';
+    let updatedItemForNotify = req.body;
     
     if (req.body.id) {
         let item = await db.solicitacoes.getById(req.body.id);
@@ -164,6 +167,7 @@ router.post('/solicitacao', async (req, res) => {
             }
 
             await db.solicitacoes.update(item.id, item);
+            updatedItemForNotify = item;
             
             if (currentStatus === 'aguardando_assinatura') {
                 await emailService.notificarGestor({ ...item, signatureToken }, req.protocol || 'http');
@@ -183,7 +187,7 @@ router.post('/solicitacao', async (req, res) => {
     const filename = `${req.body.nome.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
     const emailResult = await emailService.enviarEmailComPDF(pdfBuffer, filename, req.body);
     
-    await emailService.notificarGestor({ ...req.body, status: currentStatus }, req.protocol || 'http');
+    await emailService.notificarGestor({ ...updatedItemForNotify, status: currentStatus }, req.protocol || 'http');
 
     let autentiqueResult = { ok: false, msg: 'Não enviado (reprovado)' };
     if (req.body.statusRH === 'aprovado') {
@@ -253,7 +257,7 @@ router.post('/solicitacao/assinar', async (req, res) => {
     }
 });
 
-router.post('/solicitacao/rh-aprovar', async (req, res) => {
+router.post('/solicitacao/rh-aprovar', dpAuth, async (req, res) => {
     const { id, statusRH, sugestaoData, justificativa } = req.body;
     
     if (!id || !statusRH) {

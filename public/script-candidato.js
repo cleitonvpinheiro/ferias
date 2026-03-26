@@ -3,6 +3,8 @@
 const translations = {
     pt: {
         formTitle: "Formulário de Recrutamento",
+        language: "Idioma",
+        formNote: "Preencha os dados abaixo para se candidatar.",
         personalData: "Dados Pessoais",
         candidateName: "Nome do Candidato:",
         naturalidade: "Naturalidade:",
@@ -44,11 +46,16 @@ const translations = {
         consentText: "Em observância à Lei 13.709/18 (LGPD), autorizo a empresa IRMÃOS MADALOSSO LTDA a tratar meus dados pessoais para fins de recrutamento e seleção.",
         authorizeTreatment: "Autorizo o tratamento dos meus dados",
         send: "Enviar",
+        sending: "Enviando...",
         successMessage: "Candidatura enviada com sucesso!",
+        receivedInfo: "Recebemos suas informações. Boa sorte!",
+        back: "Voltar",
         errorMessage: "Erro ao enviar candidatura. Tente novamente."
     },
     es: {
         formTitle: "Formulario de Reclutamiento",
+        language: "Idioma",
+        formNote: "Complete los datos a continuación para postularse.",
         personalData: "Datos Personales",
         candidateName: "Nombre del Candidato:",
         naturalidade: "Naturalidad:",
@@ -90,11 +97,16 @@ const translations = {
         consentText: "En cumplimiento con la Ley 13.709/18 (LGPD), autorizo a la empresa IRMÃOS MADALOSSO LTDA a tratar mis datos personales para fines de reclutamiento y selección.",
         authorizeTreatment: "Autorizo el tratamiento de mis datos",
         send: "Enviar",
+        sending: "Enviando...",
         successMessage: "¡Candidatura enviada con éxito!",
+        receivedInfo: "Recibimos su información. ¡Buena suerte!",
+        back: "Volver",
         errorMessage: "Error al enviar candidatura. Intente nuevamente."
     },
     en: {
         formTitle: "Recruitment Form",
+        language: "Language",
+        formNote: "Fill out the information below to apply.",
         personalData: "Personal Data",
         candidateName: "Candidate Name:",
         naturalidade: "Place of Birth:",
@@ -136,13 +148,40 @@ const translations = {
         consentText: "In compliance with Law 13.709/18 (LGPD), I authorize IRMÃOS MADALOSSO LTDA to process my personal data for recruitment and selection purposes.",
         authorizeTreatment: "I authorize the processing of my data",
         send: "Send",
+        sending: "Sending...",
         successMessage: "Application sent successfully!",
+        receivedInfo: "We received your information. Good luck!",
+        back: "Back",
         errorMessage: "Error sending application. Please try again."
     }
 };
 
 // Configuração de idioma
-const langSelect = document.getElementById('language-select');
+const LANG_STORAGE_KEY = 'app_lang';
+const LEGACY_LANG_STORAGE_KEY = 'trabalhe_conosco_lang';
+let currentLang = 'pt';
+
+function getLangButtons() {
+    return Array.from(document.querySelectorAll('.language-switcher [data-lang]'));
+}
+
+function detectBrowserLang() {
+    const nav = String(navigator.language || '').toLowerCase();
+    if (nav.startsWith('es')) return 'es';
+    if (nav.startsWith('en')) return 'en';
+    return 'pt';
+}
+
+function getInitialLang() {
+    try {
+        const saved = localStorage.getItem(LANG_STORAGE_KEY);
+        if (saved === 'pt' || saved === 'es' || saved === 'en') return saved;
+        const legacy = localStorage.getItem(LEGACY_LANG_STORAGE_KEY);
+        if (legacy === 'pt' || legacy === 'es' || legacy === 'en') return legacy;
+    } catch {}
+    return detectBrowserLang();
+}
+
 function updateLanguage(lang) {
     const texts = translations[lang];
     document.querySelectorAll('[data-translate]').forEach(el => {
@@ -158,34 +197,33 @@ function updateLanguage(lang) {
     // Atualiza opções de select se necessário (aqui mantemos simples)
 }
 
-if (langSelect) {
-    langSelect.addEventListener('change', (e) => updateLanguage(e.target.value));
-    // Inicializa
-    updateLanguage('pt');
+function setLanguage(lang, { persist = true } = {}) {
+    if (lang !== 'pt' && lang !== 'es' && lang !== 'en') lang = 'pt';
+    currentLang = lang;
+    updateLanguage(lang);
+    document.documentElement.setAttribute('lang', lang === 'pt' ? 'pt-BR' : lang);
+    getLangButtons().forEach(btn => btn.setAttribute('aria-pressed', btn.getAttribute('data-lang') === lang ? 'true' : 'false'));
+    if (persist) {
+        try { localStorage.setItem(LANG_STORAGE_KEY, lang); } catch {}
+    }
 }
+
+setLanguage(getInitialLang(), { persist: false });
+window.setPageLanguage = (lang, { persist = true } = {}) => setLanguage(lang, { persist });
 
 // Manipulação do Formulário
 const form = document.getElementById('formTalentos');
 const feedback = document.getElementById('feedback');
-
-// Função auxiliar para ler arquivo como Base64
-const fileToBase64 = file => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = error => reject(error);
-});
 
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const submitBtn = form.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Enviando...';
+    submitBtn.textContent = translations[currentLang].sending;
     
     try {
         const formData = new FormData(form);
-        const payload = Object.fromEntries(formData.entries());
         
         // Tratar arquivo
         const fileInput = document.getElementById('curriculo');
@@ -194,16 +232,11 @@ form.addEventListener('submit', async (e) => {
             if (file.size > 5 * 1024 * 1024) { // 5MB limit check
                 throw new Error('O arquivo é muito grande (máx 5MB).');
             }
-            payload.curriculo = await fileToBase64(file);
         }
-
-        // Remover o campo de arquivo original do payload para não enviar lixo JSON
-        delete payload.curriculoFile;
 
         const res = await fetch('/api/candidaturas', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: formData
         });
 
         const data = await res.json();
@@ -218,22 +251,22 @@ form.addEventListener('submit', async (e) => {
             successDiv.style.padding = '40px 20px';
             successDiv.innerHTML = `
                 <div style="font-size: 48px; margin-bottom: 20px;">✅</div>
-                <h2 style="color: #166534; margin-bottom: 10px;">${translations[langSelect.value || 'pt'].successMessage}</h2>
-                <p style="color: #64748b;">Recebemos suas informações. Boa sorte!</p>
-                <button onclick="window.location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer;">Voltar</button>
+                <h2 style="color: #166534; margin-bottom: 10px;">${translations[currentLang].successMessage}</h2>
+                <p style="color: #64748b;">${translations[currentLang].receivedInfo}</p>
+                <button onclick="window.location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer;">${translations[currentLang].back}</button>
             `;
             container.appendChild(successDiv);
             
             // Rolar para o topo
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
-            alert(data.erro || translations[langSelect.value || 'pt'].errorMessage);
+            alert(data.erro || translations[currentLang].errorMessage);
         }
     } catch (err) {
         console.error(err);
         alert('Erro: ' + err.message);
     } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = translations[langSelect.value || 'pt'].send;
+        submitBtn.textContent = translations[currentLang].send;
     }
 });

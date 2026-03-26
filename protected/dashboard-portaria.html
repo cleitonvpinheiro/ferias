@@ -6,6 +6,7 @@
     <title>Portaria - Controle de EPIs</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/rh-styles.css">
+    <script src="/lang-switcher.js" defer></script>
     <style>
         :root {
             --primary-portaria: #2563eb;
@@ -227,11 +228,214 @@
             background: #f8fafc;
         }
 
+        .requests-toolbar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .requests-toolbar input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+        }
+
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            border-radius: 6px;
+        }
+
+        .request-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 10px;
+        }
+
+        .request-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .request-title {
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0;
+            font-size: 1.05rem;
+        }
+
+        .request-meta {
+            margin-top: 4px;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .request-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px 0 0;
+        }
+
+        .request-item-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-weight: 600;
+            color: #334155;
+            font-size: 0.9rem;
+        }
+
+        .request-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 12px;
+        }
+
+        .requests-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .requests-title-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .requests-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 26px;
+            height: 26px;
+            padding: 0 10px;
+            border-radius: 999px;
+            background: #eef2ff;
+            border: 1px solid #c7d2fe;
+            color: #1d4ed8;
+            font-weight: 800;
+            font-size: 0.9rem;
+        }
+
+        .requests-updated {
+            color: #64748b;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        body.requests-monitor-mode {
+            background: var(--bg-portaria);
+        }
+
+        body.requests-monitor-mode #keypad-overlay,
+        body.requests-monitor-mode #main-interface {
+            display: none !important;
+        }
+
+        body.requests-monitor-mode #modal-solicitacoes {
+            display: flex !important;
+            position: fixed;
+            inset: 0;
+            background: var(--bg-portaria);
+            align-items: stretch;
+            justify-content: center;
+            padding: 20px;
+            z-index: 2000;
+        }
+
+        body.requests-monitor-mode #modal-solicitacoes .modal {
+            width: 1100px !important;
+            max-width: 100% !important;
+            height: calc(100vh - 40px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        body.requests-monitor-mode #modal-solicitacoes .modal-body {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        body.requests-monitor-mode #lista-solicitacoes {
+            max-height: none !important;
+            flex: 1;
+        }
+
+        body.requests-monitor-mode #modal-solicitacoes .close-modal {
+            display: none;
+        }
+
         .kiosk-footer {
             margin-top: 20px;
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
+            align-items: center;
             gap: 15px;
+        }
+
+        .selection-summary {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            color: #334155;
+            font-weight: 600;
+        }
+
+        .selection-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            font-size: 0.95rem;
+        }
+
+        .selection-pill .count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 22px;
+            height: 22px;
+            padding: 0 8px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            border: 1px solid #e2e8f0;
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .selection-pill.pickup .count {
+            background: #ecfdf5;
+            border-color: #bbf7d0;
+            color: #047857;
+        }
+
+        .selection-pill.return .count {
+            background: #fff1f2;
+            border-color: #fecdd3;
+            color: #be123c;
         }
 
         .btn-large {
@@ -251,6 +455,42 @@
         .btn-confirm {
             background: var(--primary-portaria);
             color: white;
+        }
+
+        .btn-confirm:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .footer-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            margin-left: auto;
+        }
+
+        .panel-search {
+            padding: 10px;
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .panel-search input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+        }
+
+        .epi-card.disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .epi-card.disabled:hover {
+            transform: none;
+            box-shadow: none;
+            border-color: #e2e8f0;
         }
 
         /* Keypad Overlay */
@@ -402,16 +642,20 @@
 
     </style>
 </head>
-<body>
+<body data-page="rh-portaria">
 
     <!-- Keypad Overlay (Simulação Biometria) -->
     <div id="keypad-overlay">
         <div style="position: absolute; top: 20px; right: 20px;">
-            <button class="btn-cancel" onclick="abrirModalEstoque()">📦 Gestão de Estoque</button>
+            <div style="display:flex; gap:10px;">
+                <button class="btn-cancel" onclick="abrirModalSolicitacoes()">📋 <span data-translate="rh_portaria_requests">Solicitações</span></button>
+                <button class="btn-cancel" onclick="abrirPainelSolicitacoes()">🖥️ <span data-translate="rh_portaria_panel">Painel</span></button>
+                <button class="btn-cancel" onclick="abrirModalEstoque()">📦 <span data-translate="rh_portaria_stock">Gestão de Estoque</span></button>
+            </div>
         </div>
         <div class="keypad-container">
-            <h2 style="margin-bottom: 20px; color: #1e293b;">Ponto / EPI</h2>
-            <p style="margin-bottom: 20px; color: #64748b;">Digite o CPF ou Matrícula</p>
+            <h2 style="margin-bottom: 20px; color: #1e293b;" data-translate="rh_portaria_kiosk_title">Ponto / EPI</h2>
+            <p style="margin-bottom: 20px; color: #64748b;" data-translate="rh_portaria_kiosk_subtitle">Digite o CPF ou Matrícula</p>
             
             <div class="display-screen" id="display"></div>
             
@@ -428,7 +672,7 @@
                 <button class="key clear" onclick="clearDisplay()">C</button>
                 <button class="key" onclick="pressKey('0')">0</button>
                 <button class="key" onclick="backspace()">&larr;</button>
-                <button class="key enter" onclick="authenticate()">ENTRAR</button>
+                <button class="key enter" onclick="authenticate()" data-translate="rh_portaria_enter">ENTRAR</button>
             </div>
         </div>
     </div>
@@ -437,13 +681,35 @@
     <div id="modal-estoque" class="modal-overlay" style="display: none;">
         <div class="modal" style="width: 800px; max-width: 95%;">
             <div class="modal-header">
-                <h2>Gestão de Estoque - Portaria</h2>
+                <h2 data-translate="rh_portaria_stock_title">Gestão de Estoque - Portaria</h2>
                 <button class="close-modal" onclick="fecharModalEstoque()">&times;</button>
             </div>
             <div class="modal-body">
                 <div id="lista-estoque" style="max-height: 400px; overflow-y: auto;">
                     <!-- Items injected here -->
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-solicitacoes" class="modal-overlay" style="display: none;">
+        <div class="modal" style="width: 900px; max-width: 96%;">
+            <div class="modal-header">
+                <div class="requests-header">
+                    <div class="requests-title-row">
+                        <h2 style="margin:0;" data-translate="rh_portaria_requests_title">Solicitações de EPI</h2>
+                        <span class="requests-badge" id="requests-count">0</span>
+                    </div>
+                    <div class="requests-updated" id="requests-updated"></div>
+                </div>
+                <button class="close-modal" onclick="fecharModalSolicitacoes()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="requests-toolbar">
+                    <input id="requests-search" type="text" placeholder="Buscar por nome, CPF, matrícula ou EPI..." data-translate="rh_portaria_requests_search" onkeyup="renderSolicitacoesFiltradas()">
+                    <button class="btn-confirm btn-small" onclick="carregarSolicitacoes()" data-translate="rh_dash_refresh">Atualizar</button>
+                </div>
+                <div id="lista-solicitacoes" style="max-height: 520px; overflow-y: auto;"></div>
             </div>
         </div>
     </div>
@@ -465,10 +731,10 @@
             <!-- Panel: Entregar EPIs -->
             <div class="panel">
                 <div class="panel-header" style="background: #ecfdf5; color: #047857;">
-                    ENTREGAR (Retirada)
+                    <span data-translate="rh_portaria_deliver">ENTREGAR (Retirada)</span>
                 </div>
-                <div style="padding: 10px; background: white; border-bottom: 1px solid #e2e8f0;">
-                    <input type="text" id="search-epi" placeholder="🔍 Buscar EPI..." style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;" onkeyup="filtrarEpis()">
+                <div class="panel-search">
+                    <input type="text" id="search-epi" placeholder="🔍 Buscar EPI..." data-translate="rh_portaria_search_epi" onkeyup="filtrarEpis()">
                 </div>
                 <div class="panel-body" id="list-available">
                     <!-- Loaded via JS -->
@@ -478,7 +744,10 @@
             <!-- Panel: Devolver EPIs -->
             <div class="panel">
                 <div class="panel-header" style="background: #fff1f2; color: #be123c;">
-                    DEVOLVER (Retorno)
+                    <span data-translate="rh_portaria_return">DEVOLVER (Retorno)</span>
+                </div>
+                <div class="panel-search">
+                    <input type="text" id="search-possession" placeholder="🔍 Buscar em posse..." data-translate="rh_portaria_search_possession" onkeyup="filtrarEmPosse()">
                 </div>
                 <div class="panel-body" id="list-possession">
                     <!-- Loaded via JS -->
@@ -487,8 +756,14 @@
         </div>
 
         <div class="kiosk-footer">
-            <button class="btn-large btn-cancel" onclick="logout()">Cancelar</button>
-            <button class="btn-large btn-confirm" onclick="confirmarMovimentacao()">CONFIRMAR</button>
+            <div class="selection-summary" id="selection-summary">
+                <span class="selection-pill pickup"><span data-translate="rh_portaria_pill_pickup">Retirada</span> <span class="count" id="count-pickup">0</span></span>
+                <span class="selection-pill return"><span data-translate="rh_portaria_pill_return">Devolução</span> <span class="count" id="count-return">0</span></span>
+            </div>
+            <div class="footer-actions">
+                <button class="btn-large btn-cancel" onclick="logout()" data-translate="rh_portaria_cancel">Cancelar</button>
+                <button class="btn-large btn-confirm" id="btn-confirm" onclick="confirmarMovimentacao()" disabled data-translate="rh_portaria_confirm">CONFIRMAR</button>
+            </div>
         </div>
     </div>
 
@@ -496,23 +771,23 @@
     <div id="modal-confirmacao" class="modal-overlay" style="display: none;">
         <div class="modal" style="width: 600px; max-width: 90%;">
             <div class="modal-header">
-                <h2>Confirmação Biométrica</h2>
+                <h2 data-translate="rh_portaria_confirm_title">Confirmação Biométrica</h2>
                 <button class="close-modal" onclick="fecharModalConfirmacao()">&times;</button>
             </div>
             <div class="modal-body">
-                <p>Solicite ao funcionário para confirmar a operação.</p>
+                <p data-translate="rh_portaria_confirm_desc">Solicite ao funcionário para confirmar a operação.</p>
                 
                 <div class="tabs" style="display: flex; gap: 10px; margin-bottom: 20px;">
-                    <button class="tab-btn active" onclick="switchTab('assinatura')" id="btn-tab-assinatura" style="flex:1; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; background: white; cursor: pointer;">Assinatura Digital</button>
-                    <button class="tab-btn" onclick="switchTab('facial')" id="btn-tab-facial" style="flex:1; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; background: white; cursor: pointer;">Reconhecimento Facial</button>
+                    <button class="tab-btn active" onclick="switchTab('assinatura')" id="btn-tab-assinatura" style="flex:1; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; background: white; cursor: pointer;" data-translate="rh_portaria_tab_signature">Assinatura Digital</button>
+                    <button class="tab-btn" onclick="switchTab('facial')" id="btn-tab-facial" style="flex:1; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; background: white; cursor: pointer;" data-translate="rh_portaria_tab_facial">Reconhecimento Facial</button>
                 </div>
 
                 <!-- Aba Assinatura -->
                 <div id="tab-assinatura" class="tab-content">
                     <canvas id="signature-pad" width="500" height="200" style="border: 2px dashed #cbd5e1; border-radius: 8px; cursor: crosshair; touch-action: none; background: #fff; width: 100%;"></canvas>
                     <div style="display: flex; justify-content: space-between; margin-top: 10px;">
-                        <button class="btn-cancel" onclick="clearSignature()" style="padding: 5px 10px; border-radius: 4px; border: none; cursor: pointer;">Limpar</button>
-                        <p style="color: #64748b; font-size: 0.9em;">Assine na área acima</p>
+                        <button class="btn-cancel" onclick="clearSignature()" style="padding: 5px 10px; border-radius: 4px; border: none; cursor: pointer;" data-translate="rh_portaria_clear">Limpar</button>
+                        <p style="color: #64748b; font-size: 0.9em;" data-translate="rh_portaria_sign_hint">Assine na área acima</p>
                     </div>
                 </div>
 
@@ -521,7 +796,7 @@
                     <video id="camera-feed" width="400" height="300" autoplay style="border-radius: 8px; background: #000; max-width: 100%;"></video>
                     <canvas id="camera-capture" width="400" height="300" style="display: none;"></canvas>
                     <div style="margin-top: 10px;">
-                        <button class="btn-cancel" onclick="startCamera()" style="padding: 5px 10px; border-radius: 4px; border: none; cursor: pointer;">Ativar Câmera</button>
+                        <button class="btn-cancel" onclick="startCamera()" style="padding: 5px 10px; border-radius: 4px; border: none; cursor: pointer;" data-translate="rh_portaria_camera_on">Ativar Câmera</button>
                     </div>
                 </div>
 
@@ -618,6 +893,13 @@
         let selectedForPickup = new Set(); // IDs
         let selectedForReturn = new Set(); // IDs
         let currentDiscountItem = null;
+        let solicitacoesCache = [];
+        let solicitacoesTimer = null;
+        let solicitacoesFuncionarioId = null;
+        let solicitacoesLastUpdatedAt = null;
+        let solicitacoesLastPendingIds = null;
+        let solicitacoesPollInFlight = false;
+        let solicitacoesAuthWarned = false;
 
         function filtrarEpis() {
             const term = document.getElementById('search-epi').value.toLowerCase();
@@ -636,6 +918,20 @@
             });
         }
 
+        function filtrarEmPosse() {
+            const term = (document.getElementById('search-possession')?.value || '').toLowerCase();
+            const cards = document.querySelectorAll('#list-possession .epi-card');
+            cards.forEach(card => {
+                const name = card.dataset.name || '';
+                const id = card.dataset.id ? card.dataset.id.toString() : '';
+                if (!term || name.includes(term) || id.includes(term)) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
         // --- Stock Management ---
         async function abrirModalEstoque() {
             document.getElementById('modal-estoque').style.display = 'flex';
@@ -644,6 +940,248 @@
 
         function fecharModalEstoque() {
             document.getElementById('modal-estoque').style.display = 'none';
+        }
+
+        async function abrirModalSolicitacoes(funcionarioId = null) {
+            solicitacoesFuncionarioId = funcionarioId ? String(funcionarioId) : null;
+            document.getElementById('modal-solicitacoes').style.display = 'flex';
+            const input = document.getElementById('requests-search');
+            if (input) {
+                if (solicitacoesFuncionarioId && currentFuncionario) {
+                    input.value = String(currentFuncionario.cpf || currentFuncionario.matricula || '');
+                } else {
+                    input.value = '';
+                }
+            }
+            await carregarSolicitacoes();
+            if (solicitacoesTimer) clearInterval(solicitacoesTimer);
+            const intervalMs = document.body.classList.contains('requests-monitor-mode') ? 5000 : 10000;
+            solicitacoesTimer = setInterval(() => {
+                const modal = document.getElementById('modal-solicitacoes');
+                const isMonitor = document.body.classList.contains('requests-monitor-mode');
+                if (isMonitor) return carregarSolicitacoes();
+                if (modal && modal.style.display !== 'none') carregarSolicitacoes();
+            }, intervalMs);
+        }
+
+        function fecharModalSolicitacoes() {
+            document.getElementById('modal-solicitacoes').style.display = 'none';
+            if (solicitacoesTimer) clearInterval(solicitacoesTimer);
+            solicitacoesTimer = null;
+            solicitacoesFuncionarioId = null;
+            solicitacoesLastUpdatedAt = null;
+            solicitacoesLastPendingIds = null;
+            solicitacoesPollInFlight = false;
+            solicitacoesAuthWarned = false;
+        }
+
+        function escapeHtml(input) {
+            return String(input)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
+        function formatDateTime(iso) {
+            if (!iso) return '';
+            const d = new Date(iso);
+            if (Number.isNaN(d.getTime())) return String(iso);
+            return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+        }
+
+        function updateRequestsHeader({ total, showing }) {
+            const countEl = document.getElementById('requests-count');
+            const updatedEl = document.getElementById('requests-updated');
+            if (countEl) countEl.textContent = String(showing ?? total ?? 0);
+            if (updatedEl) {
+                const parts = [];
+                if (typeof total === 'number') parts.push(`Pendentes: ${total}`);
+                if (typeof showing === 'number' && typeof total === 'number' && showing !== total) parts.push(`Exibindo: ${showing}`);
+                if (solicitacoesLastUpdatedAt) parts.push(`Atualizado: ${formatDateTime(solicitacoesLastUpdatedAt)}`);
+                updatedEl.textContent = parts.join(' • ');
+            }
+        }
+
+        function beep() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                const o = ctx.createOscillator();
+                const g = ctx.createGain();
+                o.type = 'sine';
+                o.frequency.value = 880;
+                g.gain.value = 0.06;
+                o.connect(g);
+                g.connect(ctx.destination);
+                o.start();
+                setTimeout(() => {
+                    o.stop();
+                    ctx.close();
+                }, 180);
+            } catch (_) {}
+        }
+
+        async function carregarSolicitacoes() {
+            if (solicitacoesPollInFlight) return;
+            solicitacoesPollInFlight = true;
+            const lista = document.getElementById('lista-solicitacoes');
+            if (lista) lista.innerHTML = '<p>Carregando...</p>';
+
+            try {
+                const qs = new URLSearchParams();
+                qs.set('status', 'pendente');
+                if (solicitacoesFuncionarioId) qs.set('funcionario_id', solicitacoesFuncionarioId);
+
+                const res = await fetch(`/api/portaria/solicitacoes?${qs.toString()}`, {
+                    cache: 'no-store',
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                const contentType = String(res.headers.get('content-type') || '').toLowerCase();
+                if (!contentType.includes('application/json')) {
+                    solicitacoesCache = [];
+                    solicitacoesLastUpdatedAt = new Date().toISOString();
+                    updateRequestsHeader({ total: 0, showing: 0 });
+                    if (lista) lista.innerHTML = '<p>Sessão expirada. Faça login novamente.</p>';
+                    if (!solicitacoesAuthWarned) {
+                        solicitacoesAuthWarned = true;
+                        showToast('Sessão expirada. Faça login novamente.', 'error');
+                    }
+                    return;
+                }
+
+                const data = await res.json();
+                if (!data || !data.ok) {
+                    solicitacoesCache = [];
+                    solicitacoesLastUpdatedAt = new Date().toISOString();
+                    updateRequestsHeader({ total: 0, showing: 0 });
+                    if (lista) lista.innerHTML = '<p>Erro ao carregar solicitações.</p>';
+                    return;
+                }
+                solicitacoesCache = Array.isArray(data.solicitacoes) ? data.solicitacoes : [];
+                solicitacoesLastUpdatedAt = new Date().toISOString();
+                solicitacoesAuthWarned = false;
+
+                const isMonitor = document.body.classList.contains('requests-monitor-mode') && !solicitacoesFuncionarioId;
+                if (isMonitor) {
+                    const newIds = new Set(solicitacoesCache.map(s => String(s.id)));
+                    if (solicitacoesLastPendingIds) {
+                        const added = [];
+                        newIds.forEach(id => { if (!solicitacoesLastPendingIds.has(id)) added.push(id); });
+                        if (added.length > 0) {
+                            showToast(`Nova solicitação (${added.length})`, 'success');
+                            beep();
+                        }
+                    }
+                    solicitacoesLastPendingIds = newIds;
+                }
+                renderSolicitacoesFiltradas();
+            } catch (e) {
+                solicitacoesCache = [];
+                solicitacoesLastUpdatedAt = new Date().toISOString();
+                updateRequestsHeader({ total: 0, showing: 0 });
+                if (lista) lista.innerHTML = '<p>Erro de conexão.</p>';
+            } finally {
+                solicitacoesPollInFlight = false;
+            }
+        }
+
+        function renderSolicitacoesFiltradas() {
+            const lista = document.getElementById('lista-solicitacoes');
+            if (!lista) return;
+
+            const term = (document.getElementById('requests-search')?.value || '').toLowerCase().trim();
+            const termDigits = term.replace(/\D/g, '');
+            const filtered = term
+                ? solicitacoesCache.filter(s => {
+                    const f = s.funcionario || {};
+                    const cpfDigits = String(f.cpf || '').replace(/\D/g, '');
+                    const matriculaDigits = String(f.matricula || '').replace(/\D/g, '');
+                    const hay = [
+                        f.nome,
+                        f.cpf,
+                        f.matricula,
+                        f.setor,
+                        f.cargo,
+                        ...(Array.isArray(s.itens) ? s.itens.map(i => i && i.nome) : [])
+                    ].filter(Boolean).join(' ').toLowerCase();
+                    if (hay.includes(term)) return true;
+                    if (termDigits && (cpfDigits.includes(termDigits) || matriculaDigits.includes(termDigits))) return true;
+                    return false;
+                })
+                : solicitacoesCache;
+
+            updateRequestsHeader({ total: solicitacoesCache.length, showing: filtered.length });
+
+            if (filtered.length === 0) {
+                const msg = solicitacoesFuncionarioId
+                    ? 'Nenhuma solicitação pendente para este funcionário.'
+                    : 'Nenhuma solicitação pendente.';
+                lista.innerHTML = `<p style="text-align:center; color:#64748b; padding:20px;">${msg}</p>`;
+                return;
+            }
+
+            lista.innerHTML = '';
+            filtered.forEach(s => {
+                const f = s.funcionario || {};
+                const itens = Array.isArray(s.itens) ? s.itens : [];
+                const metaParts = [
+                    f.cpf ? `CPF: ${escapeHtml(f.cpf)}` : '',
+                    f.matricula ? `Matrícula: ${escapeHtml(f.matricula)}` : '',
+                    f.setor ? escapeHtml(f.setor) : '',
+                    s.createdAt ? `Solicitado: ${escapeHtml(formatDateTime(s.createdAt))}` : ''
+                ].filter(Boolean);
+
+                const card = document.createElement('div');
+                card.className = 'request-card';
+                card.innerHTML = `
+                    <div class="request-head">
+                        <div>
+                            <p class="request-title">${escapeHtml(f.nome || f.id || 'Funcionário')}</p>
+                            <div class="request-meta">${metaParts.join(' • ')}</div>
+                        </div>
+                        <div style="text-align:right; color:#64748b; font-size:0.9rem;">
+                            <div style="font-weight:700; color:#334155;">#${escapeHtml(s.id || '')}</div>
+                        </div>
+                    </div>
+                    <div class="request-items">
+                        ${itens.map(i => `<span class="request-item-pill">${escapeHtml(i.nome || i.id)} <span style="opacity:0.8">x${escapeHtml(i.quantidade || 1)}</span></span>`).join('')}
+                    </div>
+                    <div class="request-actions">
+                        <button class="btn-cancel btn-small" onclick="marcarSolicitacao('${String(s.id || '')}','cancelada')">Cancelar</button>
+                        <button class="btn-confirm btn-small" onclick="marcarSolicitacao('${String(s.id || '')}','atendida')">Marcar atendida</button>
+                    </div>
+                `;
+                lista.appendChild(card);
+            });
+        }
+
+        function abrirPainelSolicitacoes() {
+            window.open('/protected/dashboard-portaria.html?monitor=1', '_blank', 'noopener');
+        }
+
+        async function marcarSolicitacao(id, status) {
+            if (!id) return;
+            try {
+                const res = await fetch(`/api/portaria/solicitacoes/${encodeURIComponent(id)}/status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                });
+                const data = await res.json();
+                if (!data || !data.ok) {
+                    showToast((data && data.erro) ? data.erro : 'Erro ao atualizar solicitação', 'error');
+                    return;
+                }
+                solicitacoesCache = solicitacoesCache.filter(s => String(s.id) !== String(id));
+                renderSolicitacoesFiltradas();
+                showToast('Solicitação atualizada.', 'success');
+            } catch (e) {
+                showToast('Erro de conexão', 'error');
+            }
         }
 
         async function carregarEstoque() {
@@ -774,6 +1312,7 @@
             allEpis = await res.json();
             
             renderLists();
+            abrirModalSolicitacoes(currentFuncionario.id);
             
             // Setup Search Input for Barcode/Keypad usage
             const searchInput = document.getElementById('search-epi');
@@ -804,6 +1343,21 @@
             };
         }
 
+        (() => {
+            const url = new URL(window.location.href);
+            const isMonitor = url.searchParams.get('monitor') === '1';
+            if (isMonitor) {
+                document.body.classList.add('requests-monitor-mode');
+                abrirModalSolicitacoes(null);
+            }
+        })();
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState !== 'visible') return;
+            if (!document.body.classList.contains('requests-monitor-mode')) return;
+            carregarSolicitacoes();
+        });
+
         function renderLists() {
             const listAvailable = document.getElementById('list-available');
             const listPossession = document.getElementById('list-possession');
@@ -819,18 +1373,24 @@
             allEpis.forEach(epi => {
                 const isSelected = selectedForPickup.has(epi.id);
                 const card = document.createElement('div');
-                card.className = `epi-card ${isSelected ? 'selected' : ''}`;
+                const isOut = !(epi.estoque > 0);
+                card.className = `epi-card ${isSelected ? 'selected' : ''} ${isOut ? 'disabled' : ''}`;
                 card.dataset.id = epi.id; // Store ID for search
                 card.dataset.name = epi.nome.toLowerCase(); // Store name for search
-                card.onclick = (e) => togglePickup(epi.id, e);
+                card.onclick = (e) => {
+                    if (isOut && !isSelected) return showToast('Sem estoque para retirada.', 'error');
+                    togglePickup(epi.id, e);
+                };
                 
                 const stockClass = (epi.estoque > 0) ? 'good' : 'low';
+                const caInfo = epi.ca_validade ? `<span style="font-size:0.75rem; color:#64748b;">CA: ${epi.ca_validade}</span>` : '';
                 
                 card.innerHTML = `
                     <div class="selection-indicator"></div>
                     <div class="epi-name">${epi.nome} <span style="font-size:0.8em; color:#94a3b8; font-weight:normal;">#${epi.id}</span></div>
                     <div class="epi-footer">
                         <span class="stock-badge ${stockClass}">Estoque: ${epi.estoque || 0}</span>
+                        ${caInfo}
                     </div>
                 `;
                 gridAvailable.appendChild(card);
@@ -847,6 +1407,8 @@
                     const isSelected = selectedForReturn.has(itemId);
                     const card = document.createElement('div');
                     card.className = `epi-card return-item ${isSelected ? 'selected' : ''}`;
+                    card.dataset.id = itemId;
+                    card.dataset.name = epi.nome.toLowerCase();
                     
                     card.onclick = (e) => {
                         if(!e.target.closest('.btn-loss')) {
@@ -873,6 +1435,10 @@
                 listPossession.innerHTML = '';
                 listPossession.appendChild(gridPossession);
             }
+
+            filtrarEpis();
+            filtrarEmPosse();
+            updateSelectionSummary();
         }
 
         function togglePickup(id, e) {
@@ -887,15 +1453,29 @@
             renderLists();
         }
 
+        function updateSelectionSummary() {
+            const pickupEl = document.getElementById('count-pickup');
+            const returnEl = document.getElementById('count-return');
+            if (pickupEl) pickupEl.textContent = String(selectedForPickup.size);
+            if (returnEl) returnEl.textContent = String(selectedForReturn.size);
+
+            const btn = document.getElementById('btn-confirm');
+            if (btn) btn.disabled = (selectedForPickup.size === 0 && selectedForReturn.size === 0);
+        }
+
         function logout() {
             currentInput = '';
             currentFuncionario = null;
             selectedForPickup.clear();
             selectedForReturn.clear();
             itemsInPossessionIds = [];
+            fecharModalSolicitacoes();
             document.getElementById('keypad-overlay').style.display = 'flex';
             document.getElementById('main-interface').style.display = 'none';
             clearDisplay();
+            const s1 = document.getElementById('search-epi'); if (s1) s1.value = '';
+            const s2 = document.getElementById('search-possession'); if (s2) s2.value = '';
+            updateSelectionSummary();
         }
 
         function confirmarMovimentacao() {

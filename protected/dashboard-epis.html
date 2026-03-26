@@ -6,12 +6,13 @@
   <title>Dashboard RH - Gestão de EPIs</title>
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="stylesheet" href="/rh-styles.css">
+  <script src="/lang-switcher.js" defer></script>
   <style>
       .form-epi {
-          background: white;
+          background: var(--bg-surface);
           padding: 20px;
           border-radius: 8px;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          box-shadow: var(--shadow-sm);
           margin-bottom: 20px;
           display: flex;
           gap: 15px;
@@ -31,7 +32,7 @@
       .form-group input {
           width: 100%;
           padding: 10px;
-          border: 1px solid #e2e8f0;
+          border: 1px solid var(--border);
           border-radius: 6px;
       }
       .epi-list {
@@ -39,13 +40,13 @@
           gap: 10px;
       }
       .epi-item {
-          background: white;
+          background: var(--bg-surface);
           padding: 15px;
           border-radius: 8px;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          border: 1px solid #e2e8f0;
+          border: 1px solid var(--border);
       }
       .epi-info h3 {
           margin: 0;
@@ -58,7 +59,7 @@
           font-size: 0.875rem;
       }
       .btn-danger {
-          background-color: #ef4444;
+          background-color: var(--danger);
           color: white;
           border: none;
           padding: 8px 12px;
@@ -66,11 +67,11 @@
           cursor: pointer;
       }
       .btn-danger:hover {
-          background-color: #dc2626;
+          background-color: var(--danger);
       }
   </style>
 </head>
-<body>
+<body data-page="rh-epis">
   <div id="navbar-container"></div>
   <script src="/rh-navbar.js"></script>
   <script>renderRHNavbar('epis');</script>
@@ -78,29 +79,29 @@
   <main class="dashboard-container">
     <div class="page-header">
         <div>
-            <h1 class="page-title">Gestão de EPIs</h1>
-            <p class="page-subtitle">Cadastre os equipamentos e valores para controle da portaria</p>
+            <h1 class="page-title" data-translate="rh_dash_epis_title">Gestão de EPIs</h1>
+            <p class="page-subtitle" data-translate="rh_dash_epis_subtitle">Cadastre os equipamentos e valores para controle da portaria</p>
         </div>
     </div>
 
     <div class="stats-grid">
         <div class="stat-card pending">
             <div class="stat-header">
-                <div class="stat-title">Total em Estoque</div>
+                <div class="stat-title" data-translate="rh_dash_epis_stat_total_stock">Total em Estoque</div>
                 <div class="stat-icon">📦</div>
             </div>
             <div class="stat-value" id="stat-total-items">0</div>
         </div>
         <div class="stat-card rejected">
             <div class="stat-header">
-                <div class="stat-title">Estoque Baixo</div>
+                <div class="stat-title" data-translate="rh_dash_epis_stat_low_stock">Estoque Baixo</div>
                 <div class="stat-icon">⚠️</div>
             </div>
             <div class="stat-value" id="stat-low-stock">0</div>
         </div>
         <div class="stat-card approved">
             <div class="stat-header">
-                <div class="stat-title">Valor Total</div>
+                <div class="stat-title" data-translate="rh_dash_epis_stat_total_value">Valor Total</div>
                 <div class="stat-icon">💰</div>
             </div>
             <div class="stat-value" id="stat-total-value">R$ 0,00</div>
@@ -109,25 +110,25 @@
 
     <div class="form-epi">
         <div class="form-group">
-            <label>Nome do EPI</label>
-            <input type="text" id="novoNome" placeholder="Ex: Capacete de Segurança">
+            <label data-translate="rh_dash_epis_label_nome">Nome do EPI</label>
+            <input type="text" id="novoNome" placeholder="Ex: Capacete de Segurança" data-translate="rh_dash_epis_placeholder_nome">
         </div>
         <div class="form-group">
-            <label>Valor (R$)</label>
-            <input type="number" id="novoValor" placeholder="0.00" step="0.01">
+            <label data-translate="rh_dash_epis_label_valor">Valor (R$)</label>
+            <input type="number" id="novoValor" placeholder="0.00" data-translate="rh_dash_epis_placeholder_valor" step="0.01">
         </div>
         <div class="form-group">
-            <label>Estoque Inicial</label>
-            <input type="number" id="novoEstoque" placeholder="0" step="1" min="0">
+            <label data-translate="rh_dash_epis_label_estoque">Estoque Inicial</label>
+            <input type="number" id="novoEstoque" placeholder="0" data-translate="rh_dash_epis_placeholder_estoque" step="1" min="0">
         </div>
         <div class="form-group">
-            <label>Validade do CA</label>
+            <label data-translate="rh_dash_epis_label_ca">Validade do CA</label>
             <input type="date" id="novoCA">
         </div>
         <div style="display: flex; gap: 10px; align-items: flex-end;">
-            <button class="btn btn-primary" onclick="adicionarEPI()">Adicionar EPI</button>
-            <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()" style="background-color: #10b981; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer;">
-                📄 Importar Excel
+            <button class="btn btn-primary" onclick="adicionarEPI()" data-translate="rh_dash_epis_add">Adicionar EPI</button>
+            <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()" style="background-color: var(--success); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer;">
+                📄 <span data-translate="rh_dash_epis_import_excel">Importar Excel</span>
             </button>
             <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;" onchange="uploadExcel(this)">
         </div>
@@ -135,40 +136,40 @@
 
     <div class="epi-list" id="listaEpis">
         <!-- Lista carregada via JS -->
-        <div style="text-align: center; padding: 20px; color: var(--text-secondary);">Carregando...</div>
+        <div style="text-align: center; padding: 20px; color: var(--text-secondary);" data-translate="rh_dash_loading">Carregando...</div>
     </div>
 
     <div class="page-header" style="margin-top: 40px;">
         <div>
-            <h1 class="page-title">Termos de Desconto</h1>
-            <p class="page-subtitle">Gerenciamento de descontos gerados pela portaria</p>
+            <h1 class="page-title" data-translate="rh_dash_epis_terms_title">Termos de Desconto</h1>
+            <p class="page-subtitle" data-translate="rh_dash_epis_terms_subtitle">Gerenciamento de descontos gerados pela portaria</p>
         </div>
     </div>
 
     <div class="epi-list" id="listaDescontos">
-        <div style="text-align: center; padding: 20px; color: var(--text-secondary);">Carregando termos...</div>
+        <div style="text-align: center; padding: 20px; color: var(--text-secondary);" data-translate="rh_dash_epis_terms_loading">Carregando termos...</div>
     </div>
 
     <div class="page-header" style="margin-top: 40px;">
         <div>
-            <h1 class="page-title">Histórico de Movimentações</h1>
-            <p class="page-subtitle">Registro de retiradas e devoluções na portaria</p>
+            <h1 class="page-title" data-translate="rh_dash_epis_mov_title">Histórico de Movimentações</h1>
+            <p class="page-subtitle" data-translate="rh_dash_epis_mov_subtitle">Registro de retiradas e devoluções na portaria</p>
         </div>
     </div>
 
     <div class="epi-list" id="listaMovimentacoes">
-        <div style="text-align: center; padding: 20px; color: var(--text-secondary);">Carregando movimentações...</div>
+        <div style="text-align: center; padding: 20px; color: var(--text-secondary);" data-translate="rh_dash_epis_mov_loading">Carregando movimentações...</div>
     </div>
   </main>
 
-  <div id="modalEvidencia" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
-      <div style="background:white; padding:20px; border-radius:8px; max-width:90%; max-height:90%; display:flex; flex-direction:column; gap:10px;">
+  <div id="modalEvidencia" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:var(--backdrop-bg); z-index:1000; justify-content:center; align-items:center;">
+      <div style="background:var(--bg-surface); padding:20px; border-radius:8px; max-width:90%; max-height:90%; display:flex; flex-direction:column; gap:10px; border:1px solid var(--border);">
           <div style="display:flex; justify-content:space-between; align-items:center;">
-              <h3 style="margin:0;">Evidência</h3>
+              <h3 style="margin:0;" data-translate="rh_dash_epis_modal_evidence">Evidência</h3>
               <button onclick="fecharEvidencia()" style="background:none; border:none; font-size:1.5em; cursor:pointer;">&times;</button>
           </div>
           <div style="overflow:auto; text-align:center;">
-              <img id="imgEvidencia" src="" alt="Evidência" style="max-width:100%; max-height:80vh; border:1px solid #ddd;">
+              <img id="imgEvidencia" src="" alt="Evidência" style="max-width:100%; max-height:80vh; border:1px solid var(--border);">
           </div>
       </div>
   </div>
@@ -197,7 +198,7 @@
           if (content.startsWith('data:application/pdf')) {
               container.innerHTML = `<iframe src="${content}" style="width:100%; height:80vh; border:none;"></iframe>`;
           } else {
-              container.innerHTML = `<img src="${content}" style="max-width:100%; max-height:80vh; border:1px solid #ddd;">`;
+              container.innerHTML = `<img src="${content}" style="max-width:100%; max-height:80vh; border:1px solid var(--border);">`;
           }
           
           modal.style.display = 'flex';
@@ -230,9 +231,9 @@
                   div.className = 'epi-item';
                   
                   const estoque = epi.estoque || 0;
-                  const estoqueClass = estoque <= 5 ? 'color: #ef4444; font-weight: bold;' : 'color: var(--text-secondary);';
+                  const estoqueClass = estoque <= 5 ? 'color: var(--danger); font-weight: bold;' : 'color: var(--text-secondary);';
 
-                  const caStatus = epi.ca_validade ? new Date(epi.ca_validade) < new Date() ? '<span style="color:#ef4444; font-weight:600;">CA vencido</span>' : `<span style="color:#16a34a; font-weight:600;">CA válido até ${new Date(epi.ca_validade).toLocaleDateString('pt-BR')}</span>` : '<span style="color:#64748b;">CA não informado</span>';
+                  const caStatus = epi.ca_validade ? new Date(epi.ca_validade) < new Date() ? '<span style="color:var(--danger); font-weight:600;">CA vencido</span>' : `<span style="color:var(--success); font-weight:600;">CA válido até ${new Date(epi.ca_validade).toLocaleDateString('pt-BR')}</span>` : '<span style="color:var(--text-secondary);">CA não informado</span>';
                   div.innerHTML = `
                       <div class="epi-info">
                           <h3>${epi.nome}</h3>
@@ -271,14 +272,14 @@
                   const isPendente = d.status === 'pendente' || d.status === 'pendente_rh' || !d.status;
                   const isResolvido = d.status === 'resolvido';
 
-                  let statusColor = isPendente ? '#eab308' : '#22c55e';
+                  let statusColor = isPendente ? 'var(--warning)' : 'var(--success)';
                   let statusText = isPendente ? 'Pendente Assinatura' : 'Resolvido';
                   
                   let actionBtn = '';
                   if (isPendente) {
                       actionBtn = `<button class="btn btn-primary" style="background: var(--success);" onclick="alterarStatusDesconto('${d.id}', 'resolvido')">✅ Resolvido</button>`;
                   } else if (isResolvido) {
-                      actionBtn = `<button class="btn btn-primary" style="background: #eab308;" onclick="alterarStatusDesconto('${d.id}', 'pendente')">⏳ Pendente</button>`;
+                      actionBtn = `<button class="btn btn-primary" style="background: var(--warning);" onclick="alterarStatusDesconto('${d.id}', 'pendente')">⏳ Pendente</button>`;
                   }
 
                   div.innerHTML = `
@@ -322,7 +323,7 @@
               movs.forEach(m => {
                   const div = document.createElement('div');
                   div.className = 'epi-item';
-                  div.style.borderLeft = m.itens_retirados?.length > 0 ? '4px solid #3b82f6' : '4px solid #22c55e';
+                  div.style.borderLeft = m.itens_retirados?.length > 0 ? '4px solid var(--accent)' : '4px solid var(--success)';
                   
                   const dateObj = new Date(m.createdAt);
                   const date = !isNaN(dateObj) ? dateObj.toLocaleString('pt-BR') : 'Data inválida';
@@ -342,16 +343,16 @@
                       <div class="epi-info">
                           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
                               <h3 style="margin:0; font-size:1.1em; color:var(--text-primary);">${m.nome_funcionario}</h3>
-                              <span style="font-size:0.85em; color:var(--text-secondary); background:#f1f5f9; padding:2px 8px; border-radius:12px;">${date}</span>
+                              <span style="font-size:0.85em; color:var(--text-secondary); background:var(--accent-soft); padding:2px 8px; border-radius:12px;">${date}</span>
                           </div>
                           <p style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 8px;">ID: ${m.funcionario_id}</p>
                   `;
 
                   if (retirados.length > 0) {
                       html += `
-                        <div style="margin-top: 8px; padding: 8px; background: #eff6ff; border-radius: 6px;">
-                            <p style="color: #1e40af; font-weight: 600; font-size: 0.9em; margin-bottom: 4px;">⬇️ Retirada</p>
-                            <ul style="margin: 0; padding-left: 20px; color: #1e3a8a; font-size: 0.9em;">
+                        <div style="margin-top: 8px; padding: 8px; background: var(--accent-soft); border-radius: 6px;">
+                            <p style="color: var(--accent); font-weight: 600; font-size: 0.9em; margin-bottom: 4px;">⬇️ Retirada</p>
+                            <ul style="margin: 0; padding-left: 20px; color: var(--accent); font-size: 0.9em;">
                                 ${retirados.map(i => `<li>${i}</li>`).join('')}
                             </ul>
                         </div>`;
@@ -359,27 +360,27 @@
                   
                   if (devolvidos.length > 0) {
                       html += `
-                        <div style="margin-top: 8px; padding: 8px; background: #f0fdf4; border-radius: 6px;">
-                            <p style="color: #166534; font-weight: 600; font-size: 0.9em; margin-bottom: 4px;">⬆️ Devolução</p>
-                            <ul style="margin: 0; padding-left: 20px; color: #14532d; font-size: 0.9em;">
+                        <div style="margin-top: 8px; padding: 8px; background: var(--success-bg); border-radius: 6px;">
+                            <p style="color: var(--success); font-weight: 600; font-size: 0.9em; margin-bottom: 4px;">⬆️ Devolução</p>
+                            <ul style="margin: 0; padding-left: 20px; color: var(--success); font-size: 0.9em;">
                                 ${devolvidos.map(i => `<li>${i}</li>`).join('')}
                             </ul>
                         </div>`;
                   }
                   
                   if (m.evidencia) {
-                      html += `<div style="margin-top: 8px; font-size: 0.85em; color: #64748b; display: flex; align-items: center; gap: 4px;">
+                      html += `<div style="margin-top: 8px; font-size: 0.85em; color: var(--text-secondary); display: flex; align-items: center; gap: 4px;">
                         <span style="font-size: 1.1em;">📎</span> 
-                        <a href="javascript:void(0)" onclick="verAnexo('${m.id}', 'evidencia')" style="color: #3b82f6; text-decoration: underline; cursor: pointer;">
+                        <a href="javascript:void(0)" onclick="verAnexo('${m.id}', 'evidencia')" style="color: var(--accent); text-decoration: underline; cursor: pointer;">
                             Evidência anexada
                         </a>
                       </div>`;
                   }
                   
                   if (m.termo) {
-                      html += `<div style="margin-top: 4px; font-size: 0.85em; color: #64748b; display: flex; align-items: center; gap: 4px;">
+                      html += `<div style="margin-top: 4px; font-size: 0.85em; color: var(--text-secondary); display: flex; align-items: center; gap: 4px;">
                         <span style="font-size: 1.1em;">📄</span> 
-                        <a href="javascript:void(0)" onclick="verAnexo('${m.id}', 'termo')" style="color: #3b82f6; text-decoration: underline; cursor: pointer;">
+                        <a href="javascript:void(0)" onclick="verAnexo('${m.id}', 'termo')" style="color: var(--accent); text-decoration: underline; cursor: pointer;">
                             Termo anexado
                         </a>
                       </div>`;

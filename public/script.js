@@ -238,7 +238,9 @@ function populateAndDisable(data) {
         inicio2El.value = data.inicio2;
     }
     
-    document.getElementById('decimo').value = data.decimo;
+    const decimoEl = document.getElementById('decimo');
+    if (decimoEl) decimoEl.value = data.decimo || '';
+    
     if (data.gestorEmail) gestorEmailEl.value = data.gestorEmail;
     if (data.nomeGestor) document.getElementById('nomeGestor').value = data.nomeGestor;
 
@@ -325,11 +327,12 @@ form.addEventListener('submit', async (e) => {
         return;
     }
 
-    const nome = document.getElementById('nome').value.trim();
+  const nome = document.getElementById('nome').value.trim();
   const setor = document.getElementById('setor').value.trim();
   const inicio = document.getElementById('inicio').value;
   const tipoGozo = tipoGozoEl.value;
-  const decimo = document.getElementById('decimo').value;
+  const decimoEl = document.getElementById('decimo');
+  const decimo = decimoEl ? String(decimoEl.value || '').trim() : '';
   
   // RH validation
   let statusRH = null;
@@ -411,10 +414,10 @@ form.addEventListener('submit', async (e) => {
         inicio, 
         inicio2: isSplit(tipoGozo) ? inicio2 : undefined, 
         tipoGozo, 
-        decimo, 
         gestorEmail: gestorEmail || undefined, 
         nomeGestor: nomeGestor || undefined 
     };
+    if (decimo) body.decimo = decimo;
     if (requestId) body.id = requestId;
     
     if (modeRH) {

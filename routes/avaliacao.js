@@ -5,11 +5,11 @@ const crypto = require('crypto');
 const { verifyToken, checkRole, ROLES } = require('../middleware/auth');
 const pdfService = require('../services/pdfService');
 
-// Shared Auth for Avaliacoes (DP for Experiencia, TD for Performance)
-const avaliacoesAuth = [verifyToken, checkRole([ROLES.DP, ROLES.TD, ROLES.RH_GERAL, ROLES.RH])];
+// Shared Auth for Avaliacoes (DP/T&D/RH) + Gestores para visão de equipe
+const avaliacoesAuth = [verifyToken, checkRole([ROLES.DP, ROLES.TD, ROLES.RH_GERAL, ROLES.RH, ROLES.GESTOR])];
 
 // POST: Submit a new evaluation
-router.post('/avaliacao', async (req, res) => {
+router.post('/avaliacao', avaliacoesAuth, async (req, res) => {
     try {
         const payload = req.body;
         
@@ -34,7 +34,7 @@ router.post('/avaliacao', async (req, res) => {
 });
 
 // GET: Get single evaluation
-router.get('/avaliacao/:id', async (req, res) => {
+router.get('/avaliacao/:id', avaliacoesAuth, async (req, res) => {
     try {
         const item = await db.avaliacoes.getById(req.params.id);
         if (!item) return res.status(404).json({ ok: false, erro: 'Não encontrado' });
@@ -46,7 +46,7 @@ router.get('/avaliacao/:id', async (req, res) => {
 });
 
 // GET: Find evaluation by employee and type (public access needed for form auto-fill)
-router.get('/avaliacao/buscar/recente', async (req, res) => {
+router.get('/avaliacao/buscar/recente', avaliacoesAuth, async (req, res) => {
     try {
         const { funcionario, tipo } = req.query;
         if (!funcionario) return res.status(400).json({ ok: false, erro: 'Funcionário obrigatório' });
@@ -74,7 +74,7 @@ router.get('/avaliacao/buscar/recente', async (req, res) => {
 });
 
 // PUT: Update evaluation (for 2nd stage or corrections)
-router.put('/avaliacao/:id', async (req, res) => {
+router.put('/avaliacao/:id', avaliacoesAuth, async (req, res) => {
     try {
         const { id } = req.params;
         const payload = req.body;

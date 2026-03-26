@@ -4,9 +4,11 @@ const crypto = require('crypto');
 const db = require('../services/db');
 const emailService = require('../services/email');
 const pdfService = require('../services/pdfService');
-const { dpAuth } = require('../middleware/auth');
+const { dpAuth, verifyToken, checkRole, ROLES } = require('../middleware/auth');
 
-router.post('/taxas/draft', async (req, res) => {
+const taxasFormAuth = [verifyToken, checkRole([ROLES.DP, ROLES.RH_GERAL, ROLES.RH, ROLES.GESTOR])];
+
+router.post('/taxas/draft', taxasFormAuth, async (req, res) => {
     try {
         const payload = req.body;
         let id = payload.id;
@@ -38,7 +40,7 @@ router.post('/taxas/draft', async (req, res) => {
     }
 });
 
-router.post('/taxas', async (req, res) => {
+router.post('/taxas', taxasFormAuth, async (req, res) => {
     try {
         const payload = req.body;
         if (!payload.nome_taxa || !payload.cpf || !payload.valores) {
@@ -183,7 +185,7 @@ router.post('/rh/taxas/:id/aprovar', dpAuth, async (req, res) => {
     res.json({ message: 'Aprovado pelo RH. Enviado para assinatura do colaborador.' });
 });
 
-router.get('/api/taxas/dados-assinatura', async (req, res) => {
+router.get('/taxas/dados-assinatura', async (req, res) => {
     const { token } = req.query;
     if (!token) return res.status(400).json({ error: 'Token não fornecido' });
     
@@ -195,7 +197,7 @@ router.get('/api/taxas/dados-assinatura', async (req, res) => {
     res.json(item);
 });
 
-router.post('/api/taxas/assinar', async (req, res) => {
+router.post('/taxas/assinar', async (req, res) => {
     const { token, assinatura } = req.body;
     if (!token || !assinatura) return res.status(400).json({ error: 'Dados incompletos' });
     
@@ -308,7 +310,7 @@ router.get('/taxas/responder-aprovacao', async (req, res) => {
     }
 });
 
-router.get('/taxas/pdf/:id', async (req, res) => {
+router.get('/taxas/pdf/:id', taxasFormAuth, async (req, res) => {
     const item = await db.taxas.getById(req.params.id);
     if (!item) return res.status(404).send('Solicitação não encontrada');
 

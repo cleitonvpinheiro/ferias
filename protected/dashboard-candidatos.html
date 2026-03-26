@@ -5,39 +5,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel de Candidatos - RH</title>
     <link rel="stylesheet" href="/rh-styles.css">
+    <script src="/lang-switcher.js" defer></script>
 </head>
-<body>
+<body data-page="rh-candidatos">
     <div id="navbar-container"></div>
     <script src="/rh-navbar.js"></script>
     <script>renderRHNavbar('candidatos');</script>
 
     <div class="dashboard-container">
         <div class="page-header">
-            <h1 class="page-title">Gestão de Candidatos</h1>
-            <p class="page-subtitle">Acompanhe o fluxo de recrutamento e seleção</p>
+            <div>
+                <h1 class="page-title" data-translate="rh_dash_candidatos_title">Gestão de Candidatos</h1>
+                <p class="page-subtitle" data-translate="rh_dash_candidatos_subtitle">Acompanhe o fluxo de recrutamento e seleção</p>
+            </div>
         </div>
 
         <div class="filters-bar">
             <div class="filter-group">
-                <label>Buscar Candidato</label>
-                <input type="text" id="searchInput" class="filter-input" placeholder="Nome, email ou cargo..." onkeyup="filtrarCandidatos()">
+                <label data-translate="rh_dash_candidatos_search_label">Buscar Candidato</label>
+                <input type="text" id="searchInput" class="filter-input" placeholder="Nome, email ou cargo..." data-translate="rh_dash_candidatos_search_placeholder" onkeyup="filtrarCandidatos()">
             </div>
             <div class="filter-group">
-                <label>Filtrar por Vaga/Cargo</label>
+                <label data-translate="rh_dash_candidatos_filter_label">Filtrar por Vaga/Cargo</label>
                 <select id="vagaFilter" class="filter-select" onchange="filtrarCandidatos()">
-                    <option value="">Todos os Cargos</option>
+                    <option value="" data-translate="rh_dash_candidatos_filter_all">Todos os Cargos</option>
                 </select>
             </div>
-            <div class="filter-group" style="flex: 0; min-width: auto; align-self: flex-end;">
-                 <div class="last-update" style="white-space: nowrap; padding-bottom: 10px;">
-                    <span id="lastUpdate">Atualizado agora</span>
+            <div class="filter-group filter-meta">
+                 <div class="last-update">
+                    <span id="lastUpdate" data-translate="rh_dash_last_update_now">Atualizado agora</span>
                 </div>
             </div>
         </div>
 
         <div id="loading" class="loading-state">
             <div class="loading-icon">⏳</div>
-            <div>Carregando candidatos...</div>
+            <div data-translate="rh_dash_candidatos_loading">Carregando candidatos...</div>
         </div>
 
         <div class="kanban-board" id="kanbanBoard" style="display: none;">
@@ -54,20 +57,60 @@
     </div>
 
   <footer style="text-align: center; padding: 40px; color: var(--text-secondary); font-size: 0.875rem;">
-    <p>&copy; 2025 Família Madalosso. Acesso Restrito ao RH.</p>
+    <p data-translate="rh_footer">&copy; 2025 Família Madalosso. Acesso Restrito ao RH.</p>
   </footer>
 
     <script>
         let todosCandidatos = [];
+        const getLang = () => {
+            try { return localStorage.getItem('app_lang') || 'pt'; } catch { return 'pt'; }
+        };
+        const t = (key) => {
+            const lang = getLang();
+            const map = {
+                'Novos': { pt: 'Novos', es: 'Nuevos', en: 'New' },
+                'Em Análise': { pt: 'Em Análise', es: 'En Análisis', en: 'In Review' },
+                'Entrevista': { pt: 'Entrevista', es: 'Entrevista', en: 'Interview' },
+                'Entrevista Agendada': { pt: 'Entrevista Agendada', es: 'Entrevista Programada', en: 'Interview Scheduled' },
+                'Contratados': { pt: 'Contratados', es: 'Contratados', en: 'Hired' },
+                'Arquivados': { pt: 'Arquivados', es: 'Archivados', en: 'Archived' },
+                'Nenhum candidato': { pt: 'Nenhum candidato', es: 'Ningún candidato', en: 'No candidates' },
+                'Atualizado agora': { pt: 'Atualizado agora', es: 'Actualizado ahora', en: 'Updated just now' },
+                'Atualizado às': { pt: 'Atualizado às', es: 'Actualizado a las', en: 'Updated at' }
+            };
+            return (map[key] && map[key][lang]) || key;
+        };
         const colunas = [
-            { id: 'recebido', title: 'Novos', color: '#3b82f6' },
-            { id: 'novo', title: 'Novos (Legacy)', color: '#3b82f6' }, // Fallback
-            { id: 'visto', title: 'Em Análise', color: '#64748b' },
-            { id: 'entrevista', title: 'Entrevista', color: '#f59e0b' },
-            { id: 'entrevista_agendada', title: 'Entrevista Agendada', color: '#d97706' },
-            { id: 'contratado', title: 'Contratados', color: '#10b981' },
-            { id: 'rejeitado', title: 'Arquivados', color: '#ef4444' }
+            { id: 'recebido', title: t('Novos'), color: 'var(--accent)' },
+            { id: 'novo', title: t('Novos'), color: 'var(--accent)' },
+            { id: 'visto', title: t('Em Análise'), color: 'var(--text-secondary)' },
+            { id: 'entrevista', title: t('Entrevista'), color: 'var(--warning)' },
+            { id: 'entrevista_agendada', title: t('Entrevista Agendada'), color: 'var(--warning)' },
+            { id: 'contratado', title: t('Contratados'), color: 'var(--success)' },
+            { id: 'rejeitado', title: t('Arquivados'), color: 'var(--danger)' }
         ];
+        const updateColTitles = () => {
+            colunas.forEach(c => {
+                if (c.id === 'recebido' || c.id === 'novo') c.title = t('Novos');
+                if (c.id === 'visto') c.title = t('Em Análise');
+                if (c.id === 'entrevista') c.title = t('Entrevista');
+                if (c.id === 'entrevista_agendada') c.title = t('Entrevista Agendada');
+                if (c.id === 'contratado') c.title = t('Contratados');
+                if (c.id === 'rejeitado') c.title = t('Arquivados');
+            });
+        };
+
+        function formatDatePtBR(value) {
+            const d = new Date(value);
+            if (Number.isNaN(d.getTime())) return '-';
+            return d.toLocaleDateString('pt-BR');
+        }
+
+        function formatDateTimePtBR(value) {
+            const d = new Date(value);
+            if (Number.isNaN(d.getTime())) return '-';
+            return `${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR')}`;
+        }
 
         async function carregarCandidatos() {
             document.getElementById('loading').style.display = 'block';
@@ -79,6 +122,7 @@
                 
                 populateVagaFilter();
                 renderKanban(todosCandidatos);
+                document.getElementById('lastUpdate').innerText = t('Atualizado às') + ' ' + new Date().toLocaleTimeString('pt-BR');
                 
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('kanbanBoard').style.display = 'flex';
@@ -121,11 +165,11 @@
             
             // Colunas visíveis
             const displayCols = [
-                { id: 'recebido', title: 'Novos', color: '#3b82f6' },
-                { id: 'visto', title: 'Em Análise', color: '#64748b' },
-                { id: 'entrevista_agendada', title: 'Entrevista', color: '#f59e0b' },
-                { id: 'contratado', title: 'Contratados', color: '#10b981' },
-                { id: 'rejeitado', title: 'Arquivados', color: '#ef4444' }
+                { id: 'recebido', title: t('Novos'), color: 'var(--accent)' },
+                { id: 'visto', title: t('Em Análise'), color: 'var(--text-secondary)' },
+                { id: 'entrevista_agendada', title: t('Entrevista'), color: 'var(--warning)' },
+                { id: 'contratado', title: t('Contratados'), color: 'var(--success)' },
+                { id: 'rejeitado', title: t('Arquivados'), color: 'var(--danger)' }
             ];
 
             displayCols.forEach(col => {
@@ -146,7 +190,7 @@
                         </div>
                     </div>
                     <div class="column-body">
-                        ${items.map(c => createCardHTML(c)).join('')}
+                        ${items.length ? items.map(c => createCardHTML(c)).join('') : `<div class="empty-column">${t('Nenhum candidato')}</div>`}
                     </div>
                 `;
                 board.appendChild(colDiv);
@@ -158,7 +202,7 @@
                 <div class="candidate-card" onclick="abrirDetalhes('${c.id}')">
                     <div class="card-header">
                         <span class="card-name">${c.nome}</span>
-                        <span class="card-date">${new Date(c.createdAt).toLocaleDateString('pt-BR')}</span>
+                        <span class="card-date">${formatDatePtBR(c.createdAt)}</span>
                     </div>
                     <div class="card-details">
                         ${c.cargo1 ? `<div class="card-detail-row"><span>💼</span> ${c.cargo1}</div>` : ''}
@@ -182,7 +226,7 @@
                 
                 renderModalContent(c);
             } catch (e) {
-                content.innerHTML = '<div style="color:red; text-align:center;">Erro ao carregar detalhes.</div>';
+                content.innerHTML = '<div style="color:var(--danger); text-align:center; padding: 40px;">Erro ao carregar detalhes.</div>';
             }
         }
 
@@ -207,7 +251,7 @@
                     <div class="modal-title">
                         <h2>${c.nome}</h2>
                         <div class="modal-meta">
-                            Cadastrado em ${new Date(c.createdAt).toLocaleDateString('pt-BR')} às ${new Date(c.createdAt).toLocaleTimeString('pt-BR')}
+                            Cadastrado em ${formatDateTimePtBR(c.createdAt)}
                             <span class="${getBadgeClass(c.status || 'novo')}" style="margin-left: 10px;">${statusLabel}</span>
                         </div>
                     </div>
@@ -334,7 +378,16 @@
             if (e.target === document.getElementById('modalDetalhes')) fecharModal();
         });
 
+        // Re-render on language change
+        window.addEventListener('languagechange', () => {
+            updateColTitles();
+            const last = document.getElementById('lastUpdate');
+            if (last) last.innerText = t('Atualizado agora');
+            filtrarCandidatos();
+        });
+
         // Start
+        updateColTitles();
         carregarCandidatos();
     </script>
 </body>

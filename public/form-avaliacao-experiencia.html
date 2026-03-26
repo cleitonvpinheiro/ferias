@@ -4,26 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Avaliação de Experiência (45/90 Dias)</title>
+    <script src="/lang-switcher.js" defer></script>
+    <link rel="stylesheet" href="./styles.css">
     <link rel="icon" href="/assets/logo.png" type="image/png">
     <!-- Google Fonts for a more professional look -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
         :root {
-            --primary-color: #1e293b; /* Slate 800 */
-            --primary-light: #334155; /* Slate 700 */
-            --accent-color: #2563eb; /* Blue 600 */
-            --accent-hover: #1d4ed8; /* Blue 700 */
-            --success-color: #10b981; /* Emerald 500 */
-            --warning-color: #f59e0b; /* Amber 500 */
-            --danger-color: #ef4444; /* Red 500 */
-            --bg-color: #f8fafc; /* Slate 50 */
-            --card-bg: #ffffff;
-            --border-color: #e2e8f0; /* Slate 200 */
-            --text-main: #0f172a; /* Slate 900 */
-            --text-secondary: #64748b; /* Slate 500 */
-            --table-header-bg: #f1f5f9; /* Slate 100 */
-            --input-bg: #ffffff;
+            --primary-color: var(--text);
+            --primary-light: var(--muted);
+            --accent-color: var(--accent);
+            --accent-hover: var(--accent-hover);
+            --success-color: var(--success);
+            --warning-color: var(--warning);
+            --danger-color: var(--danger);
+            --bg-color: var(--bg);
+            --card-bg: var(--card);
+            --border-color: var(--border);
+            --text-main: var(--text);
+            --text-secondary: var(--muted);
+            --table-header-bg: var(--bg);
+            --input-bg: var(--card);
         }
 
         body {
@@ -40,7 +42,7 @@
             margin: 0 auto;
             background: var(--card-bg);
             border-radius: 16px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            box-shadow: var(--shadow-lg);
             padding: 50px;
             border: 1px solid var(--border-color);
         }
@@ -92,7 +94,7 @@
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 25px;
             margin-bottom: 40px;
-            background: #f8fafc;
+            background: var(--bg);
             padding: 30px;
             border-radius: 12px;
             border: 1px solid var(--border-color);
@@ -127,12 +129,12 @@
         .form-control:focus {
             outline: none;
             border-color: var(--accent-color);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            box-shadow: var(--focus-ring);
         }
 
         .form-control[readonly], .form-control:disabled {
-            background-color: #f1f5f9;
-            color: #94a3b8;
+            background-color: var(--bg);
+            color: var(--muted);
             cursor: not-allowed;
         }
 
@@ -204,7 +206,7 @@
         }
 
         .status-radio-group label:hover {
-            background: #f8fafc;
+            background: var(--bg);
         }
 
         .status-radio-group input[type="radio"] {
@@ -216,7 +218,7 @@
         /* Active/Inactive States for Status Boxes */
         .status-box.active {
             border-color: var(--accent-color);
-            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.1);
+            box-shadow: var(--shadow-md);
         }
         
         .status-box.active h4 {
@@ -229,13 +231,15 @@
             border-radius: 12px;
             border: 1px solid var(--border-color);
             margin-bottom: 40px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            box-shadow: var(--shadow-sm);
+            background: var(--card-bg);
         }
 
         .evaluation-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.95rem;
+            background: transparent;
         }
 
         .evaluation-table th {
@@ -254,6 +258,7 @@
             padding: 15px 20px;
             border-bottom: 1px solid var(--border-color);
             vertical-align: middle;
+            color: var(--text-main);
         }
 
         .evaluation-table tr:last-child td {
@@ -261,12 +266,12 @@
         }
 
         .evaluation-table tr:hover td {
-            background-color: #f8fafc;
+            background-color: var(--table-hover-bg);
         }
 
         .category-header {
-            background-color: #e2e8f0 !important;
-            color: var(--primary-color);
+            background-color: var(--category-header-bg) !important;
+            color: var(--category-header-text);
             font-weight: 700;
             font-size: 0.9rem;
             padding: 12px 20px !important;
@@ -279,12 +284,13 @@
             padding: 10px;
             border: 1px solid var(--border-color);
             border-radius: 6px;
-            background-color: #fff;
+            background-color: var(--input-bg);
+            color: var(--text-main);
             cursor: pointer;
             font-size: 0.9rem;
             text-align: center;
             appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
             background-repeat: no-repeat;
             background-position: right 10px center;
             background-size: 16px;
@@ -294,21 +300,21 @@
         select.score-select:focus {
             outline: none;
             border-color: var(--accent-color);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            box-shadow: var(--focus-ring);
         }
         
         select.score-select:disabled {
-            background-color: #f1f5f9;
-            color: #cbd5e1;
+            background-color: var(--bg);
+            color: var(--muted);
             cursor: not-allowed;
-            border-color: #f1f5f9;
+            border-color: var(--border-color);
         }
 
         /* Legend */
         .legend-box {
-            background: #f0f9ff;
-            border: 1px solid #bae6fd;
-            color: #0369a1;
+            background: var(--accent-soft);
+            border: 1px solid var(--border-color);
+            color: var(--accent-color);
             padding: 15px 20px;
             border-radius: 8px;
             margin-bottom: 25px;
@@ -323,12 +329,12 @@
             display: inline-flex;
             align-items: center;
             gap: 5px;
-            background: #fff;
+            background: var(--card-bg);
             padding: 4px 10px;
             border-radius: 20px;
             font-weight: 600;
             font-size: 0.8rem;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            box-shadow: var(--shadow-xs);
         }
 
         /* Submit Button */
@@ -341,7 +347,7 @@
 
         .submit-btn {
             background-color: var(--accent-color);
-            color: white;
+            color: var(--brand-text);
             border: none;
             padding: 14px 32px;
             font-size: 1rem;
@@ -349,7 +355,7 @@
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s ease;
-            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+            box-shadow: var(--shadow-md);
             display: inline-flex;
             align-items: center;
             gap: 10px;
@@ -358,7 +364,7 @@
         .submit-btn:hover {
             background-color: var(--accent-hover);
             transform: translateY(-1px);
-            box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.3);
+            box-shadow: var(--shadow-lg);
         }
 
         .submit-btn:active {
@@ -382,16 +388,16 @@
         }
     </style>
 </head>
-<body>
+<body data-page="avaliacao-experiencia">
     <div class="container">
         <div style="margin-bottom: 20px;">
-        <a href="/" style="color: #64748b; text-decoration: none; font-size: 0.9rem;">&larr; Voltar ao Menu</a>
+        <a href="/" style="color: var(--text-secondary); text-decoration: none; font-size: 0.9rem;" data-translate="public_back_menu">&larr; Voltar ao Menu</a>
     </div>
     
         <div class="header">
             <img src="/assets/logo.png" alt="Logo" class="logo">
-            <h1>AVALIAÇÃO DE EXPERIÊNCIA</h1>
-            <p>Acompanhamento de 45 e 90 dias</p>
+            <h1 data-translate="avaliacao_experiencia_title">AVALIAÇÃO DE EXPERIÊNCIA</h1>
+            <p data-translate="avaliacao_experiencia_subtitle">Acompanhamento de 45 e 90 dias</p>
            
         </div>
 
@@ -436,7 +442,7 @@
                             <label><input type="radio" name="status45" value="prorrogado"> PRORROGADO/APROVADO</label>
                         </div>
                     </div>
-                    <div class="status-box" id="status90Box" style="opacity: 0.6; pointer-events: none; background: #f8fafc;">
+                    <div class="status-box" id="status90Box" style="opacity: 0.6; pointer-events: none; background: var(--bg-color);">
                         <h4>90 DIAS</h4>
                         <div class="status-radio-group">
                             <label><input type="radio" name="status90" value="aprovado"> APROVADO</label>
@@ -492,7 +498,7 @@
 
             <div class="form-actions">
                 <button type="submit" class="submit-btn" id="submitBtn">
-                    <span>💾 Salvar Avaliação (45 Dias)</span>
+                    <span data-translate="avaliacao_experiencia_submit">💾 Salvar Avaliação (45 Dias)</span>
                 </button>
             </div>
         </form>
@@ -726,7 +732,7 @@
                         const box90 = document.getElementById('status90Box');
                         box90.style.opacity = '1';
                         box90.style.pointerEvents = 'auto';
-                        box90.style.background = '#fff';
+                        box90.style.background = 'var(--card-bg)';
                         box90.classList.add('active');
                         
                         document.getElementById('submitBtn').innerHTML = '<span>💾 Salvar Avaliação (90 Dias)</span>';

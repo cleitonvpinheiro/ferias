@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Solicitação de EPI</title>
+    <script src="/lang-switcher.js" defer></script>
+    <link rel="stylesheet" href="./styles.css">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+        .wrap {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 18px;
+        }
+        .top {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+        .title {
+            font-weight: 900;
+            font-size: 1.4rem;
+        }
+        .subtitle {
+            color: var(--muted);
+            font-size: 0.95rem;
+            margin-top: 4px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 14px;
+        }
+        @media (max-width: 900px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+        }
+        .row { display: flex; gap: 10px; align-items: center; }
+        .col { display: flex; flex-direction: column; gap: 8px; }
+        input {
+            width: 100%;
+            padding: 12px 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 1rem;
+            background: var(--card);
+            color: var(--text);
+        }
+
+        .doc-display {
+            font-size: 1.4rem;
+            letter-spacing: 1px;
+            font-weight: 900;
+            padding: 14px 12px;
+        }
+
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .key {
+            height: 64px;
+            border-radius: 14px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            font-size: 1.4rem;
+            font-weight: 900;
+            color: var(--text);
+        }
+
+        .key:active {
+            transform: translateY(1px);
+        }
+
+        .key.secondary {
+            background: var(--bg);
+        }
+
+        .key.enter {
+            background: var(--accent);
+            color: var(--brand-text);
+            border-color: transparent;
+        }
+
+        .key.enter:active {
+            background: var(--accent-hover);
+        }
+
+        @media (max-width: 900px) {
+            .doc-display { font-size: 1.7rem; }
+            .key { height: 72px; font-size: 1.6rem; }
+        }
+        button {
+            border: 0;
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-weight: 800;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .btn-primary { background: var(--accent); color: var(--brand-text); }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-ghost { background: var(--bg); border: 1px solid var(--border); color: var(--text); }
+        .btn-ghost:hover { background: var(--bg); }
+        .btn-danger { background: var(--danger-bg); color: var(--danger-text); border: 1px solid var(--danger-border); }
+        .btn-danger:hover { background: var(--danger-bg); }
+        .muted { color: var(--muted); }
+        .sep { height: 1px; background: var(--border); margin: 12px 0; }
+        .epi-list {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+        @media (max-width: 900px) {
+            .epi-list { grid-template-columns: 1fr; }
+        }
+        .epi {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            background: var(--card);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .epi-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+        .epi-name { font-weight: 900; }
+        .epi-meta { color: var(--muted); font-size: 0.9rem; }
+        .qty {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .qty-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .qty-btn {
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            border-radius: 12px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            font-size: 1.2rem;
+        }
+        .qty-num {
+            min-width: 44px;
+            text-align: center;
+            font-weight: 900;
+            font-size: 1.1rem;
+        }
+        .footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-top: 10px;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 26px;
+            height: 26px;
+            padding: 0 10px;
+            border-radius: 999px;
+            background: var(--accent-soft);
+            border: 1px solid var(--border);
+            color: var(--accent);
+            font-weight: 900;
+        }
+        .toast-wrap {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 3000;
+        }
+        .toast {
+            width: 320px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-left: 6px solid var(--accent);
+            border-radius: 12px;
+            padding: 12px;
+            box-shadow: var(--shadow-lg);
+        }
+        .toast.error { border-left-color: var(--danger); }
+        .toast.success { border-left-color: var(--success); }
+        .toast-title { font-weight: 900; margin: 0 0 4px; }
+        .toast-msg { color: var(--muted); margin: 0; }
+        .disabled { opacity: 0.6; pointer-events: none; }
+    </style>
+</head>
+<body data-page="solicitacao-epi">
+    <div class="toast-wrap" id="toast-wrap"></div>
+    <div class="wrap">
+        <div class="top">
+            <div>
+                <div class="title" data-translate="epi_title">Solicitação de EPI</div>
+                <div class="subtitle" data-translate="epi_subtitle">Informe CPF ou matrícula e selecione os EPIs desejados</div>
+            </div>
+            <div class="row">
+                <span class="badge" id="badge-total">0</span>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <div class="col">
+                    <div>
+                        <div style="font-weight:900; margin-bottom:6px;" data-translate="epi_section_id">Identificação</div>
+                        <input id="doc" class="doc-display" inputmode="numeric" autocomplete="off" placeholder="CPF ou matrícula" readonly data-translate="epi_placeholder_doc" />
+                        <div class="keypad" id="keypad">
+                            <button class="key" data-key="1">1</button>
+                            <button class="key" data-key="2">2</button>
+                            <button class="key" data-key="3">3</button>
+                            <button class="key" data-key="4">4</button>
+                            <button class="key" data-key="5">5</button>
+                            <button class="key" data-key="6">6</button>
+                            <button class="key" data-key="7">7</button>
+                            <button class="key" data-key="8">8</button>
+                            <button class="key" data-key="9">9</button>
+                            <button class="key secondary" data-action="clear">C</button>
+                            <button class="key" data-key="0">0</button>
+                            <button class="key secondary" data-action="back">&larr;</button>
+                            <button class="key enter" style="grid-column: 1 / span 3;" data-action="enter" data-translate="public_continue">Continuar</button>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <button class="btn-ghost" id="btn-limpar" style="width:100%;" data-translate="public_clear">Limpar</button>
+                    </div>
+                    <div class="sep"></div>
+                    <div>
+                        <div style="font-weight:900; margin-bottom:6px;" data-translate="epi_section_employee">Colaborador</div>
+                        <div id="func-info" class="muted" data-translate="epi_not_identified">Não identificado</div>
+                    </div>
+                    <div class="sep"></div>
+                    <div>
+                        <div style="font-weight:900; margin-bottom:6px;" data-translate="epi_section_search">Buscar EPI</div>
+                        <input id="search" autocomplete="off" placeholder="Digite nome do EPI..." disabled data-translate="epi_placeholder_search" />
+                    </div>
+                    <div class="footer">
+                        <button class="btn-danger" id="btn-zerar" disabled data-translate="public_reset">Zerar</button>
+                        <button class="btn-primary" id="btn-enviar" disabled data-translate="public_submit">Enviar solicitação</button>
+                    </div>
+                    <div class="muted" style="margin-top:8px; font-size:0.9rem;">
+                        <span data-translate="epi_no_password">Esta tela não exige senha.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;">
+                    <div style="font-weight:900;" data-translate="epi_available">EPIs disponíveis</div>
+                    <button class="btn-ghost" id="btn-recarregar" disabled data-translate="public_reload">Recarregar</button>
+                </div>
+                <div id="list" class="epi-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const state = {
+            funcionario: null,
+            doc: '',
+            epis: [],
+            qtyById: new Map()
+        };
+
+        function digitsOnly(v) {
+            return String(v || '').replace(/\D/g, '');
+        }
+
+        function setDocValue(nextDigits) {
+            const input = document.getElementById('doc');
+            input.value = String(nextDigits || '').slice(0, 14);
+        }
+
+        function pressDocKey(key) {
+            const input = document.getElementById('doc');
+            const digits = digitsOnly(input.value);
+            setDocValue(digits + String(key));
+        }
+
+        function backspaceDoc() {
+            const input = document.getElementById('doc');
+            const digits = digitsOnly(input.value);
+            setDocValue(digits.slice(0, -1));
+        }
+
+        function clearDoc() {
+            setDocValue('');
+        }
+
+        function escapeHtml(input) {
+            return String(input)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
+        function showToast(title, message, type) {
+            const wrap = document.getElementById('toast-wrap');
+            const el = document.createElement('div');
+            el.className = `toast ${type || ''}`.trim();
+            el.innerHTML = `<p class="toast-title">${escapeHtml(title)}</p><p class="toast-msg">${escapeHtml(message)}</p>`;
+            wrap.appendChild(el);
+            setTimeout(() => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateX(12px)';
+                el.style.transition = 'all .25s ease';
+                setTimeout(() => el.remove(), 260);
+            }, 3200);
+        }
+
+        function totalSelected() {
+            let t = 0;
+            state.qtyById.forEach(v => { t += Number(v || 0); });
+            return t;
+        }
+
+        function updateUiEnabled() {
+            const identified = Boolean(state.funcionario && state.funcionario.id);
+            const total = totalSelected();
+            document.getElementById('search').disabled = !identified;
+            document.getElementById('btn-recarregar').disabled = !identified;
+            document.getElementById('btn-zerar').disabled = !identified || total === 0;
+            document.getElementById('btn-enviar').disabled = !identified || total === 0;
+            document.getElementById('badge-total').textContent = String(total);
+        }
+
+        function setFuncionario(func) {
+            state.funcionario = func;
+            const el = document.getElementById('func-info');
+            if (!func) {
+                el.textContent = 'Não identificado';
+                return;
+            }
+            const parts = [
+                func.nome ? func.nome : '',
+                func.cargo ? func.cargo : '',
+                func.setor ? func.setor : ''
+            ].filter(Boolean);
+            el.textContent = parts.join(' • ') || 'Identificado';
+        }
+
+        function renderList() {
+            const list = document.getElementById('list');
+            const term = String(document.getElementById('search').value || '').toLowerCase().trim();
+            list.innerHTML = '';
+
+            const filtered = term
+                ? state.epis.filter(e => String(e.nome || '').toLowerCase().includes(term))
+                : state.epis;
+
+            if (!state.funcionario) {
+                list.innerHTML = '<div class="muted">Informe CPF/matrícula para carregar os EPIs.</div>';
+                return;
+            }
+
+            if (filtered.length === 0) {
+                list.innerHTML = '<div class="muted">Nenhum EPI encontrado.</div>';
+                return;
+            }
+
+            filtered.forEach(epi => {
+                const id = String(epi.id);
+                const qty = Number(state.qtyById.get(id) || 0);
+                const div = document.createElement('div');
+                div.className = 'epi';
+                div.dataset.name = String(epi.nome || '').toLowerCase();
+                div.innerHTML = `
+                    <div class="epi-head">
+                        <div>
+                            <div class="epi-name">${escapeHtml(epi.nome || id)}</div>
+                            <div class="epi-meta">Estoque: ${escapeHtml(epi.estoque ?? 0)} • #${escapeHtml(id)}</div>
+                        </div>
+                    </div>
+                    <div class="qty">
+                        <div class="muted">Quantidade</div>
+                        <div class="qty-controls">
+                            <button class="qty-btn" data-act="dec" data-id="${escapeHtml(id)}">-</button>
+                            <div class="qty-num" id="qty-${escapeHtml(id)}">${qty}</div>
+                            <button class="qty-btn" data-act="inc" data-id="${escapeHtml(id)}">+</button>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+
+            updateUiEnabled();
+        }
+
+        async function identificar() {
+            const raw = document.getElementById('doc').value;
+            const doc = digitsOnly(raw);
+            if (!doc) {
+                showToast('Aviso', 'Informe CPF ou matrícula.', 'error');
+                return;
+            }
+            state.doc = doc;
+            state.qtyById = new Map();
+            setFuncionario(null);
+            renderList();
+            updateUiEnabled();
+
+            try {
+                const res = await fetch(`/api/epi/funcionario/${encodeURIComponent(doc)}`, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                const data = await res.json();
+                if (!data || !data.ok) {
+                    showToast('Erro', data && data.erro ? data.erro : 'Falha ao identificar.', 'error');
+                    return;
+                }
+                setFuncionario(data.funcionario);
+                await carregarEpis();
+            } catch (e) {
+                showToast('Erro', 'Erro de conexão.', 'error');
+            } finally {
+                updateUiEnabled();
+            }
+        }
+
+        async function carregarEpis() {
+            if (!state.funcionario) return;
+            try {
+                const res = await fetch('/api/epi/epis', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                const data = await res.json();
+                if (!data || !data.ok) {
+                    showToast('Erro', data && data.erro ? data.erro : 'Falha ao carregar EPIs.', 'error');
+                    state.epis = [];
+                    renderList();
+                    return;
+                }
+                state.epis = Array.isArray(data.epis) ? data.epis : [];
+                renderList();
+            } catch (e) {
+                showToast('Erro', 'Erro de conexão.', 'error');
+            } finally {
+                updateUiEnabled();
+            }
+        }
+
+        async function enviar() {
+            if (!state.funcionario) return;
+            const itens = [];
+            state.qtyById.forEach((q, id) => {
+                const n = Number(q || 0);
+                for (let i = 0; i < n; i++) itens.push(String(id));
+            });
+            if (itens.length === 0) {
+                showToast('Aviso', 'Selecione ao menos 1 EPI.', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('btn-enviar');
+            btn.classList.add('disabled');
+            btn.textContent = 'Enviando...';
+
+            try {
+                const res = await fetch('/api/epi/solicitacoes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({ funcionario_id: state.funcionario.id, itens_solicitados: itens })
+                });
+                const data = await res.json();
+                if (!data || !data.ok) {
+                    showToast('Erro', data && data.erro ? data.erro : 'Falha ao enviar.', 'error');
+                    return;
+                }
+                state.qtyById = new Map();
+                renderList();
+                showToast('Sucesso', 'Solicitação enviada para a portaria.', 'success');
+            } catch (e) {
+                showToast('Erro', 'Erro de conexão.', 'error');
+            } finally {
+                btn.classList.remove('disabled');
+                btn.textContent = 'Enviar solicitação';
+                updateUiEnabled();
+            }
+        }
+
+        const btnLimpar = document.getElementById('btn-limpar');
+        if (btnLimpar) btnLimpar.onclick = () => {
+            clearDoc();
+            const search = document.getElementById('search');
+            if (search) search.value = '';
+            state.doc = '';
+            state.funcionario = null;
+            state.epis = [];
+            state.qtyById = new Map();
+            setFuncionario(null);
+            renderList();
+            updateUiEnabled();
+        };
+
+        const btnRecarregar = document.getElementById('btn-recarregar');
+        if (btnRecarregar) btnRecarregar.onclick = carregarEpis;
+
+        const btnZerar = document.getElementById('btn-zerar');
+        if (btnZerar) btnZerar.onclick = () => {
+            state.qtyById = new Map();
+            renderList();
+            updateUiEnabled();
+        };
+
+        const btnEnviar = document.getElementById('btn-enviar');
+        if (btnEnviar) btnEnviar.onclick = enviar;
+
+        const searchEl = document.getElementById('search');
+        if (searchEl) searchEl.onkeyup = renderList;
+
+        const keypadEl = document.getElementById('keypad');
+        if (keypadEl) keypadEl.addEventListener('click', (e) => {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+            const key = btn.getAttribute('data-key');
+            const action = btn.getAttribute('data-action');
+            if (key != null) return pressDocKey(key);
+            if (action === 'back') return backspaceDoc();
+            if (action === 'clear') return clearDoc();
+            if (action === 'enter') return identificar();
+        });
+
+        const listEl = document.getElementById('list');
+        if (listEl) listEl.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-act]');
+            if (!btn) return;
+            const id = String(btn.getAttribute('data-id') || '');
+            const act = String(btn.getAttribute('data-act') || '');
+            const cur = Number(state.qtyById.get(id) || 0);
+            const next = act === 'inc' ? (cur + 1) : Math.max(0, cur - 1);
+            if (next === 0) state.qtyById.delete(id);
+            else state.qtyById.set(id, next);
+            const qtyEl = document.getElementById(`qty-${id}`);
+            if (qtyEl) qtyEl.textContent = String(next);
+            updateUiEnabled();
+        });
+
+        renderList();
+        updateUiEnabled();
+    </script>
+</body>
+</html>

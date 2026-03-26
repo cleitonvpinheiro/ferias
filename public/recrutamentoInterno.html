@@ -6,31 +6,31 @@
   <title>Recrutamento Interno</title>
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="stylesheet" href="./styles.css">
+  <script src="/lang-switcher.js" defer></script>
 </head>
-<body>
- 
+<body data-page="recrutamento-interno">
   <main class="container">
     <div style="margin-bottom: 20px;">
-        <a href="/" style="color: #64748b; text-decoration: none; font-size: 0.9rem;">&larr; Voltar ao Menu</a>
+        <a href="/" style="color: var(--muted); text-decoration: none; font-size: 0.9rem;" data-translate="public_back_menu">&larr; Voltar ao Menu</a>
     </div>
      
    <div class="brand-inner">
       <img class="brand-logo" src="/assets/logo.png" alt="Logo Família Madalosso">
-      <div class="brand-title">Recrutamento Interno</div>
+      <div class="brand-title" data-translate="recrutamento_title">Recrutamento Interno</div>
     </div>
     
     <form id="formRecrutamento" novalidate>
-      <h2 class="section-title">Dados da Vaga</h2>
+      <h2 class="section-title" data-translate="recrutamento_section_job">Dados da Vaga</h2>
       <label>
         Cargo Pretendido
         <input type="text" id="cargoPretendido" required>
       </label>
 
-      <h2 class="section-title">Dados do Colaborador</h2>
+      <h2 class="section-title" data-translate="recrutamento_section_employee">Dados do Colaborador</h2>
       
       <label>
         Nome Completo
-        <select id="nome" required style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; margin-top: 4px;">
+        <select id="nome" required style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; margin-top: 4px; background: var(--card); color: var(--text);">
             <option value="">Selecione um colaborador...</option>
         </select>
       </label>
@@ -68,30 +68,30 @@
         </label>
       </div>
 
-      <h2 class="section-title">Formação Acadêmica</h2>
+      <h2 class="section-title" data-translate="recrutamento_section_education">Formação Acadêmica</h2>
       <p class="form-note">Anexar cópia dos certificados se necessário (entregar ao RH)</p>
       <label>
         Descreva sua formação
         <textarea id="formacao" rows="4" placeholder="Graduação, Pós-graduação, etc." required></textarea>
       </label>
 
-      <h2 class="section-title">Cursos Complementares</h2>
+      <h2 class="section-title" data-translate="recrutamento_section_courses">Cursos Complementares</h2>
       <p class="form-note">Anexar cópia dos certificados se necessário (entregar ao RH)</p>
       <label>
         Descreva seus cursos
         <textarea id="cursos" rows="4" placeholder="Cursos técnicos, workshops, idiomas, etc." required></textarea>
       </label>
 
-      <h2 class="section-title">Expectativas</h2>
+      <h2 class="section-title" data-translate="recrutamento_section_expectations">Expectativas</h2>
       <label>
         Quais são suas expectativas para o novo cargo?
         <textarea id="expectativas" rows="4" required></textarea>
       </label>
 
-      <h2 class="section-title">Disponibilidade</h2>
+      <h2 class="section-title" data-translate="recrutamento_section_availability">Disponibilidade</h2>
       <label>
         Você tem disponibilidade para trabalhar em qualquer turno?
-        <select id="disponibilidade" required style="margin-top: 8px; width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px;">
+        <select id="disponibilidade" required style="margin-top: 8px; width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
             <option value="">Selecione</option>
             <option value="sim">Sim</option>
             <option value="nao">Não</option>
@@ -103,7 +103,7 @@
         <input type="text" id="motivoDisponibilidade">
       </label>
 
-      <button class="enviar" type="submit" id="btnSubmit" style="margin-top: 24px;">Enviar Candidatura</button>
+      <button class="enviar" type="submit" id="btnSubmit" style="margin-top: 24px;" data-translate="recrutamento_submit">Enviar Candidatura</button>
     </form>
     <div id="feedback" class="feedback" role="alert" hidden></div>
   </main>
@@ -111,7 +111,7 @@
   <footer class="app-footer">
     <div class="footer-content">
       <img src="/assets/logo.png" alt="Logo" class="footer-logo">
-      <p>&copy; 2025 Família Madalosso. Todos os direitos reservados.</p>
+      <p data-translate="public_footer_rights">&copy; 2025 Família Madalosso. Todos os direitos reservados.</p>
     </div>
   </footer>
 

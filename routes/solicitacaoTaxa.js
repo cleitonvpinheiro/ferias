@@ -2,10 +2,13 @@ const express = require('express');
 const router = express.Router();
 const db = require('../services/db');
 const crypto = require('crypto');
-const { dpAuth } = require('../middleware/auth');
+const emailService = require('../services/email');
+const { dpAuth, verifyToken, checkRole, ROLES } = require('../middleware/auth');
+
+const solicitacaoTaxaFormAuth = [verifyToken, checkRole([ROLES.DP, ROLES.RH_GERAL, ROLES.RH, ROLES.GESTOR])];
 
 // Endpoint público para criar solicitação
-router.post('/solicitacao-taxa', async (req, res) => {
+router.post('/solicitacao-taxa', solicitacaoTaxaFormAuth, async (req, res) => {
     try {
         const payload = req.body;
         // Validação básica
@@ -35,10 +38,10 @@ router.post('/solicitacao-taxa', async (req, res) => {
         
         // TODO: Enviar email para RH avisando da nova solicitação?
         
-        res.json({ message: 'Solicitação enviada com sucesso!', id });
+        res.json({ ok: true, message: 'Solicitação enviada com sucesso!', id });
     } catch (e) {
         console.error('Erro ao criar solicitação de taxa:', e);
-        res.status(500).json({ message: 'Erro interno no servidor.' });
+        res.status(500).json({ ok: false, message: 'Erro interno no servidor.' });
     }
 });
 

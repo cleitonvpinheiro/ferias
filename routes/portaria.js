@@ -4,6 +4,122 @@ const db = require('../services/db');
 const { portariaAuth } = require('../middleware/auth');
 const crypto = require('crypto');
 const pdfService = require('../services/pdfService');
+const rateLimit = require('express-rate-limit');
+
+const epiPublicLimiter = rateLimit({
+    windowMs: 2 * 60 * 1000,
+    max: 90,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { ok: false, erro: 'Muitas solicitações. Tente novamente.' }
+});
+
+router.get('/epi/epis', epiPublicLimiter, async (req, res) => {
+    try {
+        const epis = await db.epis.getAll();
+        const mapped = epis.map(ep => ({ id: ep.id, nome: ep.nome, estoque: ep.estoque || 0, ca_validade: ep.ca_validade || null }));
+        res.json({ ok: true, epis: mapped });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao listar EPIs' });
+    }
+});
+
+router.get('/epi/funcionario/:doc', epiPublicLimiter, async (req, res) => {
+    try {
+        const doc = String(req.params.doc || '').replace(/\D/g, '');
+        if (!doc) return res.status(400).json({ ok: false, erro: 'Documento inválido' });
+
+        const funcionarios = await db.funcionarios.getAll();
+        const func = funcionarios.find(f => {
+            const cpf = String(f.cpf || '').replace(/\D/g, '');
+            const matricula = String(f.matricula || '').replace(/\D/g, '');
+            return cpf === doc || matricula === doc;
+        });
+        if (!func) return res.status(404).json({ ok: false, erro: 'Funcionário não encontrado' });
+
+        const descontos = await db.descontosEpis.getAll();
+        const hasPendente = descontos.some(d => {
+            const cpf = String(d.cpf_funcionario || '').replace(/\D/g, '');
+            return cpf === String(func.cpf || '').replace(/\D/g, '') && (d.status || 'pendente') === 'pendente';
+        });
+        if (hasPendente) return res.status(403).json({ ok: false, erro: 'Funcionário bloqueado: pendência no RH' });
+
+        res.json({
+            ok: true,
+            funcionario: {
+                id: func.id,
+                nome: func.nome,
+                cpf: func.cpf,
+                matricula: func.matricula,
+                cargo: func.cargo,
+                setor: func.setor
+            }
+        });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao buscar funcionário' });
+    }
+});
+
+router.post('/epi/solicitacoes', epiPublicLimiter, async (req, res) => {
+    try {
+        const payload = req.body || {};
+        const now = new Date().toISOString();
+
+        let funcionario_id = payload.funcionario_id ? String(payload.funcionario_id) : '';
+        const doc = payload.funcionario_doc ? String(payload.funcionario_doc).replace(/\D/g, '') : '';
+
+        if (!funcionario_id) {
+            if (!doc) return res.status(400).json({ ok: false, erro: 'Funcionário inválido' });
+            const funcionarios = await db.funcionarios.getAll();
+            const func = funcionarios.find(f => {
+                const cpf = String(f.cpf || '').replace(/\D/g, '');
+                const matricula = String(f.matricula || '').replace(/\D/g, '');
+                return cpf === doc || matricula === doc;
+            });
+            if (!func) return res.status(404).json({ ok: false, erro: 'Funcionário não encontrado' });
+
+            const descontos = await db.descontosEpis.getAll();
+            const hasPendente = descontos.some(d => {
+                const cpf = String(d.cpf_funcionario || '').replace(/\D/g, '');
+                return cpf === String(func.cpf || '').replace(/\D/g, '') && (d.status || 'pendente') === 'pendente';
+            });
+            if (hasPendente) return res.status(403).json({ ok: false, erro: 'Funcionário bloqueado: pendência no RH' });
+
+            funcionario_id = String(func.id);
+        }
+
+        const itens = Array.isArray(payload.itens_solicitados)
+            ? payload.itens_solicitados
+            : (Array.isArray(payload.itens) ? payload.itens : []);
+
+        const itens_solicitados = itens.map(x => String(x)).filter(Boolean);
+        if (itens_solicitados.length === 0) return res.status(400).json({ ok: false, erro: 'Selecione ao menos 1 EPI' });
+
+        const epis = await db.epis.getAll();
+        const epiIds = new Set(epis.map(e => String(e.id)));
+        const invalid = itens_solicitados.filter(id => !epiIds.has(id));
+        if (invalid.length > 0) return res.status(400).json({ ok: false, erro: `EPIs inválidos: ${invalid.join(', ')}` });
+
+        const row = {
+            id: crypto.randomUUID(),
+            funcionario_id,
+            itens_solicitados,
+            status: 'pendente',
+            atendido_at: null,
+            atendido_por: null,
+            createdAt: now,
+            updatedAt: now
+        };
+
+        await db.solicitacoesEpis.create(row);
+        res.json({ ok: true, id: row.id });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao criar solicitação' });
+    }
+});
 
 router.get('/portaria/candidatos', portariaAuth, async (req, res) => {
     try {
@@ -130,6 +246,143 @@ router.get('/portaria/epis', portariaAuth, async (req, res) => {
     } catch (e) {
         console.error(e);
         res.status(500).json({ ok: false, erro: 'Erro ao listar EPIs' });
+    }
+});
+
+router.get('/portaria/solicitacoes', portariaAuth, async (req, res) => {
+    try {
+        const status = (req.query.status ? String(req.query.status) : '').trim().toLowerCase();
+        const funcionarioId = (req.query.funcionario_id ? String(req.query.funcionario_id) : '').trim();
+
+        const solicitacoes = await db.solicitacoesEpis.getAll();
+        const funcionarios = await db.funcionarios.getAll();
+        const epis = await db.epis.getAll();
+
+        const funcMap = new Map(funcionarios.map(f => [String(f.id), f]));
+        const epiMap = new Map(epis.map(e => [String(e.id), e]));
+
+        const filtered = solicitacoes
+            .filter(s => !status || String(s.status || 'pendente').toLowerCase() === status)
+            .filter(s => !funcionarioId || String(s.funcionario_id) === funcionarioId);
+
+        const mapped = filtered.map(s => {
+            const func = funcMap.get(String(s.funcionario_id));
+            const ids = Array.isArray(s.itens_solicitados) ? s.itens_solicitados.map(x => String(x)) : [];
+            const counts = {};
+            ids.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
+
+            const itens = Object.keys(counts).map(id => {
+                const epi = epiMap.get(id);
+                return {
+                    id,
+                    nome: epi ? epi.nome : id,
+                    quantidade: counts[id],
+                    estoque: epi ? (epi.estoque || 0) : null
+                };
+            });
+
+            return {
+                id: s.id,
+                status: s.status || 'pendente',
+                funcionario: func ? {
+                    id: func.id,
+                    nome: func.nome,
+                    cpf: func.cpf,
+                    matricula: func.matricula,
+                    cargo: func.cargo,
+                    setor: func.setor
+                } : { id: s.funcionario_id },
+                itens,
+                atendidoAt: s.atendido_at || null,
+                atendidoPor: s.atendido_por || null,
+                createdAt: s.created_at || null,
+                updatedAt: s.updated_at || null
+            };
+        });
+
+        res.json({ ok: true, solicitacoes: mapped });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao listar solicitações' });
+    }
+});
+
+router.post('/portaria/solicitacoes', portariaAuth, async (req, res) => {
+    try {
+        const payload = req.body || {};
+        const now = new Date().toISOString();
+
+        let funcionario_id = payload.funcionario_id ? String(payload.funcionario_id) : '';
+
+        const doc = payload.funcionario_doc ? String(payload.funcionario_doc).replace(/\D/g, '') : '';
+        if (!funcionario_id && doc) {
+            const funcionarios = await db.funcionarios.getAll();
+            const func = funcionarios.find(f => {
+                const cpf = String(f.cpf || '').replace(/\D/g, '');
+                const matricula = String(f.matricula || '').replace(/\D/g, '');
+                return cpf === doc || matricula === doc;
+            });
+            if (func) funcionario_id = String(func.id);
+        }
+
+        const itens = Array.isArray(payload.itens_solicitados)
+            ? payload.itens_solicitados
+            : (Array.isArray(payload.itens) ? payload.itens : []);
+
+        const itens_solicitados = itens.map(x => String(x)).filter(Boolean);
+
+        if (!funcionario_id) return res.status(400).json({ ok: false, erro: 'Funcionário inválido' });
+        if (itens_solicitados.length === 0) return res.status(400).json({ ok: false, erro: 'Selecione ao menos 1 EPI' });
+
+        const epis = await db.epis.getAll();
+        const epiIds = new Set(epis.map(e => String(e.id)));
+        const invalid = itens_solicitados.filter(id => !epiIds.has(id));
+        if (invalid.length > 0) return res.status(400).json({ ok: false, erro: `EPIs inválidos: ${invalid.join(', ')}` });
+
+        const row = {
+            id: crypto.randomUUID(),
+            funcionario_id,
+            itens_solicitados,
+            status: 'pendente',
+            atendido_at: null,
+            atendido_por: null,
+            createdAt: now,
+            updatedAt: now
+        };
+
+        await db.solicitacoesEpis.create(row);
+        res.json({ ok: true, id: row.id });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao criar solicitação' });
+    }
+});
+
+router.post('/portaria/solicitacoes/:id/status', portariaAuth, async (req, res) => {
+    try {
+        const id = String(req.params.id || '');
+        const status = String((req.body || {}).status || '').trim().toLowerCase();
+        const allowed = new Set(['pendente', 'atendida', 'cancelada']);
+        if (!allowed.has(status)) return res.status(400).json({ ok: false, erro: 'Status inválido' });
+
+        const current = await db.solicitacoesEpis.getById(id);
+        if (!current) return res.status(404).json({ ok: false, erro: 'Solicitação não encontrada' });
+
+        const now = new Date().toISOString();
+        const atendido_at = status === 'atendida' ? now : null;
+        const atendido_por = status === 'atendida' ? (req.user && req.user.username ? String(req.user.username) : null) : null;
+
+        await db.solicitacoesEpis.updateStatus(id, {
+            status,
+            atendido_at,
+            atendido_por,
+            updatedAt: now
+        });
+
+        res.json({ ok: true });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao atualizar solicitação' });
     }
 });
 

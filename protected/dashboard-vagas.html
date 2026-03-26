@@ -6,9 +6,10 @@
   <title>Dashboard RH - Vagas</title>
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="stylesheet" href="/rh-styles.css">
+  <script src="/lang-switcher.js" defer></script>
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 </head>
-<body>
+<body data-page="rh-vagas">
   <div id="navbar-container"></div>
   <script src="/rh-navbar.js"></script>
   <script>renderRHNavbar('vagas');</script>
@@ -16,39 +17,39 @@
   <main class="dashboard-container">
     <div class="page-header">
         <div>
-            <h1 class="page-title">Gestão de Vagas</h1>
-            <p class="page-subtitle">Controle as vagas abertas e candidatos inscritos</p>
+            <h1 class="page-title" data-translate="rh_dash_vagas_title">Gestão de Vagas</h1>
+            <p class="page-subtitle" data-translate="rh_dash_vagas_subtitle">Controle as vagas abertas e candidatos inscritos</p>
         </div>
         <div class="last-update">
-            <span id="lastUpdate">Atualizado agora</span>
+            <span id="lastUpdate" data-translate="rh_dash_last_update_now">Atualizado agora</span>
         </div>
     </div>
 
     <div class="stats-grid">
         <div class="stat-card pending">
             <div class="stat-header">
-                <div class="stat-title">Vagas Abertas</div>
+                <div class="stat-title" data-translate="rh_dash_vagas_stat_open">Vagas Abertas</div>
                 <div class="stat-icon">📢</div>
             </div>
             <div class="stat-value" id="stat-abertas">0</div>
         </div>
         <div class="stat-card approved">
             <div class="stat-header">
-                <div class="stat-title">Candidatos Total</div>
+                <div class="stat-title" data-translate="rh_dash_vagas_stat_candidates">Candidatos Total</div>
                 <div class="stat-icon">👥</div>
             </div>
             <div class="stat-value" id="stat-candidatos">0</div>
         </div>
         <div class="stat-card" style="border-left: 4px solid var(--text-secondary);">
             <div class="stat-header">
-                <div class="stat-title">Encerradas</div>
+                <div class="stat-title" data-translate="rh_dash_vagas_stat_closed">Encerradas</div>
                 <div class="stat-icon">🔒</div>
             </div>
             <div class="stat-value" id="stat-encerradas">0</div>
         </div>
         <div class="stat-card rejected">
             <div class="stat-header">
-                <div class="stat-title">Canceladas</div>
+                <div class="stat-title" data-translate="rh_dash_vagas_stat_cancelled">Canceladas</div>
                 <div class="stat-icon">🚫</div>
             </div>
             <div class="stat-value" id="stat-canceladas">0</div>
@@ -56,19 +57,19 @@
     </div>
 
     <div class="tabs-container">
-        <button class="tab-button active" onclick="switchTab('ativas')" id="btn-tab-ativas">Vagas Abertas</button>
-        <button class="tab-button" onclick="switchTab('encerradas')" id="btn-tab-encerradas">Encerradas / Canceladas</button>
+        <button class="tab-button active" onclick="switchTab('ativas')" id="btn-tab-ativas" data-translate="rh_dash_vagas_tab_open">Vagas Abertas</button>
+        <button class="tab-button" onclick="switchTab('encerradas')" id="btn-tab-encerradas" data-translate="rh_dash_vagas_tab_closed">Encerradas / Canceladas</button>
     </div>
 
     <div id="tab-ativas">
         <div class="action-bar">
-            <h2>Vagas Ativas</h2>
+            <h2 data-translate="rh_dash_vagas_active_title">Vagas Ativas</h2>
             <div class="action-buttons">
                 <a href="/vagas.html" target="_blank" class="btn btn-primary">
-                    ➕ Nova Vaga
+                    ➕ <span data-translate="rh_dash_vagas_new">Nova Vaga</span>
                 </a>
                 <button class="btn btn-outline" onclick="carregarVagas()">
-                    🔄 Atualizar
+                    🔄 <span data-translate="rh_dash_refresh">Atualizar</span>
                 </button>
             </div>
         </div>
@@ -78,11 +79,11 @@
                 <table id="tabela-ativas">
                     <thead>
                         <tr>
-                            <th>Título da Vaga</th>
-                            <th>Departamento</th>
-                            <th>Status</th>
-                            <th>Candidatos</th>
-                            <th>Ação</th>
+                            <th data-translate="rh_dash_vagas_th_titulo">Título da Vaga</th>
+                            <th data-translate="rh_dash_taxas_th_departamento">Departamento</th>
+                            <th data-translate="rh_dash_th_status">Status</th>
+                            <th data-translate="rh_dash_vagas_th_candidatos">Candidatos</th>
+                            <th data-translate="rh_dash_th_acao">Ação</th>
                         </tr>
                     </thead>
                     <tbody id="lista-ativas">
@@ -91,14 +92,14 @@
                 </table>
             </div>
             <div id="empty-ativas" class="empty-state" hidden>
-                <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Nenhuma vaga ativa no momento.</p>
+                <p style="font-size: 1.1rem; margin-bottom: 0.5rem;" data-translate="rh_dash_vagas_empty_active">Nenhuma vaga ativa no momento.</p>
             </div>
         </div>
     </div>
 
     <div id="tab-encerradas" style="display: none;">
         <div class="action-bar">
-            <h2 style="color: var(--text-secondary);">Histórico de Vagas</h2>
+            <h2 style="color: var(--text-secondary);" data-translate="rh_dash_vagas_history_title">Histórico de Vagas</h2>
         </div>
 
         <div class="table-container">
@@ -106,11 +107,11 @@
                 <table id="tabela-encerradas">
                     <thead>
                         <tr>
-                            <th>Título da Vaga</th>
-                            <th>Departamento</th>
-                            <th>Status</th>
-                            <th>Candidatos</th>
-                            <th>Ação</th>
+                            <th data-translate="rh_dash_vagas_th_titulo">Título da Vaga</th>
+                            <th data-translate="rh_dash_taxas_th_departamento">Departamento</th>
+                            <th data-translate="rh_dash_th_status">Status</th>
+                            <th data-translate="rh_dash_vagas_th_candidatos">Candidatos</th>
+                            <th data-translate="rh_dash_th_acao">Ação</th>
                         </tr>
                     </thead>
                     <tbody id="lista-encerradas">
@@ -119,7 +120,7 @@
                 </table>
             </div>
             <div id="empty-encerradas" class="empty-state" hidden>
-                <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Nenhuma vaga encerrada.</p>
+                <p style="font-size: 1.1rem; margin-bottom: 0.5rem;" data-translate="rh_dash_vagas_empty_history">Nenhuma vaga encerrada.</p>
             </div>
         </div>
     </div>
@@ -129,7 +130,7 @@
       <div class="modal">
         <div class="modal-header">
             <div class="modal-title">
-                <h2 id="modal-sugestoes-titulo">Candidatos Sugeridos</h2>
+                <h2 id="modal-sugestoes-titulo" data-translate="rh_dash_vagas_modal_suggestions">Candidatos Sugeridos</h2>
             </div>
             <button class="close-modal" onclick="fecharModalSugestoes()">&times;</button>
         </div>
@@ -165,7 +166,7 @@
   </main>
 
   <footer style="text-align: center; padding: 40px; color: var(--text-secondary); font-size: 0.875rem;">
-    <p>&copy; 2025 Família Madalosso. Acesso Restrito ao RH.</p>
+    <p data-translate="rh_footer">&copy; 2025 Família Madalosso. Acesso Restrito ao RH.</p>
   </footer>
 
   <script>

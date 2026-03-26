@@ -6,21 +6,21 @@
   <title>Abertura de Vaga</title>
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="stylesheet" href="./styles.css">
+  <script src="/lang-switcher.js" defer></script>
 </head>
-<body>
- 
+<body data-page="vagas">
   <main class="container">
     <div style="margin-bottom: 20px;">
-        <a href="/" style="color: #64748b; text-decoration: none; font-size: 0.9rem;">&larr; Voltar ao Menu</a>
+        <a href="/" style="color: var(--muted); text-decoration: none; font-size: 0.9rem;" data-translate="public_back_menu">&larr; Voltar ao Menu</a>
     </div>
      
    <div class="brand-inner">
       <img class="brand-logo" src="/assets/logo.png" alt="Logo Família Madalosso">
-      <div class="brand-title">Formulário Abertura de Vaga</div>
+      <div class="brand-title" data-translate="vagas_title">Formulário Abertura de Vaga</div>
     </div>
     
     <form id="formVagas" novalidate>
-      <h2 class="section-title">Dados Gerais</h2>
+      <h2 class="section-title" data-translate="vagas_section_general">Dados Gerais</h2>
       <div class="grid-2">
           <label>
             Cargo
@@ -47,7 +47,7 @@
         <input type="email" id="email_gestor" required placeholder="gestor@familiamadalosso.com.br">
       </label>
 
-      <h2 class="section-title">Motivo da Contratação</h2>
+      <h2 class="section-title" data-translate="vagas_section_reason">Motivo da Contratação</h2>
       <div class="radio-group-box">
           <label class="radio-card">
             <input type="radio" name="motivo" value="substituicao" checked>
@@ -77,7 +77,7 @@
         <input type="text" id="reportara_a" required>
       </label>
 
-      <h2 class="section-title">Contratação</h2>
+      <h2 class="section-title" data-translate="vagas_section_hiring">Contratação</h2>
       <label>
         Escala / Horário de Trabalho
         <input type="text" id="escala_horario" placeholder="Ex: 6x1, 08:00 às 16:20" required>
@@ -89,7 +89,7 @@
           <label><input type="radio" name="tipo_contratacao" value="horista"> Horista</label>
       </div>
 
-      <h2 class="section-title">Perfil da Vaga</h2>
+      <h2 class="section-title" data-translate="vagas_section_profile">Perfil da Vaga</h2>
       <label>
         Salário e Benefícios
         <input type="text" id="salario_beneficios" required>
@@ -137,24 +137,24 @@
           </label>
       </div>
 
-      <h2 class="section-title">Dados do Solicitante</h2>
+      <h2 class="section-title" data-translate="vagas_section_requester">Dados do Solicitante</h2>
       <label>
         E-mail do Gestor/Solicitante
         <input type="email" id="email_gestor" placeholder="seu.email@familiamadalosso.com.br" required>
       </label>
 
-      <h2 class="section-title">Assinatura do Responsável</h2>
+      <h2 class="section-title" data-translate="public_section_signature">Assinatura do Responsável</h2>
       <div class="signature-wrapper">
         <div class="signature">
           <div class="signature-header">
-            Assinatura manuscrita
-            <button type="button" id="limpar">Limpar</button>
+            <span data-translate="public_signature_handwritten">Assinatura manuscrita</span>
+            <button type="button" id="limpar" data-translate="public_clear">Limpar</button>
           </div>
           <canvas id="assinatura" aria-label="Área de assinatura"></canvas>
         </div>
       </div>
 
-      <button class="enviar" type="submit" id="btnSubmit">Enviar Solicitação</button>
+      <button class="enviar" type="submit" id="btnSubmit" data-translate="public_submit">Enviar Solicitação</button>
     </form>
     <div id="feedback" class="feedback" role="alert" hidden></div>
   </main>
@@ -162,9 +162,9 @@
   <footer class="app-footer">
     <div class="footer-content">
       <img src="/assets/logo.png" alt="Logo" class="footer-logo">
-      <p>&copy; 2025 Família Madalosso. Todos os direitos reservados.</p>
+      <p data-translate="public_footer_rights">&copy; 2025 Família Madalosso. Todos os direitos reservados.</p>
       <div style="display: flex; gap: 12px; align-items: center;">
-          <a href="/dashboard-vagas.html" style="font-size: 0.75rem; color: #94a3b8; text-decoration: none;">Acesso RH</a>
+          <a href="/dashboard-vagas.html" style="font-size: 0.75rem; color: var(--muted); text-decoration: none;" data-translate="public_footer_rh_access">Acesso RH</a>
       </div>
     </div>
   </footer>

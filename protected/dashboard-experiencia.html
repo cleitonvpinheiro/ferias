@@ -6,6 +6,7 @@
     <title>Dashboard RH - Experiência</title>
     <link rel="icon" href="/assets/logo.png" type="image/png">
     <link rel="stylesheet" href="/rh-styles.css">
+  <script src="/lang-switcher.js" defer></script>
     <style>
         .status-badge {
             padding: 4px 8px;
@@ -38,9 +39,65 @@
             border-color: #cbd5e1;
             color: #1e293b;
         }
+        .deadline-badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            display: inline-block;
+        }
+        .deadline-warning {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        .deadline-overdue {
+            background-color: #fee2e2;
+            color: #b91c1c;
+        }
+        .deadline-ok {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        .row-deadline-alert {
+            background-color: #fffbeb;
+        }
+        .filters-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+            align-items: center;
+        }
+        .filters-row label {
+            font-size: 0.85rem;
+            color: #4b5563;
+        }
+        .filters-row select {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            min-width: 180px;
+        }
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            background: #eef2ff;
+            color: #4338ca;
+        }
+        .chip span {
+            font-weight: 600;
+        }
+        .chip small {
+            font-weight: 400;
+            color: #4b5563;
+        }
     </style>
 </head>
-<body>
+<body data-page="rh-experiencia">
     <div id="navbar-container"></div>
     <script src="/rh-navbar.js"></script>
     <script>renderRHNavbar('experiencia');</script>
@@ -48,24 +105,91 @@
     <div class="dashboard-container">
         <div class="page-header">
             <div>
-                <h1 class="page-title">Avaliações de Experiência</h1>
-                <p class="page-subtitle">Acompanhamento de 45 e 90 dias</p>
+                <h1 class="page-title" data-translate="rh_dash_experiencia_title">Avaliações de Experiência</h1>
+                <p class="page-subtitle" data-translate="rh_dash_experiencia_subtitle">Acompanhamento de 45 e 90 dias</p>
             </div>
-            <button class="btn-primary" onclick="window.location.href='/form-avaliacao-experiencia.html'">+ Nova Avaliação</button>
+            <button class="btn-primary" onclick="window.location.href='/form-avaliacao-experiencia.html'">+ <span data-translate="rh_dash_experiencia_new">Nova Avaliação</span></button>
+        </div>
+
+        <div class="filters-row">
+            <div class="chip">
+                <span data-translate="rh_dash_experiencia_chip_title">Visão Gestor</span>
+                <small data-translate="rh_dash_experiencia_chip_desc">Mostra apenas quem está em alerta</small>
+            </div>
+            <div>
+                <label>
+                    <span data-translate="rh_dash_th_setor">Setor</span>:
+                    <select id="filter-setor">
+                        <option value="" data-translate="rh_dash_filter_all">Todos</option>
+                    </select>
+                </label>
+            </div>
+            <div>
+                <label>
+                    <span data-translate="rh_dash_avaliacoes_th_avaliador">Avaliador</span>:
+                    <select id="filter-avaliador">
+                        <option value="" data-translate="rh_dash_filter_all">Todos</option>
+                    </select>
+                </label>
+            </div>
+            <div>
+                <label>
+                    <span data-translate="rh_dash_experiencia_filter_stability">Estabilidade</span>:
+                    <select id="filter-estabilidade">
+                        <option value="" data-translate="rh_dash_filter_all">Todos</option>
+                        <option value="experiencia" data-translate="rh_dash_experiencia_stability_probation">Em experiência</option>
+                        <option value="estavel" data-translate="rh_dash_experiencia_stability_stable">Com estabilidade</option>
+                    </select>
+                </label>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card pending">
+                <div class="stat-header">
+                    <div class="stat-title" data-translate="rh_dash_experiencia_stat_next_45">Próximos 45 dias</div>
+                    <div class="stat-icon">⏱️</div>
+                </div>
+                <div class="stat-value" id="stat-45-near">0</div>
+            </div>
+            <div class="stat-card pending">
+                <div class="stat-header">
+                    <div class="stat-title" data-translate="rh_dash_experiencia_stat_next_90">Próximos 90 dias</div>
+                    <div class="stat-icon">⏱️</div>
+                </div>
+                <div class="stat-value" id="stat-90-near">0</div>
+            </div>
+            <div class="stat-card approved">
+                <div class="stat-header">
+                    <div class="stat-title" data-translate="rh_dash_experiencia_stat_overdue_45">Em atraso 45 dias</div>
+                    <div class="stat-icon">⚠️</div>
+                </div>
+                <div class="stat-value" id="stat-45-overdue">0</div>
+            </div>
+            <div class="stat-card approved">
+                <div class="stat-header">
+                    <div class="stat-title" data-translate="rh_dash_experiencia_stat_overdue_90">Em atraso 90 dias</div>
+                    <div class="stat-icon">⚠️</div>
+                </div>
+                <div class="stat-value" id="stat-90-overdue">0</div>
+            </div>
         </div>
 
         <div class="table-container">
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>Data Criação</th>
-                        <th>Colaborador</th>
-                        <th>Cargo</th>
-                        <th>Setor</th>
-                        <th>Avaliador</th>
-                        <th>Status 45 Dias</th>
-                        <th>Status 90 Dias</th>
-                        <th>Ações</th>
+                        <th data-translate="rh_dash_experiencia_th_created">Data Criação</th>
+                        <th data-translate="rh_dash_th_colaborador">Colaborador</th>
+                        <th data-translate="rh_dash_th_cargo">Cargo</th>
+                        <th data-translate="rh_dash_th_setor">Setor</th>
+                        <th data-translate="rh_dash_avaliacoes_th_avaliador">Avaliador</th>
+                        <th data-translate="rh_dash_experiencia_th_status_45">Status 45 Dias</th>
+                        <th data-translate="rh_dash_experiencia_th_status_90">Status 90 Dias</th>
+                        <th data-translate="rh_dash_experiencia_th_deadline_45">Prazo 45 Dias</th>
+                        <th data-translate="rh_dash_experiencia_th_deadline_90">Prazo 90 Dias</th>
+                        <th data-translate="rh_dash_experiencia_th_stability">Estabilidade</th>
+                        <th data-translate="rh_dash_th_acao">Ações</th>
                     </tr>
                 </thead>
                 <tbody id="lista-corpo">
@@ -76,6 +200,45 @@
     </div>
 
     <script>
+        function getDeadlineInfo(dataAdmissao, dias, isPending) {
+            if (!isPending || !dataAdmissao) {
+                return { label: '-', className: '', isAlert: false, isOverdue: false };
+            }
+            var base = new Date(dataAdmissao);
+            if (isNaN(base.getTime())) {
+                return { label: '-', className: '', isAlert: false, isOverdue: false };
+            }
+            var deadline = new Date(base.getTime());
+            deadline.setDate(deadline.getDate() + dias);
+            var today = new Date();
+            today.setHours(0, 0, 0, 0);
+            deadline.setHours(0, 0, 0, 0);
+            var diffDays = Math.round((deadline - today) / 86400000);
+            var nearThreshold = 10;
+            var label;
+            var className = 'deadline-badge';
+            var isAlert = false;
+            var isOverdue = false;
+            if (diffDays < 0) {
+                label = 'Vencido há ' + Math.abs(diffDays) + ' dia(s)';
+                className += ' deadline-overdue';
+                isAlert = true;
+                isOverdue = true;
+            } else if (diffDays === 0) {
+                label = 'Vence hoje';
+                className += ' deadline-warning';
+                isAlert = true;
+            } else if (diffDays <= nearThreshold) {
+                label = 'Faltam ' + diffDays + ' dia(s)';
+                className += ' deadline-warning';
+                isAlert = true;
+            } else {
+                label = 'Em ' + diffDays + ' dia(s)';
+                className += ' deadline-ok';
+            }
+            return { label: label, className: className, isAlert: isAlert, isOverdue: isOverdue };
+        }
+
         async function carregarDados() {
             try {
                 const res = await fetch('/api/avaliacoes');
@@ -83,17 +246,94 @@
                 
                 // Filter for 'experiencia'
                 const list = data.filter(i => i.tipo === 'experiencia');
+
+                const setores = new Set();
+                const avaliadores = new Set();
                 
                 const tbody = document.getElementById('lista-corpo');
                 tbody.innerHTML = '';
 
+                var stat45Near = 0;
+                var stat90Near = 0;
+                var stat45Overdue = 0;
+                var stat90Overdue = 0;
+
                 list.forEach(item => {
                     const tr = document.createElement('tr');
                     
-                    const date = new Date(item.createdAt).toLocaleDateString();
+                    const dateValue = item.created_at || item.createdAt;
+                    const date = dateValue ? new Date(dateValue).toLocaleDateString() : '-';
                     
                     const st45 = item.status45 ? `<span class="status-badge ${getStatusClass(item.status45)}">${item.status45}</span>` : '<span style="color:#999">-</span>';
                     const st90 = item.status90 ? `<span class="status-badge ${getStatusClass(item.status90)}">${item.status90}</span>` : '<span style="color:#999">-</span>';
+
+                    const info45 = getDeadlineInfo(item.dataAdmissao, 45, !item.status45);
+                    const info90 = getDeadlineInfo(item.dataAdmissao, 90, !item.status90);
+
+                    const diasDesdeAdmissao = item.dataAdmissao ? Math.floor((new Date() - new Date(item.dataAdmissao)) / 86400000) : null;
+                    const emExperiencia = diasDesdeAdmissao !== null && diasDesdeAdmissao < 90;
+                    const estabilidadeLabel = diasDesdeAdmissao === null ? '-' : (emExperiencia ? 'Em experiência' : 'Com estabilidade');
+
+                    const setorVal = item.setor || '';
+                    const avaliadorVal = item.avaliador || '';
+                    if (setorVal) setores.add(setorVal);
+                    if (avaliadorVal) avaliadores.add(avaliadorVal);
+
+                    const filterSetor = document.getElementById('filter-setor').value;
+                    const filterAval = document.getElementById('filter-avaliador').value;
+                    const filterEstab = document.getElementById('filter-estabilidade').value;
+
+                    if (filterSetor && setorVal !== filterSetor) {
+                        return;
+                    }
+                    if (filterAval && avaliadorVal !== filterAval) {
+                        return;
+                    }
+                    if (filterEstab === 'experiencia' && !emExperiencia) {
+                        return;
+                    }
+                    if (filterEstab === 'estavel' && emExperiencia) {
+                        return;
+                    }
+
+                    if (!info45.isAlert && !info90.isAlert) {
+                        return;
+                    }
+
+                    if (info45.isAlert) {
+                        if (info45.isOverdue) {
+                            stat45Overdue++;
+                        } else {
+                            stat45Near++;
+                        }
+                    }
+                    if (info90.isAlert) {
+                        if (info90.isOverdue) {
+                            stat90Overdue++;
+                        } else {
+                            stat90Near++;
+                        }
+                    }
+
+                    const prazo45 = info45.label !== '-' ? `<span class="${info45.className}">${info45.label}</span>` : '<span style="color:#999">-</span>';
+                    const prazo90 = info90.label !== '-' ? `<span class="${info90.className}">${info90.label}</span>` : '<span style="color:#999">-</span>';
+
+                    if (info45.isAlert || info90.isAlert) {
+                        tr.classList.add('row-deadline-alert');
+                    }
+
+                    const assuntoEmail = encodeURIComponent(`Alerta de Período de Experiência – ${item.funcionario || ''}`);
+                    const partesAlerta = [];
+                    if (info45.isAlert) partesAlerta.push(`45 dias: ${info45.label}`);
+                    if (info90.isAlert) partesAlerta.push(`90 dias: ${info90.label}`);
+                    const resumoAlerta = partesAlerta.join(' | ');
+                    const corpoEmail = encodeURIComponent(
+                        `Olá,\n\n` +
+                        `Segue alerta de período de experiência do colaborador ${item.funcionario || '-'} (${item.cargo || '-'} / ${item.setor || '-'}).\n\n` +
+                        `Situação:\n${resumoAlerta || 'Sem alerta registrado.'}\n\n` +
+                        `Estabilidade: ${estabilidadeLabel}\n\n` +
+                        `Este e-mail foi gerado a partir do painel de experiência.\n`
+                    );
 
                     tr.innerHTML = `
                         <td>${date}</td>
@@ -103,12 +343,42 @@
                         <td>${item.avaliador || '-'}</td>
                         <td>${st45}</td>
                         <td>${st90}</td>
+                        <td>${prazo45}</td>
+                        <td>${prazo90}</td>
+                        <td>
+                            ${estabilidadeLabel}
+                        </td>
                         <td>
                             <a href="/form-avaliacao-experiencia.html?id=${item.id}" class="btn-action">✏️ Abrir/Editar</a>
+                            <a href="mailto:?subject=${assuntoEmail}&body=${corpoEmail}" class="btn-action">✉️ E-mail</a>
                         </td>
                     `;
                     tbody.appendChild(tr);
                 });
+
+                const setorSelect = document.getElementById('filter-setor');
+                const avalSelect = document.getElementById('filter-avaliador');
+                if (setorSelect.options.length === 1) {
+                    Array.from(setores).sort().forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s;
+                        opt.textContent = s;
+                        setorSelect.appendChild(opt);
+                    });
+                }
+                if (avalSelect.options.length === 1) {
+                    Array.from(avaliadores).sort().forEach(a => {
+                        const opt = document.createElement('option');
+                        opt.value = a;
+                        opt.textContent = a;
+                        avalSelect.appendChild(opt);
+                    });
+                }
+
+                document.getElementById('stat-45-near').textContent = stat45Near;
+                document.getElementById('stat-90-near').textContent = stat90Near;
+                document.getElementById('stat-45-overdue').textContent = stat45Overdue;
+                document.getElementById('stat-90-overdue').textContent = stat90Overdue;
             } catch (e) {
                 console.error(e);
                 alert('Erro ao carregar dados.');
@@ -121,6 +391,10 @@
             if (status.includes('reprovado')) return 'status-rejected';
             return 'status-pending';
         }
+        
+        document.getElementById('filter-setor').addEventListener('change', carregarDados);
+        document.getElementById('filter-avaliador').addEventListener('change', carregarDados);
+        document.getElementById('filter-estabilidade').addEventListener('change', carregarDados);
 
         carregarDados();
     </script>

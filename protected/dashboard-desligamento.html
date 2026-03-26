@@ -6,6 +6,7 @@
   <title>Dashboard RH - Entrevistas de Desligamento</title>
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="stylesheet" href="/rh-styles.css">
+  <script src="/lang-switcher.js" defer></script>
   <style>
       .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
       .form-full { grid-column: 1 / -1; }
@@ -64,7 +65,7 @@
       }
   </style>
 </head>
-<body>
+<body data-page="rh-desligamento">
   <div id="navbar-container"></div>
   <script src="/rh-navbar.js"></script>
   <script>renderRHNavbar('desligamento');</script>
@@ -72,27 +73,27 @@
   <main class="dashboard-container">
     <div class="page-header">
         <div>
-            <h1 class="page-title">Entrevistas de Desligamento</h1>
-            <p class="page-subtitle">Gerencie e visualize as entrevistas de saída</p>
+            <h1 class="page-title" data-translate="rh_dash_desligamento_title">Entrevistas de Desligamento</h1>
+            <p class="page-subtitle" data-translate="rh_dash_desligamento_subtitle">Gerencie e visualize as entrevistas de saída</p>
         </div>
         <div class="action-buttons">
-            <a href="/protected/entrevista-desligamento.html" target="_blank" class="btn btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
-                🔗 Abrir Formulário para Colaborador
+            <a href="/entrevista-desligamento.html" target="_blank" class="btn btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+                🔗 <span data-translate="rh_dash_desligamento_open_form">Abrir Formulário para Colaborador</span>
             </a>
         </div>
     </div>
 
     <div id="history-container" class="table-container" style="display: block;">
-        <h2>Histórico de Entrevistas</h2>
+        <h2 data-translate="rh_dash_desligamento_history">Histórico de Entrevistas</h2>
         <div class="table-wrapper">
             <table id="tabela-entrevistas">
                 <thead>
                     <tr>
-                        <th>Colaborador</th>
-                        <th>Data</th>
-                        <th>Tipo</th>
-                        <th>Motivo</th>
-                        <th>Ações</th>
+                        <th data-translate="rh_dash_th_colaborador">Colaborador</th>
+                        <th data-translate="rh_dash_th_data">Data</th>
+                        <th data-translate="rh_dash_desligamento_th_tipo">Tipo</th>
+                        <th data-translate="rh_dash_desligamento_th_motivo">Motivo</th>
+                        <th data-translate="rh_dash_th_acao">Ações</th>
                     </tr>
                 </thead>
                 <tbody id="lista-corpo">

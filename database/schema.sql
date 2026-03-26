@@ -47,6 +47,17 @@ CREATE TABLE IF NOT EXISTS descontos_epis (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS solicitacoes_epis (
+    id TEXT PRIMARY KEY,
+    funcionario_id TEXT NOT NULL,
+    itens_solicitados TEXT NOT NULL, -- JSON Array of EPI IDs (pode repetir)
+    status TEXT DEFAULT 'pendente', -- pendente | atendida | cancelada
+    atendido_at DATETIME,
+    atendido_por TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS entrevistas_desligamento (
     id TEXT PRIMARY KEY,
     nome TEXT,
@@ -208,6 +219,26 @@ CREATE TABLE IF NOT EXISTS formularios (
     ativo BOOLEAN DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS respostas_formularios (
+    id TEXT PRIMARY KEY,
+    formulario_id TEXT NOT NULL,
+    funcionario_id TEXT,
+    respostas TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(formulario_id) REFERENCES formularios(id),
+    FOREIGN KEY(funcionario_id) REFERENCES funcionarios(id)
+);
+
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    role TEXT NOT NULL,
+    name TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS solicitacoes_taxa (

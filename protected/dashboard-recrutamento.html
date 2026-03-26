@@ -5,45 +5,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel de Recrutamento Interno - RH</title>
     <link rel="stylesheet" href="/rh-styles.css">
+    <script src="/lang-switcher.js" defer></script>
 </head>
-<body>
+<body data-page="rh-recrutamento">
     <div id="navbar-container"></div>
     <script src="/rh-navbar.js"></script>
     <script>renderRHNavbar('recrutamento');</script>
 
     <div class="dashboard-container">
         <div class="page-header">
-            <h1 class="page-title">Recrutamento Interno</h1>
-            <p class="page-subtitle">Acompanhe as candidaturas internas</p>
+            <h1 class="page-title" data-translate="rh_dash_recrutamento_title">Recrutamento Interno</h1>
+            <p class="page-subtitle" data-translate="rh_dash_recrutamento_subtitle">Acompanhe as candidaturas internas</p>
         </div>
 
         <div class="filters-bar">
             <div class="filter-group">
-                <label>Buscar Candidato</label>
-                <input type="text" id="searchInput" class="filter-input" placeholder="Nome ou Cargo Pretendido..." onkeyup="filtrarCandidatos()">
+                <label data-translate="rh_dash_recrutamento_search_label">Buscar Candidato</label>
+                <input type="text" id="searchInput" class="filter-input" placeholder="Nome ou Cargo Pretendido..." data-translate="rh_dash_recrutamento_search_placeholder" onkeyup="filtrarCandidatos()">
             </div>
             <div class="filter-group" style="flex: 0; min-width: auto; align-self: flex-end;">
                  <div class="last-update" style="white-space: nowrap; padding-bottom: 10px;">
-                    <span id="lastUpdate">Atualizado agora</span>
+                    <span id="lastUpdate" data-translate="rh_dash_last_update_now">Atualizado agora</span>
                 </div>
             </div>
         </div>
 
         <div id="loading" class="loading-state">
             <div class="loading-icon">⏳</div>
-            <div>Carregando candidaturas...</div>
+            <div data-translate="rh_dash_recrutamento_loading">Carregando candidaturas...</div>
         </div>
 
         <div class="table-container" id="tableContainer" style="display: none;">
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>Data</th>
-                        <th>Colaborador</th>
-                        <th>Setor</th>
-                        <th>Cargo Atual</th>
-                        <th>Cargo Pretendido</th>
-                        <th>Ações</th>
+                        <th data-translate="rh_dash_recrutamento_th_data">Data</th>
+                        <th data-translate="rh_dash_th_colaborador">Colaborador</th>
+                        <th data-translate="rh_dash_th_setor">Setor</th>
+                        <th data-translate="rh_dash_recrutamento_th_cargo_atual">Cargo Atual</th>
+                        <th data-translate="rh_dash_recrutamento_th_cargo_pretendido">Cargo Pretendido</th>
+                        <th data-translate="rh_dash_req_taxas_th_acoes">Ações</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
@@ -62,7 +63,7 @@
     </div>
 
   <footer style="text-align: center; padding: 40px; color: var(--text-secondary); font-size: 0.875rem;">
-    <p>&copy; 2025 Família Madalosso. Acesso Restrito ao RH.</p>
+    <p data-translate="rh_footer">&copy; 2025 Família Madalosso. Acesso Restrito ao RH.</p>
   </footer>
 
     <script>

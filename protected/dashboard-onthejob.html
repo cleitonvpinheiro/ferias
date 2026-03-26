@@ -5,46 +5,52 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel On The Job - RH</title>
     <link rel="stylesheet" href="/rh-styles.css">
+    <script src="/lang-switcher.js" defer></script>
 </head>
-<body>
+<body data-page="rh-onthejob">
     <div id="navbar-container"></div>
     <script src="/rh-navbar.js"></script>
     <script>renderRHNavbar('onthejob');</script>
 
     <div class="dashboard-container">
         <div class="page-header">
-            <h1 class="page-title">On The Job</h1>
-            <p class="page-subtitle">Acompanhe as propostas de movimentação</p>
+            <div>
+                <h1 class="page-title" data-translate="rh_dash_onthejob_title">On The Job</h1>
+                <p class="page-subtitle" data-translate="rh_dash_onthejob_subtitle">Acompanhe as propostas de movimentação</p>
+            </div>
+            <div>
+                <a href="/onTheJob.html" class="btn btn-primary" data-translate="rh_dash_onthejob_new">Novo On The Job</a>
+            </div>
         </div>
 
         <div class="filters-bar">
             <div class="filter-group">
-                <label>Buscar Colaborador</label>
-                <input type="text" id="searchInput" class="filter-input" placeholder="Nome ou Empresa..." onkeyup="filtrarItens()">
+                <label data-translate="rh_dash_onthejob_search_label">Buscar Colaborador</label>
+                <input type="text" id="searchInput" class="filter-input" placeholder="Nome ou Empresa..." data-translate="rh_dash_onthejob_search_placeholder" onkeyup="filtrarItens()">
             </div>
             <div class="filter-group" style="flex: 0; min-width: auto; align-self: flex-end;">
                  <div class="last-update" style="white-space: nowrap; padding-bottom: 10px;">
-                    <span id="lastUpdate">Atualizado agora</span>
+                    <span id="lastUpdate" data-translate="rh_dash_last_update_now">Atualizado agora</span>
                 </div>
             </div>
         </div>
 
         <div id="loading" class="loading-state">
             <div class="loading-icon">⏳</div>
-            <div>Carregando propostas...</div>
+            <div data-translate="rh_dash_onthejob_loading">Carregando propostas...</div>
         </div>
 
         <div class="table-container" id="tableContainer" style="display: none;">
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>Data</th>
-                        <th>Colaborador</th>
-                        <th>Empresa</th>
-                        <th>Cargo Atual</th>
-                        <th>Cargo Proposto</th>
-                        <th>Vigorar em</th>
-                        <th>Ações</th>
+                        <th data-translate="rh_dash_recrutamento_th_data">Data</th>
+                        <th data-translate="rh_dash_th_colaborador">Colaborador</th>
+                        <th data-translate="rh_dash_onthejob_th_empresa">Empresa</th>
+                        <th data-translate="rh_dash_recrutamento_th_cargo_atual">Cargo Atual</th>
+                        <th data-translate="rh_dash_onthejob_th_cargo_proposto">Cargo Proposto</th>
+                        <th data-translate="rh_dash_onthejob_th_vigorar">Vigorar em</th>
+                        <th data-translate="rh_dash_req_taxas_th_acoes">Ações</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
@@ -63,7 +69,7 @@
     </div>
 
   <footer style="text-align: center; padding: 40px; color: var(--text-secondary); font-size: 0.875rem;">
-    <p>&copy; 2025 Família Madalosso. Acesso Restrito ao RH.</p>
+    <p data-translate="rh_footer">&copy; 2025 Família Madalosso. Acesso Restrito ao RH.</p>
   </footer>
 
     <script>

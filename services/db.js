@@ -1,12 +1,50 @@
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
+const fs = require('fs');
 
 const DB_PATH = path.join(__dirname, '..', 'database', 'formularios.db');
+const DB_DIR = path.dirname(DB_PATH);
+
+if (!fs.existsSync(DB_DIR)) {
+    fs.mkdirSync(DB_DIR, { recursive: true });
+}
 
 // --- SQLite Helpers ---
 const db = new sqlite3.Database(DB_PATH, (err) => {
     if (err) console.error('Erro ao conectar ao SQLite:', err.message);
     else console.log('Conectado ao banco de dados SQLite.');
+});
+
+db.run('PRAGMA foreign_keys = ON');
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS solicitacoes_epis (
+    id TEXT PRIMARY KEY,
+    funcionario_id TEXT NOT NULL,
+    itens_solicitados TEXT NOT NULL,
+    status TEXT DEFAULT 'pendente',
+    atendido_at DATETIME,
+    atendido_por TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_solicitacoes_epis_status_created ON solicitacoes_epis(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_solicitacoes_epis_funcionario_created ON solicitacoes_epis(funcionario_id, created_at);
+`, (err) => {
+    if (err) console.error('Erro ao preparar tabela solicitacoes_epis:', err);
+});
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS gestor_equipes (
+    gestor_username TEXT NOT NULL,
+    funcionario_id TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (gestor_username, funcionario_id)
+);
+CREATE INDEX IF NOT EXISTS idx_gestor_equipes_gestor ON gestor_equipes(gestor_username);
+CREATE INDEX IF NOT EXISTS idx_gestor_equipes_func ON gestor_equipes(funcionario_id);
+`, (err) => {
+    if (err) console.error('Erro ao preparar tabela gestor_equipes:', err);
 });
 
 const run = (sql, params = []) => new Promise((resolve, reject) => {
@@ -30,6 +68,37 @@ const all = (sql, params = []) => new Promise((resolve, reject) => {
     });
 });
 
+const normalizeFormularioQuestoes = (questoes) => {
+    if (!Array.isArray(questoes)) return [];
+    return questoes.map((q) => {
+        const base = (q && typeof q === 'object') ? { ...q } : {};
+        const question = typeof base.question === 'string' && base.question.trim()
+            ? base.question
+            : (typeof base.text === 'string' ? base.text : '');
+
+        const type = typeof base.type === 'string' && base.type.trim() ? base.type : 'text';
+        const required = !!base.required;
+        const category = typeof base.category === 'string' ? base.category : '';
+
+        const normalized = {
+            ...base,
+            question,
+            text: question,
+            type,
+            required,
+            category
+        };
+
+        if (type === 'select' || type === 'multi') {
+            normalized.options = Array.isArray(base.options) ? base.options.map(o => String(o)) : [];
+        } else {
+            delete normalized.options;
+        }
+
+        return normalized;
+    });
+};
+
 // Helper to parse JSON fields from DB
 const parseJsonFields = (row, fields = []) => {
     if (!row) return row;
@@ -51,6 +120,11 @@ const countRows = async (tableName) => {
     return row ? row.count : 0;
 };
 
+const ping = async () => {
+    await get('SELECT 1 as ok');
+    return true;
+};
+
 const purgeTestData = async ({ preserveFuncionarios = true } = {}) => {
     const tablesToClear = [
         'historico_solicitacoes',
@@ -59,6 +133,7 @@ const purgeTestData = async ({ preserveFuncionarios = true } = {}) => {
         'candidatos',
         'vagas',
         'movimentacoes_epis',
+        'solicitacoes_epis',
         'descontos_epis',
         'movimentacoes',
         'epis',
@@ -224,6 +299,38 @@ const funcionariosRepo = {
     write: () => { throw new Error("Use async methods for funcionarios"); }
 };
 
+const gestorEquipesRepo = {
+    getEquipeByGestor: async (gestorUsername) => {
+        return await all(
+            `SELECT f.* 
+             FROM funcionarios f 
+             JOIN gestor_equipes g ON f.id = g.funcionario_id 
+             WHERE g.gestor_username = ?`,
+            [gestorUsername]
+        );
+    },
+    addMembro: async (gestorUsername, funcionarioId) => {
+        await run(
+            `INSERT OR IGNORE INTO gestor_equipes (gestor_username, funcionario_id) VALUES (?, ?)`,
+            [gestorUsername, funcionarioId]
+        );
+        return { gestorUsername, funcionarioId };
+    },
+    removeMembro: async (gestorUsername, funcionarioId) => {
+        await run(
+            `DELETE FROM gestor_equipes WHERE gestor_username = ? AND funcionario_id = ?`,
+            [gestorUsername, funcionarioId]
+        );
+        return { gestorUsername, funcionarioId };
+    },
+    getGestoresByFuncionario: async (funcionarioId) => {
+        return await all(
+            `SELECT gestor_username FROM gestor_equipes WHERE funcionario_id = ?`,
+            [funcionarioId]
+        );
+    }
+};
+
 const taxasRepo = {
     getAll: async () => {
         const rows = await all('SELECT * FROM taxas');
@@ -250,11 +357,13 @@ const taxasRepo = {
 // ... Add similar for vagas and candidatos if needed, but for now focusing on main entities ...
 
 module.exports = {
+    ping,
     admin: {
         purgeTestData
     },
     solicitacoes: solicitacoesRepo,
     funcionarios: funcionariosRepo,
+    gestorEquipes: gestorEquipesRepo,
     taxas: taxasRepo,
     solicitacoesTaxa: {
         getAll: async () => {
@@ -376,20 +485,27 @@ module.exports = {
     formularios: {
         getAll: async () => {
             const rows = await all('SELECT * FROM formularios');
-            return rows.map(r => parseJsonFields(r, ['questoes']));
+            return rows.map(r => {
+                const parsed = parseJsonFields(r, ['questoes']);
+                return { ...parsed, questoes: normalizeFormularioQuestoes(parsed.questoes) };
+            });
         },
         getById: async (id) => {
             const row = await get('SELECT * FROM formularios WHERE id = ?', [id]);
-            return parseJsonFields(row, ['questoes']);
+            const parsed = parseJsonFields(row, ['questoes']);
+            if (!parsed) return parsed;
+            return { ...parsed, questoes: normalizeFormularioQuestoes(parsed.questoes) };
         },
         create: async (data) => {
+            const questoes = normalizeFormularioQuestoes(data.questoes);
             await run(`INSERT INTO formularios (id, titulo, tipo, questoes, ativo, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [data.id, data.titulo, data.tipo, JSON.stringify(data.questoes), data.ativo ? 1 : 0, data.createdAt || new Date().toISOString(), data.updatedAt || new Date().toISOString()]);
+                [data.id, data.titulo, data.tipo, JSON.stringify(questoes), data.ativo ? 1 : 0, data.createdAt || new Date().toISOString(), data.updatedAt || new Date().toISOString()]);
             return data;
         },
         update: async (id, data) => {
+            const questoes = normalizeFormularioQuestoes(data.questoes);
             await run(`UPDATE formularios SET titulo=?, tipo=?, questoes=?, ativo=?, updated_at=? WHERE id=?`,
-                [data.titulo, data.tipo, JSON.stringify(data.questoes), data.ativo ? 1 : 0, data.updatedAt || new Date().toISOString(), id]);
+                [data.titulo, data.tipo, JSON.stringify(questoes), data.ativo ? 1 : 0, data.updatedAt || new Date().toISOString(), id]);
             return data;
         },
         delete: async (id) => await run('DELETE FROM formularios WHERE id = ?', [id])
@@ -458,6 +574,41 @@ module.exports = {
         delete: async (id) => await run('DELETE FROM epis WHERE id = ?', [id]),
         read: () => { throw new Error("Use async methods for epis"); },
         write: () => { throw new Error("Use async methods for epis"); }
+    },
+    solicitacoesEpis: {
+        getAll: async () => {
+            const rows = await all('SELECT * FROM solicitacoes_epis ORDER BY created_at DESC');
+            return rows.map(r => parseJsonFields(r, ['itens_solicitados']));
+        },
+        getById: async (id) => {
+            const row = await get('SELECT * FROM solicitacoes_epis WHERE id = ?', [id]);
+            return parseJsonFields(row, ['itens_solicitados']);
+        },
+        create: async (data) => {
+            await run(
+                `INSERT INTO solicitacoes_epis (id, funcionario_id, itens_solicitados, status, atendido_at, atendido_por, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    data.id,
+                    data.funcionario_id,
+                    JSON.stringify(Array.isArray(data.itens_solicitados) ? data.itens_solicitados : []),
+                    data.status || 'pendente',
+                    data.atendido_at || null,
+                    data.atendido_por || null,
+                    data.createdAt,
+                    data.updatedAt
+                ]
+            );
+            return data;
+        },
+        updateStatus: async (id, data) => {
+            await run(
+                `UPDATE solicitacoes_epis SET status=?, atendido_at=?, atendido_por=?, updated_at=? WHERE id=?`,
+                [data.status, data.atendido_at || null, data.atendido_por || null, data.updatedAt, id]
+            );
+            return data;
+        },
+        read: () => { throw new Error("Use async methods for solicitacoesEpis"); },
+        write: () => { throw new Error("Use async methods for solicitacoesEpis"); }
     },
     movimentacoesEpis: {
         getAll: async () => {
