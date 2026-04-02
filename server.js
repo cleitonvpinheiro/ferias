@@ -12,7 +12,7 @@ const os = require('os');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
-const HOST = process.env.HOST || '0.0.0.0';
+const HOST = process.env.HOST || '::';
 const { verifyToken, checkRole, rhAuth, portalAuth, portariaAuth, PUBLIC_PAGE_ACCESS, PROTECTED_PAGE_ACCESS, ROLES } = require('./middleware/auth');
 
 app.use((req, res, next) => {
@@ -51,6 +51,9 @@ const runMiddlewares = (middlewares, req, res, next) => {
 
 // Security Middleware
 app.use(helmet({
+    frameguard: process.env.NODE_ENV === 'production' ? { action: 'sameorigin' } : false,
+    crossOriginOpenerPolicy: process.env.NODE_ENV === 'production' ? { policy: 'same-origin' } : false,
+    crossOriginResourcePolicy: process.env.NODE_ENV === 'production' ? { policy: 'same-origin' } : false,
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
@@ -85,6 +88,10 @@ app.use((req, res, next) => {
         .split(',')
         .map(s => s.trim())
         .filter(Boolean);
+
+    if (configured.length === 0 || process.env.NODE_ENV !== 'production') {
+        return next();
+    }
 
     const host = req.get('host');
     const inferred = host ? [`http://${host}`, `https://${host}`] : [];
@@ -149,8 +156,16 @@ app.use((req, res, next) => {
     return runMiddlewares([verifyToken, checkRole(allowedRoles)], req, res, next);
 });
 
+const noCacheHtmlHeaders = (res, filePath) => {
+    if (String(filePath || '').toLowerCase().endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+    }
+};
+
 // Public Routes (Login, etc)
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), { setHeaders: noCacheHtmlHeaders }));
 app.use('/uploads', (req, res, next) => runMiddlewares([
     verifyToken,
     checkRole([ROLES.RECRUTAMENTO, ROLES.RH, ROLES.RH_GERAL])
@@ -190,6 +205,7 @@ const desligamentoRouter = require('./routes/desligamento');
 const avaliacaoRouter = require('./routes/avaliacao');
 const formulariosRouter = require('./routes/formularios');
 const usersRouter = require('./routes/users');
+const disciplinarRouter = require('./routes/disciplinar');
 
 // Middleware de Autenticação (JWT)
 // Substitui a proteção estática anterior pelo middleware verifyToken
@@ -197,7 +213,13 @@ app.use('/protected', portalAuth, (req, res, next) => {
     if (process.env.SHOW_ALL_DASH === '1') {
         return next();
     }
+    if (req.user && req.user.role === 'admin') {
+        return next();
+    }
     const pathname = req.path === '/' ? '/index.html' : req.path;
+    if (pathname === '/dashboard-disciplinar.html') {
+        return runMiddlewares([checkRole([ROLES.DP, ROLES.RH_GERAL, ROLES.RH, ROLES.ADMIN])], req, res, next);
+    }
     const allowedRoles = PROTECTED_PAGE_ACCESS[pathname];
     if (!allowedRoles) {
         const isHtml = pathname === '/index.html' || pathname.endsWith('.html');
@@ -208,14 +230,14 @@ app.use('/protected', portalAuth, (req, res, next) => {
     if (req.user && (req.user.role === 'admin' || allowedRoles.includes(req.user.role))) return next();
     if (req.accepts('html')) return res.redirect('/login.html?error=forbidden');
     return res.status(403).json({ ok: false, erro: 'Acesso proibido para seu perfil' });
-}, express.static(path.join(__dirname, 'protected')));
+}, express.static(path.join(__dirname, 'protected'), { setHeaders: noCacheHtmlHeaders }));
 
 app.get('/rh', rhAuth, (req, res) => res.sendFile(path.join(__dirname, 'protected/index.html')));
 
 // Legacy Redirects
 app.get('/dashboard-rh.html', rhAuth, (req, res) => res.sendFile(path.join(__dirname, 'protected/dashboard-rh.html')));
 app.get('/dashboard-vagas.html', rhAuth, (req, res) => res.sendFile(path.join(__dirname, 'protected/dashboard-vagas.html')));
-app.get('/dashboard-taxas.html', rhAuth, (req, res) => res.sendFile(path.join(__dirname, 'protected/dashboard-taxas.html')));
+app.get('/dashboard-taxas.html', portalAuth, (req, res) => res.redirect('/protected/dashboard-taxas.html'));
 app.get('/dashboard-candidatos.html', rhAuth, (req, res) => res.sendFile(path.join(__dirname, 'protected/dashboard-candidatos.html')));
 app.get('/dashboard-avaliacao.html', rhAuth, (req, res) => res.sendFile(path.join(__dirname, 'protected/dashboard-avaliacao.html')));
 app.get('/dashboard-experiencia.html', rhAuth, (req, res) => res.sendFile(path.join(__dirname, 'protected/dashboard-experiencia.html')));
@@ -238,11 +260,13 @@ app.use('/api', onthejobRouter);
 app.use('/api', desligamentoRouter);
 app.use('/api', avaliacaoRouter);
 app.use('/api', usersRouter);
+app.use('/api', disciplinarRouter);
 app.use('/api/rh/formularios', formulariosRouter);
 
 let currentPort = parseInt(String(PORT), 10);
 if (!Number.isFinite(currentPort) || currentPort < 0 || currentPort >= 65536) currentPort = 8080;
-let retries = 5;
+const allowPortFallback = String(process.env.ALLOW_PORT_FALLBACK || '').trim() === '1';
+let retries = allowPortFallback ? 5 : 0;
 
 function start() {
     const srv = app.listen(currentPort, HOST, () => {
@@ -254,6 +278,7 @@ function start() {
             .map((i) => i.address);
         console.log(`Servidor rodando na porta ${currentPort}`);
         console.log(`URL: http://localhost:${currentPort}/login.html`);
+        console.log(`URL: http://127.0.0.1:${currentPort}/login.html`);
         lanIps.forEach((ip) => {
             console.log(`URL LAN: http://${ip}:${currentPort}/login.html`);
         });

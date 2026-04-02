@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard RH - Benefícios</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="/rh-styles.css">
+  <script src="/lang-switcher.js" defer></script>
+  <style>
+    .toolbar {
+      background: var(--bg-surface);
+      padding: 16px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 16px;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+    }
+    .field label {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    .field select,
+    .field input {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      box-sizing: border-box;
+      min-width: 0;
+    }
+    .benef-toolbar {
+      display: grid;
+      grid-template-columns: minmax(280px, 1.6fr) minmax(200px, 1fr) auto;
+      gap: 12px;
+      align-items: end;
+    }
+    .benef-toolbar .field select,
+    .benef-toolbar .field input {
+      width: 100%;
+    }
+    .benef-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+    @media (max-width: 1100px) {
+      .benef-toolbar {
+        grid-template-columns: 1fr 1fr;
+        align-items: stretch;
+      }
+      .benef-toolbar .field:last-child {
+        grid-column: 1 / -1;
+      }
+      .benef-actions {
+        justify-content: flex-start;
+      }
+    }
+    @media (max-width: 768px) {
+      .benef-toolbar {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body data-page="rh-beneficios">
+  <div id="navbar-container"></div>
+  <script src="/rh-navbar.js"></script>
+  <script>renderRHNavbar('beneficios');</script>
+
+  <main class="dashboard-container">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Benefícios</h1>
+            <p class="page-subtitle">Consulte as últimas compras de VT e outros benefícios por colaborador.</p>
+        </div>
+        <div class="last-update">
+            <span id="lastUpdate">Atualizado agora</span>
+        </div>
+    </div>
+
+    <div class="toolbar benef-toolbar">
+        <div class="field">
+            <label>Colaborador</label>
+            <select id="selectFuncionario"></select>
+        </div>
+        <div class="field">
+            <label>CPF (alternativo)</label>
+            <input id="inputCpf" placeholder="Somente números" inputmode="numeric" aria-label="CPF do colaborador">
+        </div>
+        <div class="field">
+            <label>&nbsp;</label>
+            <div class="benef-actions">
+              <button class="btn btn-primary" id="btnBuscar" title="Buscar">Buscar</button>
+              <button class="btn btn-outline" id="btnLimpar" title="Limpar campo e resultados">Limpar</button>
+              <button class="btn btn-outline" id="btnCopy" title="Copiar CPF">Copiar CPF</button>
+              <button class="btn btn-outline" id="btnExport" title="Exportar CSV">Exportar CSV</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-header" id="resultHeader" style="display:none; margin-top: -8px;">
+      <div>
+        <h2 class="page-title" id="colabNome">-</h2>
+        <p class="page-subtitle"><span id="colabCpf">-</span></p>
+      </div>
+    </div>
+
+    <div id="infoContainer" class="stats-grid">
+      <div class="stat-card approved">
+        <div class="stat-header">
+          <div class="stat-title">Último VT</div>
+          <div class="stat-icon">🚌</div>
+        </div>
+        <div class="stat-value" id="statVTData">-</div>
+        <div class="card-details">
+          <div class="card-detail-row">
+            <strong>Valor:</strong> <span id="statVTValor">-</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card pending">
+        <div class="stat-header">
+          <div class="stat-title">Outros Benefícios</div>
+          <div class="stat-icon">💼</div>
+        </div>
+        <div class="stat-value" id="statOutroData">-</div>
+        <div class="card-details">
+          <div class="card-detail-row">
+            <strong>Descrição:</strong> <span id="statOutroDesc">-</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Campo</th>
+              <th>Valor</th>
+            </tr>
+          </thead>
+          <tbody id="detalhesBody">
+            <tr><td colspan="2" style="text-align:center; color: var(--text-secondary);">Selecione um colaborador e clique em Buscar.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <footer style="text-align: center; padding: 40px; color: var(--text-secondary); font-size: 0.875rem;">
+    <p>&copy; 2025 Família Madalosso. Acesso Restrito ao RH.</p>
+  </footer>
+
+  <script>
+    function fmtDate(iso) {
+      if (!iso) return '-';
+      const d = new Date(iso);
+      return Number.isNaN(d.getTime()) ? '-' : d.toLocaleDateString('pt-BR');
+    }
+    function escapeHtml(input) {
+      return String(input ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+    async function carregarFuncionarios() {
+      const sel = document.getElementById('selectFuncionario');
+      sel.innerHTML = '<option value=\"\">Carregando...</option>';
+      try {
+        const res = await fetch('/api/rh/funcionarios', { cache: 'no-store' });
+        const lista = await res.json();
+        const ordenada = (lista || []).slice().sort((a,b) => String(a.nome||'').localeCompare(String(b.nome||''), 'pt-BR'));
+        window.__BENEF_FUNC_LIST__ = ordenada;
+        const opts = ['<option value=\"\">Selecione...</option>'].concat(
+          ordenada.map(f => `<option value=\"${escapeHtml(String(f.cpf || ''))}\">${escapeHtml(f.nome)}${f.cpf ? ' — ' + escapeHtml(f.cpf) : ''}</option>`)
+        );
+        sel.innerHTML = opts.join('');
+      } catch (e) {
+        sel.innerHTML = '<option value=\"\">Erro ao carregar</option>';
+      }
+    }
+    function onlyDigits(s) {
+      return String(s || '').replace(/\D/g, '');
+    }
+    function formatCpfMask(val) {
+      const d = onlyDigits(val).slice(0, 11);
+      const p1 = d.slice(0,3);
+      const p2 = d.slice(3,6);
+      const p3 = d.slice(6,9);
+      const p4 = d.slice(9,11);
+      let out = '';
+      if (p1) out = p1;
+      if (p2) out = `${p1}.${p2}`;
+      if (p3) out = `${p1}.${p2}.${p3}`;
+      if (p4) out = `${p1}.${p2}.${p3}-${p4}`;
+      return out;
+    }
+    async function buscar() {
+      const selCpf = document.getElementById('selectFuncionario').value;
+      const inputCpf = onlyDigits(document.getElementById('inputCpf').value);
+      const cpf = inputCpf || selCpf;
+      if (!cpf) {
+        alert('Informe o CPF ou selecione o colaborador.');
+        return;
+      }
+      try {
+        const btn = document.getElementById('btnBuscar');
+        if (btn) { btn.disabled = true; btn.textContent = 'Buscando...'; }
+        const res = await fetch(`/api/rh/beneficios/ultimas-compras?cpf=${encodeURIComponent(cpf)}`, { cache: 'no-store' });
+        const info = await res.json();
+        renderInfo(info, cpf);
+      } catch (e) {
+        alert('Erro ao carregar informações de benefícios.');
+      } finally {
+        const btn = document.getElementById('btnBuscar');
+        if (btn) { btn.disabled = false; btn.textContent = 'Buscar'; }
+      }
+    }
+    function renderInfo(info, cpf) {
+      const vtData = document.getElementById('statVTData');
+      const vtValor = document.getElementById('statVTValor');
+      const outroData = document.getElementById('statOutroData');
+      const outroDesc = document.getElementById('statOutroDesc');
+      vtData.textContent = fmtDate(info && info.ultimoVT);
+      vtValor.textContent = info && info.ultimoVTValor ? 'R$ ' + String(info.ultimoVTValor) : '-';
+      outroData.textContent = fmtDate(info && info.ultimoOutro);
+      outroDesc.textContent = info && info.ultimoOutroDescricao ? info.ultimoOutroDescricao : '-';
+
+      const tbody = document.getElementById('detalhesBody');
+      const rows = [
+        ['CPF', escapeHtml(String(info && info.cpf || '-'))],
+        ['Último VT', fmtDate(info && info.ultimoVT)],
+        ['Valor VT', info && info.ultimoVTValor ? 'R$ ' + String(info.ultimoVTValor) : '-'],
+        ['Último Benefício', fmtDate(info && info.ultimoOutro)],
+        ['Descrição', escapeHtml(String(info && info.ultimoOutroDescricao || '-'))],
+      ];
+      tbody.innerHTML = rows.map(([k,v]) => `<tr><td style="width:220px;">${k}</td><td>${v}</td></tr>`).join('');
+      document.getElementById('lastUpdate').textContent = 'Atualizado ' + new Date().toLocaleString('pt-BR');
+
+      const list = window.__BENEF_FUNC_LIST__ || [];
+      const found = list.find(f => String(f.cpf||'') === String(cpf));
+      const header = document.getElementById('resultHeader');
+      const nomeEl = document.getElementById('colabNome');
+      const cpfEl = document.getElementById('colabCpf');
+      if (found) {
+        nomeEl.textContent = escapeHtml(found.nome || '-');
+        cpfEl.textContent = 'CPF ' + escapeHtml(found.cpf || '-');
+        header.style.display = '';
+      } else {
+        header.style.display = 'none';
+      }
+    }
+    (function init(){
+      carregarFuncionarios();
+      document.getElementById('btnBuscar')?.addEventListener('click', buscar);
+      document.getElementById('btnLimpar')?.addEventListener('click', () => {
+        document.getElementById('selectFuncionario').value = '';
+        document.getElementById('inputCpf').value = '';
+        document.getElementById('resultHeader').style.display = 'none';
+        document.getElementById('statVTData').textContent = '-';
+        document.getElementById('statVTValor').textContent = '-';
+        document.getElementById('statOutroData').textContent = '-';
+        document.getElementById('statOutroDesc').textContent = '-';
+        document.getElementById('detalhesBody').innerHTML = '<tr><td colspan=\"2\" style=\"text-align:center; color: var(--text-secondary);\">Selecione um colaborador e clique em Buscar.</td></tr>';
+      });
+      document.getElementById('selectFuncionario')?.addEventListener('change', (e) => {
+        const v = e.target.value || '';
+        if (v) {
+          document.getElementById('inputCpf').value = formatCpfMask(v);
+          buscar();
+        }
+      });
+      document.getElementById('inputCpf')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') buscar();
+      });
+      document.getElementById('inputCpf')?.addEventListener('input', (e) => {
+        const cur = e.target.value;
+        const masked = formatCpfMask(cur);
+        e.target.value = masked;
+      });
+      document.getElementById('btnCopy')?.addEventListener('click', async () => {
+        const raw = onlyDigits(document.getElementById('inputCpf').value);
+        if (!raw) return;
+        try {
+          await navigator.clipboard.writeText(raw);
+        } catch (_) {}
+      });
+      document.getElementById('btnExport')?.addEventListener('click', () => {
+        const cpf = document.getElementById('colabCpf').textContent.replace(/\D/g,'');
+        const vt = document.getElementById('statVTData').textContent;
+        const vtVal = document.getElementById('statVTValor').textContent;
+        const outro = document.getElementById('statOutroData').textContent;
+        const desc = document.getElementById('statOutroDesc').textContent;
+        const csv = [
+          ['CPF','Último VT','Valor VT','Último Benefício','Descrição'].join(';'),
+          [cpf || '-', vt || '-', vtVal || '-', outro || '-', desc || '-'].map(s => String(s).replace(/;/g, ',')).join(';')
+        ].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'beneficios.csv';
+        document.body.appendChild(a);
+        a.click();
+        URL.revokeObjectURL(url);
+        a.remove();
+      });
+    })();
+  </script>
+</body>
+</html>

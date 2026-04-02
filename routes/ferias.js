@@ -8,6 +8,7 @@ const { validarPayloadFerias } = require('../utils/validation');
 const { dpAuth, verifyToken, checkRole, ROLES } = require('../middleware/auth');
 
 const feriasFormAuth = [verifyToken, checkRole([ROLES.DP, ROLES.RH_GERAL, ROLES.RH, ROLES.GESTOR])];
+const gestorFeriasAuth = [verifyToken, checkRole([ROLES.GESTOR])];
 
 router.get('/solicitacao/:id', feriasFormAuth, async (req, res) => {
     try {
@@ -24,7 +25,7 @@ router.get('/rh/solicitacoes', dpAuth, async (req, res) => {
     try {
         const data = await db.solicitacoes.getAll();
         const lista = data
-            .filter(i => ['pendente_rh', 'aguardando_assinatura', 'assinado', 'concluido', 'reprovado'].includes(i.status))
+            .filter(i => ['pendente_rh', 'pendente_gestor', 'aguardando_assinatura', 'assinado', 'concluido', 'reprovado'].includes(i.status))
             .sort((a, b) => {
                 if (a.status === 'pendente_rh' && b.status !== 'pendente_rh') return -1;
                 if (a.status !== 'pendente_rh' && b.status === 'pendente_rh') return 1;
@@ -34,6 +35,32 @@ router.get('/rh/solicitacoes', dpAuth, async (req, res) => {
         res.json(lista);
     } catch (e) {
         console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao listar solicitações' });
+    }
+});
+
+router.get('/gestor/solicitacoes', gestorFeriasAuth, async (req, res) => {
+    try {
+        const username = req.user && req.user.username;
+        if (!username) return res.status(401).json({ ok: false, erro: 'Usuário não autenticado' });
+
+        const equipe = await db.gestorEquipes.getEquipeByGestor(username);
+        const equipeIds = new Set((equipe || []).map(f => String(f.id)));
+        const equipeNomes = new Set((equipe || []).map(f => String(f.nome || '').trim().toLowerCase()).filter(Boolean));
+
+        const solicitacoes = await db.solicitacoes.getAll();
+        const filtradas = (solicitacoes || [])
+            .filter(s => {
+                const fid = s.funcionarioId || s.funcionario_id;
+                if (fid && equipeIds.has(String(fid))) return true;
+                const nome = String(s.nome || '').trim().toLowerCase();
+                return nome && equipeNomes.has(nome);
+            })
+            .sort((a, b) => new Date(b.createdAt || b.created_at || 0) - new Date(a.createdAt || a.created_at || 0));
+
+        res.json({ ok: true, solicitacoes: filtradas });
+    } catch (e) {
+        console.error('Erro ao listar solicitacoes do gestor:', e);
         res.status(500).json({ ok: false, erro: 'Erro ao listar solicitações' });
     }
 });
@@ -140,7 +167,7 @@ router.post('/solicitacao', dpAuth, async (req, res) => {
                 currentStatus = 'aguardando_assinatura';
                 signatureToken = crypto.randomBytes(32).toString('hex');
             } else if (req.body.statusRH === 'reprovado') {
-                currentStatus = 'reprovado';
+                currentStatus = 'pendente_gestor';
             } else {
                 currentStatus = 'concluido';
             }
@@ -279,7 +306,7 @@ router.post('/solicitacao/rh-aprovar', dpAuth, async (req, res) => {
             // Generate signature token for collaborator to sign
             signatureToken = crypto.randomBytes(32).toString('hex');
         } else if (statusRH === 'reprovado') {
-            currentStatus = 'reprovado';
+            currentStatus = 'pendente_gestor';
         }
 
         // Update History
@@ -315,7 +342,7 @@ router.post('/solicitacao/rh-aprovar', dpAuth, async (req, res) => {
             // Notify Gestor/Collaborator to sign
             // Note: We use notificarGestor which presumably sends email to gestorEmail (and maybe we should cc solicitante if we had it)
             await emailService.notificarGestor({ ...item, signatureToken }, req.protocol || 'http');
-        } else if (currentStatus === 'reprovado') {
+        } else if (currentStatus === 'pendente_gestor') {
              await emailService.notificarGestor({ ...item }, req.protocol || 'http');
         }
 

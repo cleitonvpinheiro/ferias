@@ -171,6 +171,8 @@
 
   <script>
     let todasVagas = [];
+    let __userRole = '';
+    let __isGerente = false;
 
     function switchTab(tab) {
         // Update Buttons
@@ -182,6 +184,43 @@
         document.getElementById('tab-encerradas').style.display = tab === 'encerradas' ? 'block' : 'none';
     }
 
+    async function initUserRole() {
+        try {
+            const res = await fetch('/api/me', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+            if (!res.ok) throw new Error('Falha ao carregar usuário');
+            const data = await res.json();
+            __userRole = (data && data.user && data.user.role) ? String(data.user.role).trim().toLowerCase() : '';
+            __isGerente = __userRole === 'gerente';
+        } catch (e) {
+            __userRole = '';
+            __isGerente = false;
+        }
+
+        if (__isGerente) {
+            const title = document.querySelector('.page-title');
+            const subtitle = document.querySelector('.page-subtitle');
+            if (title) title.innerText = 'Aprovação de Vagas';
+            if (subtitle) subtitle.innerText = 'Aprove solicitações enviadas pelos supervisores';
+
+            const btnEncerradas = document.getElementById('btn-tab-encerradas');
+            const tabEncerradas = document.getElementById('tab-encerradas');
+            if (btnEncerradas) btnEncerradas.style.display = 'none';
+            if (tabEncerradas) tabEncerradas.style.display = 'none';
+
+            const btnAtivas = document.getElementById('btn-tab-ativas');
+            if (btnAtivas) btnAtivas.innerText = 'Pendentes';
+
+            const newVagaBtn = document.querySelector('a[href="/vagas.html"]');
+            if (newVagaBtn) newVagaBtn.style.display = 'none';
+
+            document.querySelectorAll('.stats-grid .stat-card:not(.pending)').forEach(el => {
+                el.style.display = 'none';
+            });
+            const pendingTitle = document.querySelector('.stats-grid .stat-card.pending .stat-title');
+            if (pendingTitle) pendingTitle.innerText = 'Pendentes';
+        }
+    }
+
     async function carregarVagas() {
         const tbodyAtivas = document.getElementById('lista-ativas');
         const tbodyEncerradas = document.getElementById('lista-encerradas');
@@ -190,26 +229,37 @@
 
         try {
             // Tenta carregar da API correta
-            const resVagas = await fetch('/api/rh/vagas');
+            const resVagas = await fetch(__isGerente ? '/api/gerente/vagas' : '/api/rh/vagas');
             if (!resVagas.ok) throw new Error('Falha ao carregar vagas');
             todasVagas = await resVagas.json();
 
             // Stats
-            document.getElementById('stat-abertas').innerText = todasVagas.filter(v => v.ativa !== false).length;
+            if (__isGerente) {
+                document.getElementById('stat-abertas').innerText = todasVagas.length;
+            } else {
+                document.getElementById('stat-abertas').innerText = todasVagas.filter(v => v.ativa !== false).length;
+                document.getElementById('stat-encerradas').innerText = todasVagas.filter(v => v.ativa === false && !['rejeitada', 'reprovada'].includes(String(v.status || '').trim().toLowerCase())).length;
+                document.getElementById('stat-canceladas').innerText = todasVagas.filter(v => v.ativa === false && ['rejeitada', 'reprovada'].includes(String(v.status || '').trim().toLowerCase())).length;
+            }
             
             // Render
             renderTabelas();
 
             // Tenta carregar contagem de candidatos em background
-            atualizarContagemCandidatos();
+            if (!__isGerente) atualizarContagemCandidatos();
 
         } catch (error) {
             console.error('Erro ao carregar:', error);
             tbodyAtivas.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--danger);">Erro ao carregar dados.</td></tr>';
+            if (tbodyEncerradas) tbodyEncerradas.innerHTML = '';
         }
     }
 
     function renderTabelas() {
+        if (__isGerente) {
+            renderLista(todasVagas, 'lista-ativas', 'empty-ativas', 'tabela-ativas');
+            return;
+        }
         const ativas = todasVagas.filter(v => v.ativa !== false);
         const encerradas = todasVagas.filter(v => v.ativa === false);
 
@@ -238,9 +288,13 @@
             
             let statusLabel = 'Ativa';
             let statusClass = 'badge-success';
+            const statusNorm = String(vaga.status || '').trim().toLowerCase();
 
-            if (vaga.ativa === false) {
-                if (vaga.status === 'rejeitada' || vaga.status === 'reprovada') {
+            if (__isGerente && statusNorm === 'pendente_gerente') {
+                statusLabel = 'Pendente';
+                statusClass = 'badge-warning';
+            } else if (vaga.ativa === false) {
+                if (statusNorm === 'rejeitada' || statusNorm === 'reprovada') {
                     statusLabel = 'Cancelada';
                     statusClass = 'badge-danger';
                 } else {
@@ -248,10 +302,10 @@
                     statusClass = 'badge-secondary';
                 }
             } else {
-                if (vaga.status === 'pendente') {
+                if (statusNorm === 'pendente') {
                     statusLabel = 'Pendente';
                     statusClass = 'badge-warning';
-                } else if (vaga.status === 'aprovada') {
+                } else if (statusNorm === 'aprovada') {
                     statusLabel = 'Aberta';
                     statusClass = 'badge-success';
                 }
@@ -259,8 +313,20 @@
             
             // Ações dependem do status
             let actions = '';
-            if (vaga.ativa !== false) {
+            if (__isGerente) {
                 actions = `
+                    <button onclick="aprovarVagaGerente('${vaga.id}')" class="btn btn-sm btn-primary">Aprovar</button>
+                `;
+            } else if (vaga.ativa !== false) {
+                const st = String(vaga.status || '').trim().toLowerCase();
+                const acoesAvaliacao = st === 'pendente'
+                    ? `
+                        <button onclick="avaliarVaga('${vaga.id}', 'aprovada')" class="btn btn-sm btn-primary">Aprovar</button>
+                        <button onclick="avaliarVaga('${vaga.id}', 'reprovada')" class="btn btn-sm btn-danger">Reprovar</button>
+                      `
+                    : '';
+                actions = `
+                    ${acoesAvaliacao}
                     <button onclick="verSugestoes('${vaga.id}')" class="btn btn-sm btn-info" style="background: #0ea5e9; color: white; border: none; margin-right: 4px;" title="Ver Sugestões Inteligentes">💡 Sugestões</button>
                     <button onclick="verTodosCandidatos()" class="btn btn-sm btn-secondary" style="background: #64748b; color: white; border: none; margin-right: 4px;" title="Ver Todos os Candidatos">👥 Todos</button>
                     <button onclick="fecharVaga('${vaga.id}')" class="btn btn-sm btn-outline">Encerrar</button>
@@ -305,6 +371,53 @@
                 // Se não tiver, não conseguimos linkar
             }
         } catch(e) { console.log('Erro stats candidatos'); }
+    }
+
+    async function aprovarVagaGerente(id) {
+        if (!confirm('Aprovar esta solicitação e enviar para o RH avaliar?')) return;
+        try {
+            const res = await fetch(`/api/gerente/vagas/${id}/aprovar`, { method: 'POST' });
+            if (res.ok) {
+                carregarVagas();
+                return;
+            }
+            let msg = 'Erro ao aprovar.';
+            try {
+                const data = await res.json();
+                if (data && data.erro) msg = data.erro;
+            } catch (_) {}
+            alert(msg);
+        } catch (e) {
+            console.error(e);
+            alert('Erro ao aprovar.');
+        }
+    }
+
+    async function avaliarVaga(id, status) {
+        const st = String(status || '').trim().toLowerCase();
+        const isNegativa = st === 'rejeitada' || st === 'reprovada';
+        const justificativa = isNegativa ? (prompt('Justificativa (opcional):', '') || '') : '';
+        if (!confirm(`Confirmar avaliação: ${st}?`)) return;
+        try {
+            const res = await fetch('/api/vagas/avaliar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, status: st, justificativa })
+            });
+            if (res.ok) {
+                carregarVagas();
+                return;
+            }
+            let msg = 'Erro ao avaliar vaga.';
+            try {
+                const data = await res.json();
+                if (data && data.erro) msg = data.erro;
+            } catch (_) {}
+            alert(msg);
+        } catch (e) {
+            console.error(e);
+            alert('Erro ao avaliar vaga.');
+        }
     }
 
     async function fecharVaga(id) {
@@ -363,8 +476,10 @@
         XLSX.writeFile(wb, "Relatorio_Vagas.xlsx");
     }
 
-    // Carrega ao iniciar
-    document.addEventListener('DOMContentLoaded', carregarVagas);
+    document.addEventListener('DOMContentLoaded', async () => {
+        await initUserRole();
+        carregarVagas();
+    });
 
     function fecharModalDetalhes() {
         document.getElementById('modal-detalhes').style.display = 'none';
@@ -431,7 +546,8 @@
                     <strong style="color: #c2410c; font-size: 0.85rem;">DETALHES DA SUBSTITUIÇÃO</strong>
                     <div style="margin-top: 5px;">
                         Substituindo: <strong>${vaga.substituicao_nome || '-'}</strong> <br>
-                        Será desligado? ${vaga.sera_desligado === 'sim' ? 'Sim' : 'Não'}
+                        Será desligado? ${vaga.sera_desligado === 'sim' ? 'Sim' : 'Não'} <br>
+                        Data de desligamento: <strong>${vaga.data_desligamento ? new Date(vaga.data_desligamento).toLocaleDateString('pt-BR') : '-'}</strong>
                     </div>
                 </div>
                 ` : ''}
@@ -439,7 +555,7 @@
                 <div style="margin-bottom: 20px;">
                     <h3 class="section-header">Detalhes da Posição</h3>
                     <div class="detail-row">
-                        <strong>Salário e Benefícios:</strong>
+                        <strong>Nível:</strong>
                         <div>${formatText(vaga.salario_beneficios || vaga.salario)}</div>
                     </div>
                     <div class="detail-row">

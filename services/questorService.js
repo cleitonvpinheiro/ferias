@@ -1,5 +1,6 @@
 const axios = require('axios');
 const db = require('./db');
+const { normalizeCpf, isValidCpf } = require('../utils/validation');
 const crypto = require('crypto');
 
 /**
@@ -55,7 +56,7 @@ class QuestorService {
                 throw new Error('Formato de resposta da API Questor inválido');
             }
 
-            return this.processFuncionarios(funcionariosQuestor);
+            return await this.processFuncionarios(funcionariosQuestor);
 
         } catch (error) {
             console.error('Erro na integração Questor:', error.message);
@@ -67,12 +68,17 @@ class QuestorService {
     /**
      * Processa e salva os dados no DB local
      */
-    processFuncionarios(listaExterna) {
-        const currentDb = db.funcionarios.read();
+    async processFuncionarios(listaExterna) {
+        const currentDb = await db.funcionarios.getAll();
+        const byCpf = new Map(
+            currentDb
+                .filter(f => f && f.cpf && isValidCpf(f.cpf))
+                .map(f => [String(normalizeCpf(f.cpf)), f])
+        );
         let novos = 0;
         let atualizados = 0;
 
-        listaExterna.forEach(externo => {
+        for (const externo of listaExterna) {
             // Mapeamento de campos (Questor -> Local)
             // Ajuste as chaves 'externo.xxx' conforme o JSON real da Questor
             const cargo = externo.cargo || externo.funcao;
@@ -80,7 +86,7 @@ class QuestorService {
 
             const funcionarioMapeado = {
                 nome: externo.nome || externo.Nome,
-                cpf: String(externo.cpf || externo.CPF || '').replace(/\D/g, ''),
+                cpf: normalizeCpf(externo.cpf || externo.CPF || ''),
                 matricula: externo.matricula || externo.codigo,
                 
                 // Manter compatibilidade com diferentes partes do sistema (dashboard usa cargo/setor, forms usam funcao/departamento)
@@ -90,38 +96,32 @@ class QuestorService {
                 departamento: setor,
                 
                 data_admissao: externo.data_admissao || externo.admissao,
+                nascimento: externo.nascimento || externo.data_nascimento || externo.dt_nascimento,
+                sexo: externo.sexo || externo.genero || externo.gênero,
+                raca_cor: externo.raca_cor || externo.raca || externo.raça || externo.cor,
+                nacionalidade: externo.nacionalidade,
+                tipo_vinculo: externo.tipo_vinculo || externo.vinculo || externo.regime,
                 email: externo.email,
                 // Mantém campos extras se existirem
                 questor_id: externo.id || externo.codigo
             };
 
             // Validação mínima
-            if (!funcionarioMapeado.nome || !funcionarioMapeado.cpf) return;
+            if (!funcionarioMapeado.nome || !funcionarioMapeado.cpf || !isValidCpf(funcionarioMapeado.cpf)) continue;
 
-            const idx = currentDb.findIndex(local => local.cpf === funcionarioMapeado.cpf);
-            
-            if (idx >= 0) {
-                // Atualiza mantendo ID local e outros campos não mapeados
-                currentDb[idx] = { 
-                    ...currentDb[idx], 
-                    ...funcionarioMapeado, 
-                    updatedAt: new Date().toISOString() 
-                };
+            const existing = byCpf.get(String(normalizeCpf(funcionarioMapeado.cpf)));
+            if (existing) {
+                await db.funcionarios.update(existing.id, { ...existing, ...funcionarioMapeado });
                 atualizados++;
-            } else {
-                // Novo registro
-                currentDb.push({
-                    id: crypto.randomUUID(),
-                    ...funcionarioMapeado,
-                    createdAt: new Date().toISOString(),
-                    origem: 'questor'
-                });
-                novos++;
+                continue;
             }
-        });
 
-        // Salva no disco
-        db.funcionarios.write(currentDb);
+            await db.funcionarios.create({
+                id: crypto.randomUUID(),
+                ...funcionarioMapeado
+            });
+            novos++;
+        }
         console.log(`Sincronização concluída. Novos: ${novos}, Atualizados: ${atualizados}`);
         
         return { ok: true, novos, atualizados };

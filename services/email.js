@@ -274,7 +274,7 @@ async function enviarEmailResultadoTaxa(payload, aprovado) {
 
     const status = aprovado ? 'APROVADA' : 'REPROVADA';
     const subject = `Solicitação de Taxa ${status} - ${payload.nome_taxa}`;
-    const text = `Olá,\n\nSua solicitação de taxa para ${payload.nome_taxa} foi ${status} pelo gestor.\n\n` +
+    const text = `Olá,\n\nSua solicitação de taxa para ${payload.nome_taxa} foi ${status}.\n\n` +
                  (aprovado ? 'Ela foi encaminhada para o RH.' : 'O processo foi encerrado.');
 
     if (!host || !port || !user || !pass || !to) {
@@ -454,7 +454,9 @@ module.exports = {
     enviarEmailRecrutamentoRH,
     enviarSolicitacaoAssinaturaTaxa,
     notificarRHCandidatura,
-    enviarEmailResultadoSolicitacaoTaxa
+    enviarEmailResultadoSolicitacaoTaxa,
+    enviarEmailAlertaGestor,
+    enviarCartaPropostaCandidato
 };
 
 async function enviarEmailResultadoSolicitacaoTaxa(payload, aprovado) {
@@ -486,5 +488,92 @@ async function enviarEmailResultadoSolicitacaoTaxa(payload, aprovado) {
     } catch (e) {
         console.error('Erro ao enviar email resultado solicitação taxa:', e);
         return { ok: false };
+    }
+}
+
+async function enviarEmailAlertaGestor({ to, subject, text }) {
+    const host = process.env.SMTP_HOST;
+    const port = Number(process.env.SMTP_PORT || 587);
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+    const secure = String(process.env.SMTP_SECURE || 'false') === 'true';
+    const from = process.env.SMTP_FROM || '"Portal RH" <no-reply@portal.local>';
+
+    if (!host || !port || !user || !pass || !to) {
+        console.log('--- EMAIL MOCK (Alerta Gestor) ---');
+        console.log(`To: ${to}`);
+        console.log(`Subject: ${subject}`);
+        console.log(`Text: ${text}`);
+        return { ok: true, mock: true };
+    }
+
+    const transporter = nodemailer.createTransport({ host, port, secure, auth: { user, pass } });
+    try {
+        await transporter.sendMail({ from, to, subject, text });
+        return { ok: true };
+    } catch (e) {
+        console.error('Erro ao enviar email alerta gestor:', e);
+        return { ok: false, erro: e.message };
+    }
+}
+
+async function enviarCartaPropostaCandidato(candidato, proposta = {}) {
+    const host = process.env.SMTP_HOST;
+    const port = Number(process.env.SMTP_PORT || 587);
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+    const secure = String(process.env.SMTP_SECURE || 'false') === 'true';
+    const from = process.env.SMTP_FROM || '"RH Madalosso" <rh@familiamadalosso.com.br>';
+
+    // Destinatário: tenta candidato.email (externo), senão RH (DP_EMAIL) para encaminhar
+    const emailOk = (e) => typeof e === 'string' && /[^\s@]+@[^\s@]+\.[^\s@]+/.test(e);
+    const to = emailOk(candidato.email) ? candidato.email : process.env.DP_EMAIL;
+
+    const cargo = proposta.cargoOfertado || candidato.cargoPretendido || candidato.cargo_pretendido || 'Cargo';
+    const salario = proposta.salarioProposto ? `R$ ${proposta.salarioProposto}` : (candidato.salarioProposto ? `R$ ${candidato.salarioProposto}` : 'a combinar');
+    const jornada = proposta.jornada || 'Conforme escala da unidade';
+    const beneficios = proposta.beneficios || 'Conforme política vigente (alimentação, convênios, etc.)';
+    const dataInicio = proposta.dataInicio ? new Date(proposta.dataInicio).toLocaleDateString('pt-BR') : 'a combinar';
+    const unidade = proposta.unidade || candidato.setor || 'Unidade Madalosso';
+    const validade = proposta.validadeOferta || '7 dias';
+
+    const subject = `Carta Proposta – ${cargo} | ${candidato.nome}`;
+    const text =
+`Prezado(a) ${candidato.nome},
+
+Temos o prazer de informar que você foi APROVADO(a) no processo de seleção para o cargo de ${cargo}.
+
+Detalhes da proposta:
+- Unidade: ${unidade}
+- Início previsto: ${dataInicio}
+- Jornada: ${jornada}
+- Remuneração: ${salario}
+- Benefícios: ${beneficios}
+
+Observações:
+- Esta proposta é válida por ${validade} a partir do recebimento.
+- Em caso de dúvidas, entre em contato com o RH.
+
+Solicitamos sua confirmação por e-mail respondendo esta mensagem.
+
+Atenciosamente,
+Departamento de Recursos Humanos
+Família Madalosso`;
+
+    if (!host || !port || !user || !pass || !to) {
+        console.log('--- EMAIL MOCK (Carta Proposta) ---');
+        console.log(`To: ${to}`);
+        console.log(`Subject: ${subject}`);
+        console.log(`Text:\n${text}`);
+        return { ok: true, mock: true };
+    }
+
+    try {
+        const transporter = nodemailer.createTransport({ host, port, secure, auth: { user, pass } });
+        await transporter.sendMail({ from, to, subject, text });
+        return { ok: true };
+    } catch (e) {
+        console.error('Erro ao enviar carta proposta:', e);
+        return { ok: false, erro: e.message };
     }
 }

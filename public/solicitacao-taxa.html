@@ -185,13 +185,6 @@
                 Departamento
                 <select id="departamento" required>
                     <option value="" disabled selected>Selecione...</option>
-                    <option value="Salao">Salão</option>
-                    <option value="Cozinha">Cozinha</option>
-                    <option value="Bar">Bar</option>
-                    <option value="Limpeza">Limpeza</option>
-                    <option value="Estoque">Estoque</option>
-                    <option value="Manutencao">Manutenção</option>
-                    <option value="Outros">Outros</option>
                 </select>
             </label>
           </div>
@@ -206,7 +199,9 @@
           
           <label>
               Função Necessária
-              <input type="text" id="funcao_necessaria" required placeholder="Ex: Garçom, Cozinheiro, Commim...">
+              <select id="funcao_necessaria" required>
+                  <option value="" disabled selected>Selecione...</option>
+              </select>
           </label>
 
           <label style="margin-top: 20px; font-weight: 600; color: var(--text);">Qual o motivo da solicitação?</label>
@@ -292,12 +287,17 @@
   <script>
     const form = document.getElementById('formSolicitacaoTaxa');
     const btnSubmit = document.getElementById('btnSubmit');
+    const departamentoSelect = document.getElementById('departamento');
+    const funcaoSelect = document.getElementById('funcao_necessaria');
     
     // Toggle Evento details
     const motivos = document.querySelectorAll('input[name="motivo"]');
     const eventoArea = document.getElementById('eventoArea');
     const detalheInput = document.getElementById('detalhe_motivo');
     const labelDetalhe = document.getElementById('labelDetalhe');
+    
+    let funcionariosCache = [];
+    let currentRole = '';
 
     function __i18n(key, fallback) {
         try {
@@ -341,6 +341,102 @@
         }
     });
 
+    async function getMe() {
+        const r = await fetch('/api/me', { headers: { 'Accept': 'application/json' } });
+        if (!r.ok) throw new Error('not-authenticated');
+        const data = await r.json();
+        return data && data.user ? data.user : data;
+    }
+
+    async function loadFuncionariosByRole(role) {
+        const r0 = String(role || '').trim().toLowerCase();
+        const endpoint = ['gestor', 'supervisor', 'gerente'].includes(r0) ? '/api/gestor/equipe' : '/api/funcionarios';
+        const r = await fetch(endpoint, { headers: { 'Accept': 'application/json' } });
+        if (!r.ok) return [];
+        const data = await r.json().catch(() => []);
+        return Array.isArray(data) ? data : (Array.isArray(data.equipe) ? data.equipe : []);
+    }
+
+    function uniqueSorted(values) {
+        return [...new Set(values.map(v => String(v || '').trim()).filter(Boolean))]
+            .sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
+    }
+
+    function setOptions(selectEl, options, { placeholder = 'Selecione...', disabledPlaceholder = true } = {}) {
+        if (!selectEl) return;
+        selectEl.innerHTML = '';
+        const opt0 = document.createElement('option');
+        opt0.value = '';
+        opt0.textContent = placeholder;
+        if (disabledPlaceholder) opt0.disabled = true;
+        opt0.selected = true;
+        selectEl.appendChild(opt0);
+        (options || []).forEach(o => {
+            const opt = document.createElement('option');
+            opt.value = o;
+            opt.textContent = o;
+            selectEl.appendChild(opt);
+        });
+    }
+
+    function getCargosBySetor(setor) {
+        const s = String(setor || '').trim();
+        const filtered = s
+            ? funcionariosCache.filter(f => String(f && f.setor || '').trim() === s)
+            : [];
+        return uniqueSorted(filtered.map(f => f && f.cargo));
+    }
+
+    async function getSetoresDoGestor() {
+        const r = await fetch('/api/gestor/setores', { headers: { 'Accept': 'application/json' } });
+        if (!r.ok) return [];
+        const data = await r.json().catch(() => []);
+        return Array.isArray(data) ? data.map(s => String(s || '').trim()).filter(Boolean) : [];
+    }
+
+    async function initDepartamentoEFuncao() {
+        try {
+            const me = await getMe();
+            currentRole = me && me.role ? String(me.role).trim().toLowerCase() : '';
+
+            funcionariosCache = await loadFuncionariosByRole(currentRole);
+
+            const isLider = ['supervisor', 'gerente', 'gestor'].includes(currentRole);
+            let setoresDisponiveis = [];
+
+            if (isLider) {
+                setoresDisponiveis = uniqueSorted(await getSetoresDoGestor());
+                if (setoresDisponiveis.length === 0) {
+                    setoresDisponiveis = uniqueSorted((funcionariosCache || []).map(f => f && f.setor));
+                }
+                if (setoresDisponiveis.length === 0) {
+                    setOptions(departamentoSelect, ['Outros'], { placeholder: 'Nenhum setor vinculado', disabledPlaceholder: true });
+                } else {
+                    setOptions(departamentoSelect, setoresDisponiveis);
+                }
+            } else {
+                const setoresAll = uniqueSorted((funcionariosCache || []).map(f => f && f.setor));
+                setOptions(departamentoSelect, setoresAll.length ? setoresAll : ['Outros']);
+            }
+
+            setOptions(funcaoSelect, [], { placeholder: 'Selecione o departamento primeiro', disabledPlaceholder: true });
+
+            if (!departamentoSelect.dataset.bound) {
+                departamentoSelect.addEventListener('change', () => {
+                    const setor = String(departamentoSelect.value || '').trim();
+                    const cargos = getCargosBySetor(setor);
+                    setOptions(funcaoSelect, cargos.length ? cargos : ['Outros']);
+                });
+                departamentoSelect.dataset.bound = '1';
+            }
+        } catch (_) {
+            setOptions(departamentoSelect, ['Outros']);
+            setOptions(funcaoSelect, ['Outros']);
+        }
+    }
+
+    initDepartamentoEFuncao();
+
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -351,17 +447,17 @@
         btnSubmit.disabled = true;
 
         const payload = {
-            solicitante: document.getElementById('solicitante').value,
-            email_solicitante: document.getElementById('email_solicitante').value,
-            departamento: document.getElementById('departamento').value,
-            funcao_necessaria: document.getElementById('funcao_necessaria').value,
-            motivo: document.querySelector('input[name="motivo"]:checked').value,
-            detalhe_motivo: document.getElementById('detalhe_motivo').value,
-            data_necessaria: document.getElementById('data_necessaria').value,
-            horario_inicio: document.getElementById('horario_inicio').value,
-            horario_fim: document.getElementById('horario_fim').value,
-            quantidade_vagas: document.getElementById('quantidade_vagas').value,
-            observacoes: document.getElementById('observacoes').value
+            solicitante: document.getElementById('solicitante')?.value || '',
+            email_solicitante: document.getElementById('email_solicitante')?.value || '',
+            departamento: document.getElementById('departamento')?.value || '',
+            funcao_necessaria: document.getElementById('funcao_necessaria')?.value || '',
+            motivo: document.querySelector('input[name="motivo"]:checked')?.value || '',
+            detalhe_motivo: document.getElementById('detalhe_motivo')?.value || '',
+            data_necessaria: document.getElementById('data_necessaria')?.value || '',
+            horario_inicio: document.getElementById('horario_inicio')?.value || '',
+            horario_fim: document.getElementById('horario_fim')?.value || '',
+            quantidade_vagas: document.getElementById('quantidade_vagas')?.value || '',
+            observacoes: document.getElementById('observacoes')?.value || ''
         };
 
         try {

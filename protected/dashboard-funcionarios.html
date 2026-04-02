@@ -101,19 +101,29 @@
                     <th data-translate="rh_dash_th_nome">Nome</th>
                     <th data-translate="rh_dash_th_cpf">CPF</th>
                     <th data-translate="rh_dash_th_cargo">Cargo</th>
+                    <th>Vínculo</th>
                     <th data-translate="rh_dash_th_setor">Setor</th>
                     <th data-translate="rh_dash_th_admissao">Admissão</th>
                     <th data-translate="rh_dash_th_acao">Ações</th>
                 </tr>
             </thead>
             <tbody id="listaFuncionarios">
-                <tr><td colspan="6" style="text-align: center;" data-translate="rh_dash_loading">Carregando...</td></tr>
+                <tr><td colspan="7" style="text-align: center;" data-translate="rh_dash_loading">Carregando...</td></tr>
             </tbody>
         </table>
     </div>
   </main>
 
   <script>
+      function escapeHtml(input) {
+          return String(input ?? '')
+              .replaceAll('&', '&amp;')
+              .replaceAll('<', '&lt;')
+              .replaceAll('>', '&gt;')
+              .replaceAll('"', '&quot;')
+              .replaceAll("'", '&#039;');
+      }
+
       async function syncQuestor() {
           if (!confirm('Deseja iniciar a sincronização com o sistema Questor? Isso pode levar alguns segundos.')) return;
 
@@ -152,20 +162,22 @@
               tbody.innerHTML = '';
 
               if (funcionarios.length === 0) {
-                  tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 30px;">Nenhum funcionário cadastrado. Importe uma planilha.</td></tr>';
+                  tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 30px;">Nenhum funcionário cadastrado. Importe uma planilha.</td></tr>';
                   return;
               }
 
               funcionarios.forEach(f => {
                   const tr = document.createElement('tr');
                   tr.innerHTML = `
-                      <td>${f.nome}</td>
-                      <td>${f.cpf}</td>
-                      <td>${f.cargo || '-'}</td>
-                      <td>${f.setor || '-'}</td>
-                      <td>${f.data_admissao || '-'}</td>
+                      <td>${escapeHtml(f.nome)}</td>
+                      <td>${escapeHtml(f.cpf)}</td>
+                      <td>${escapeHtml(f.cargo || '-')}</td>
+                      <td>${escapeHtml(f.tipo_vinculo || '-')}</td>
+                      <td>${escapeHtml(f.setor || '-')}</td>
+                      <td>${escapeHtml(f.data_admissao || '-')}</td>
                       <td>
-                          <button class="btn btn-danger btn-sm" onclick="removerFuncionario('${f.id}')">Excluir</button>
+                          <button class="btn btn-outline btn-sm" data-action="beneficios" data-cpf="${escapeHtml(f.cpf)}" data-nome="${escapeHtml(f.nome)}">Benefícios</button>
+                          <button class="btn btn-danger btn-sm" data-action="excluir" data-id="${escapeHtml(f.id)}">Excluir</button>
                       </td>
                   `;
                   tbody.appendChild(tr);
@@ -178,12 +190,55 @@
 
       function downloadTemplate() {
           const ws = XLSX.utils.json_to_sheet([
-              { "Nome": "João da Silva", "CPF": "123.456.789-00", "Cargo": "Operador", "Setor": "Produção", "Data Admissão": "2023-01-01" },
-              { "Nome": "Maria Oliveira", "CPF": "999.888.777-66", "Cargo": "Assistente", "Setor": "RH", "Data Admissão": "2023-05-15" }
+              { "Matrícula": "0001", "Nome": "João da Silva", "CPF": "123.456.789-00", "Cargo": "Garçom", "Setor": "Salão", "Vínculo": "Mensalista", "Data Admissão": "2023-01-01", "Nascimento": "1990-05-20", "Sexo": "M", "Raça/Cor": "Branca", "Nacionalidade": "Brasileira" },
+              { "Matrícula": "0002", "Nome": "Maria Oliveira", "CPF": "999.888.777-66", "Cargo": "Garçom", "Setor": "Salão", "Vínculo": "Horista", "Data Admissão": "2023-05-15", "Nascimento": "1995-09-10", "Sexo": "F", "Raça/Cor": "Parda", "Nacionalidade": "Brasileira" }
           ]);
           const wb = XLSX.utils.book_new();
           XLSX.utils.book_append_sheet(wb, ws, "Funcionarios");
           XLSX.writeFile(wb, "Modelo_Importacao_Funcionarios.xlsx");
+      }
+
+      async function verBeneficios(cpf, nome) {
+          try {
+              const res = await fetch(`/api/rh/beneficios/ultimas-compras?cpf=${encodeURIComponent(cpf)}`);
+              const info = await res.json();
+              
+              const fmt = (iso) => iso ? new Date(iso).toLocaleDateString('pt-BR') : '-';
+              const linhas = [
+                  `<strong>Colaborador:</strong> ${nome}`,
+                  `<strong>CPF:</strong> ${cpf}`,
+                  `<strong>Última compra de VT:</strong> ${fmt(info?.ultimoVT)}${info?.ultimoVTValor ? ` (R$ ${info.ultimoVTValor})` : ''}`,
+                  `<strong>Outros benefícios:</strong> ${info?.ultimoOutro ? fmt(info.ultimoOutro) + (info?.ultimoOutroDescricao ? ' - ' + info.ultimoOutroDescricao : '') : '-'}`,
+              ];
+              
+              const container = document.createElement('div');
+              container.style.background = 'white';
+              container.style.border = '1px solid #e2e8f0';
+              container.style.borderRadius = '8px';
+              container.style.padding = '12px';
+              container.style.boxShadow = '0 2px 6px rgba(0,0,0,0.08)';
+              container.style.position = 'fixed';
+              container.style.top = '20px';
+              container.style.right = '20px';
+              container.style.zIndex = '1200';
+              container.style.maxWidth = '360px';
+              container.style.fontSize = '0.9rem';
+              container.innerHTML = `
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                      <div style="font-weight: 600; color: var(--text-primary);">Benefícios</div>
+                      <button style="border: none; background: transparent; cursor: pointer; font-size: 1rem;">✖</button>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 6px; color: var(--text-secondary);">
+                      ${linhas.map(l => `<div>${l}</div>`).join('')}
+                  </div>
+              `;
+              const closeBtn = container.querySelector('button');
+              closeBtn.addEventListener('click', () => container.remove());
+              document.body.appendChild(container);
+          } catch (e) {
+              console.error(e);
+              alert('Erro ao carregar benefícios do colaborador.');
+          }
       }
 
       async function handleFile(input) {
@@ -208,7 +263,12 @@
                   cargo: ['cargo', 'funcao', 'função', 'ocupacao', 'ocupação', 'job'],
                   setor: ['setor', 'departamento', 'depto', 'area', 'área', 'centro de custo'],
                   admissao: ['admissao', 'admissão', 'entrada', 'inicio', 'contratacao', 'data'],
-                  matricula: ['matricula', 'matrícula', 'codigo', 'registro', 'id']
+                  matricula: ['matricula', 'matrícula', 'codigo', 'registro', 'id'],
+                  nascimento: ['nascimento', 'data nascimento', 'dt nascimento', 'birth'],
+                  sexo: ['sexo', 'genero', 'gênero'],
+                  raca_cor: ['raca', 'raça', 'cor', 'raca/cor', 'raça/cor'],
+                  nacionalidade: ['nacionalidade', 'pais', 'país', 'country'],
+                  tipo_vinculo: ['tipo vinculo', 'tipo_vinculo', 'vinculo', 'vínculo', 'regime', 'tipo contrato', 'contrato']
               };
 
               const getVal = (row, targetField) => {
@@ -220,15 +280,89 @@
                   return foundKey ? row[foundKey] : '';
               };
 
+              const normalizeVinculo = (val) => {
+                  const raw = String(val || '').trim().toLowerCase();
+                  if (!raw) return '';
+                  if (raw === 'm' || raw.startsWith('mens')) return 'Mensalista';
+                  if (raw === 'h' || raw.startsWith('hor')) return 'Horista';
+                  return String(val || '').trim();
+              };
+
+              const parseSetorVinculo = (text) => {
+                  const raw = String(text || '').trim();
+                  if (!raw) return null;
+                  const onlyVinc = raw.match(/^(mensalista|horista|m|h)$/i);
+                  if (onlyVinc) {
+                      return { setor: '', tipo_vinculo: normalizeVinculo(onlyVinc[1]) };
+                  }
+                  const combined = raw.match(/^(.*?)[\s\-\/|]+(mensalista|horista|m|h)$/i);
+                  if (combined) {
+                      return { setor: String(combined[1] || '').trim(), tipo_vinculo: normalizeVinculo(combined[2]) };
+                  }
+                  return null;
+              };
+
+              const normalizeCpf = (v) => {
+                  if (v === null || v === undefined) return '';
+                  return String(v).replace(/\D/g, '');
+              };
+
+              const isValidCpf = (cpf) => {
+                  const digits = normalizeCpf(cpf);
+                  if (!digits || digits.length !== 11) return false;
+                  if (/^(\d)\1{10}$/.test(digits)) return false;
+                  const nums = digits.split('').map(n => Number(n));
+                  if (nums.some(n => Number.isNaN(n))) return false;
+                  let sum = 0;
+                  for (let i = 0; i < 9; i++) sum += nums[i] * (10 - i);
+                  let dv1 = (sum * 10) % 11;
+                  if (dv1 === 10) dv1 = 0;
+                  if (dv1 !== nums[9]) return false;
+                  sum = 0;
+                  for (let i = 0; i < 10; i++) sum += nums[i] * (11 - i);
+                  let dv2 = (sum * 10) % 11;
+                  if (dv2 === 10) dv2 = 0;
+                  return dv2 === nums[10];
+              };
+
+              let cpfsInvalidos = 0;
               const funcionarios = jsonData.map(row => {
                   const rawCpf = getVal(row, 'cpf');
+                  let setorVal = String(getVal(row, 'setor') || '').trim();
+                  let vinculoVal = String(getVal(row, 'tipo_vinculo') || '').trim();
+
+                  const parsedFromVinculo = parseSetorVinculo(vinculoVal);
+                  if (parsedFromVinculo) {
+                      if (!setorVal && parsedFromVinculo.setor) setorVal = parsedFromVinculo.setor;
+                      if (parsedFromVinculo.tipo_vinculo) vinculoVal = parsedFromVinculo.tipo_vinculo;
+                  } else {
+                      vinculoVal = normalizeVinculo(vinculoVal);
+                  }
+
+                  if (!vinculoVal) {
+                      const parsedFromSetor = parseSetorVinculo(setorVal);
+                      if (parsedFromSetor && parsedFromSetor.tipo_vinculo) {
+                          setorVal = parsedFromSetor.setor || setorVal;
+                          vinculoVal = parsedFromSetor.tipo_vinculo;
+                      }
+                  }
+
+                  const cpfDigits = rawCpf ? normalizeCpf(rawCpf) : '';
+                  const cpfVal = (cpfDigits && cpfDigits.length === 11 && isValidCpf(cpfDigits)) ? cpfDigits : null;
+                  if (cpfDigits && !cpfVal) cpfsInvalidos++;
+
                   return {
+                      matricula: getVal(row, 'matricula'),
                       nome: getVal(row, 'nome'),
-                      cpf: rawCpf ? String(rawCpf).replace(/\D/g, '') : null,
+                      cpf: cpfVal,
                       cargo: getVal(row, 'cargo'),
-                      setor: getVal(row, 'setor'),
+                      setor: setorVal,
                       data_admissao: getVal(row, 'admissao'),
-                      matricula: getVal(row, 'matricula')
+                      nascimento: getVal(row, 'nascimento'),
+                      sexo: getVal(row, 'sexo'),
+                      raca_cor: getVal(row, 'raca_cor'),
+                      nacionalidade: getVal(row, 'nacionalidade'),
+                      tipo_vinculo: vinculoVal
                   };
               }).filter(f => f.nome);
 
@@ -238,8 +372,10 @@
                   return;
               }
 
-              if (confirm(`Foram encontrados ${funcionarios.length} registros válidos. Deseja importar?`)) {
-                  await enviarImportacao(funcionarios);
+              const avisoCpf = cpfsInvalidos ? `\n\nAtenção: ${cpfsInvalidos} CPF(s) inválido(s) serão importados sem CPF.` : '';
+              if (confirm(`Foram encontrados ${funcionarios.length} registros válidos. Deseja importar?${avisoCpf}`)) {
+                  const substituirBase = confirm('Deseja SUBSTITUIR a base atual?\n\nOK = substituir (remove do banco quem NÃO estiver na planilha)\nCancelar = apenas adicionar/atualizar (não remove ninguém)');
+                  await enviarImportacao(funcionarios, substituirBase ? 'sync' : 'append');
               }
               
               input.value = '';
@@ -247,17 +383,21 @@
           reader.readAsArrayBuffer(file);
       }
 
-      async function enviarImportacao(dados) {
+      async function enviarImportacao(dados, modo) {
           try {
               const res = await fetch('/api/rh/funcionarios/importar', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ funcionarios: dados })
+                  body: JSON.stringify({ funcionarios: dados, modo })
               });
               
               const resultado = await res.json();
               if (resultado.ok) {
-                  alert('Importação concluída com sucesso!');
+                  const removidosInfo = Number.isFinite(Number(resultado.removidos)) ? `\nRemovidos: ${resultado.removidos}` : '';
+                  const cpfsInvalidosInfo = Number.isFinite(Number(resultado.cpfsInvalidos)) && Number(resultado.cpfsInvalidos) > 0
+                    ? `\nCPF(s) inválido(s) ignorados: ${resultado.cpfsInvalidos}`
+                    : '';
+                  alert(`Importação concluída com sucesso!\nNovos: ${resultado.novos}\nAtualizados: ${resultado.atualizados}${removidosInfo}${cpfsInvalidosInfo}`);
                   carregarFuncionarios();
               } else {
                   alert('Erro na importação: ' + resultado.erro);
@@ -284,6 +424,18 @@
       }
 
       // Iniciar
+      document.getElementById('listaFuncionarios')?.addEventListener('click', (e) => {
+          const btn = e.target && e.target.closest ? e.target.closest('button[data-action]') : null;
+          if (!btn) return;
+          const action = btn.getAttribute('data-action');
+          if (action === 'beneficios') {
+              verBeneficios(btn.getAttribute('data-cpf') || '', btn.getAttribute('data-nome') || '');
+              return;
+          }
+          if (action === 'excluir') {
+              removerFuncionario(btn.getAttribute('data-id'));
+          }
+      });
       carregarFuncionarios();
   </script>
 </body>

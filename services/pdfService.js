@@ -188,8 +188,9 @@ function pdfBufferFromTaxaData(payload) {
     y += 40;
 
     // Forma de Pagamento
-    const formaPagamentoText = payload.forma_pagamento === 'transferencia' ? 'TRANSFERÊNCIA BANCÁRIA' : 
-                               payload.forma_pagamento === 'pix' ? 'PIX' : '';
+    const formaPagamentoText = payload.forma_pagamento === 'transferencia' ? 'TRANSFERÊNCIA BANCÁRIA' :
+                               payload.forma_pagamento === 'pix' ? 'PIX' :
+                               payload.forma_pagamento === 'youcard' ? 'YOUCARD' : '';
     drawBox('FORMA DE PAGAMENTO:', formaPagamentoText, 40, y, doc.page.width - 80, 40);
     y += 40;
 
@@ -209,8 +210,8 @@ function pdfBufferFromTaxaData(payload) {
     doc.fontSize(10);
     y += 40;
 
-    // PIX
-    drawBox('PIX VINCULADO A CONTA:', payload.pix, 40, y, doc.page.width - 80, 40);
+    const chaveBoxLabel = payload.forma_pagamento === 'youcard' ? 'CPF VINCULADO AO YOUCARD:' : 'PIX VINCULADO A CONTA:';
+    drawBox(chaveBoxLabel, payload.pix, 40, y, doc.page.width - 80, 40);
     y += 40;
 
     // Departamento | Funcao
@@ -305,7 +306,7 @@ function pdfBufferFromTaxaData(payload) {
     doc.font('Helvetica').fontSize(9);
     
     const obsWidth = doc.page.width - 80;
-    const obs1 = '• Os formulários devem serem entregues na segunda feira até as 12:00 e serão pagas na terça feira e na quinta feita até as 12:00 que serão pagas na sexta feira.';
+    const obs1 = '• Os formulários devem ser entregues na segunda-feira até as 10:00 e serão pagos na terça-feira. Formulários entregues na quinta-feira até as 10:00 serão pagos na sexta-feira.';
     const h1 = doc.heightOfString(obs1, { width: obsWidth });
     doc.text(obs1, 40, y, { width: obsWidth });
     y += h1 + 5;
@@ -383,12 +384,12 @@ function pdfBufferFromVagaData(payload) {
     y += 20;
 
     doc.fillColor('#000000');
-    // Cargo | Num Vagas
-    drawBox('CARGO:', payload.cargo, 40, y, (doc.page.width - 80) * 0.7, 40);
+    // Função | Num Vagas
+    drawBox('FUNÇÃO:', payload.cargo, 40, y, (doc.page.width - 80) * 0.7, 40);
     drawBox('NÚMERO DE VAGAS:', payload.numero_vagas, 40 + (doc.page.width - 80) * 0.7, y, (doc.page.width - 80) * 0.3, 40);
     y += 40;
     // Setor | Data
-    drawBox('SETOR:', payload.setor, 40, y, (doc.page.width - 80) * 0.7, 40);
+    drawBox('DEPARTAMENTO:', payload.setor, 40, y, (doc.page.width - 80) * 0.7, 40);
     drawBox('DATA:', new Date(payload.data_abertura).toLocaleDateString('pt-BR'), 40 + (doc.page.width - 80) * 0.7, y, (doc.page.width - 80) * 0.3, 40);
     y += 40;
 
@@ -402,7 +403,7 @@ function pdfBufferFromVagaData(payload) {
     const leftW = (doc.page.width - 80) * 0.65;
     const rightW = (doc.page.width - 80) * 0.35;
     
-    doc.rect(40, y, leftW, 80).stroke();
+    doc.rect(40, y, leftW, 95).stroke();
     doc.font('Helvetica-Bold').text('SUBSTITUIÇÃO (nome):', 45, y + 10);
     doc.font('Helvetica').text(payload.substituicao_nome || '__________________________', 160, y + 10);
     
@@ -411,17 +412,21 @@ function pdfBufferFromVagaData(payload) {
     const naoCheck = payload.sera_desligado === 'nao' ? '( X )' : '(   )';
     doc.font('Helvetica').text(`${simCheck} SIM   ${naoCheck} NÃO`, 150, y + 35);
 
-    doc.font('Helvetica-Bold').text('REPORTARÁ A QUEM:', 45, y + 60);
-    doc.font('Helvetica').text(payload.reportara_a || '__________________________', 170, y + 60);
+    doc.font('Helvetica-Bold').text('DATA DESLIGAMENTO:', 45, y + 55);
+    const dataDesl = payload.data_desligamento ? new Date(payload.data_desligamento).toLocaleDateString('pt-BR') : '';
+    doc.font('Helvetica').text(dataDesl || '__________________________', 165, y + 55);
+
+    doc.font('Helvetica-Bold').text('REPORTARÁ A QUEM:', 45, y + 75);
+    doc.font('Helvetica').text(payload.reportara_a || '__________________________', 170, y + 75);
 
     // Right side: Checkboxes
-    doc.rect(40 + leftW, y, rightW, 80).stroke();
+    doc.rect(40 + leftW, y, rightW, 95).stroke();
     const substCheck = payload.motivo === 'substituicao' ? '( X )' : '(   )';
     const aumCheck = payload.motivo === 'aumento_quadro' ? '( X )' : '(   )';
     
-    doc.font('Helvetica-Bold').text(`SUBSTITUIÇÃO ${substCheck}`, 40 + leftW + 10, y + 25);
-    doc.font('Helvetica-Bold').text(`AUMENTO DE QUADRO ${aumCheck}`, 40 + leftW + 10, y + 55);
-    y += 80;
+    doc.font('Helvetica-Bold').text(`SUBSTITUIÇÃO ${substCheck}`, 40 + leftW + 10, y + 35);
+    doc.font('Helvetica-Bold').text(`AUMENTO DE QUADRO ${aumCheck}`, 40 + leftW + 10, y + 65);
+    y += 95;
 
     // Escala / Tipo
     doc.rect(40, y, leftW, 20).fill('#555555');
@@ -444,9 +449,9 @@ function pdfBufferFromVagaData(payload) {
     doc.font('Helvetica-Bold').text(`HORISTA       ${horCheck}`, 40 + leftW + 10, y + 35);
     y += 50;
 
-    // Salario Header
+    // Nível Header
     doc.rect(40, y, doc.page.width - 80, 20).fill('#555555');
-    doc.fillColor('#FFFFFF').text('SALÁRIO E BENEFÍCIOS:', 40, y + 5, { width: doc.page.width - 80, align: 'center' });
+    doc.fillColor('#FFFFFF').text('NÍVEL:', 40, y + 5, { width: doc.page.width - 80, align: 'center' });
     y += 20;
 
     doc.fillColor('#000000');
@@ -1352,4 +1357,3 @@ module.exports = {
     pdfBufferFromCandidato,
     gerarTermoEPI
 };
-

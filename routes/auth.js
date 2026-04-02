@@ -9,12 +9,64 @@ const { SECRET, verifyToken, PUBLIC_PAGE_ACCESS, PROTECTED_PAGE_ACCESS, ROLES } 
 const ldapService = require('../services/ldapService');
 const db = require('../services/db');
 
-router.get('/me', verifyToken, (req, res) => {
-    res.json({ ok: true, user: req.user });
+router.get('/me', verifyToken, async (req, res) => {
+    try {
+        const normRole = (v) => String(v || '').trim().toLowerCase();
+        const username = req.user && req.user.username;
+        const dbUser = username ? await db.users.getByUsername(username) : null;
+        const user = dbUser
+            ? { username: dbUser.username, role: normRole(dbUser.role), name: dbUser.name, email: dbUser.email || null }
+            : req.user;
+        res.json({ ok: true, user });
+    } catch (e) {
+        res.json({ ok: true, user: req.user });
+    }
 });
 
-router.get('/access', verifyToken, (req, res) => {
-    const role = req.user && req.user.role;
+router.put('/me/password', verifyToken, async (req, res) => {
+    try {
+        const username = req.user && req.user.username ? String(req.user.username).trim().toLowerCase() : '';
+        if (!username) return res.status(401).json({ ok: false, erro: 'Usuário não autenticado' });
+
+        const currentPassword = req.body && typeof req.body.currentPassword === 'string' ? req.body.currentPassword : '';
+        const newPassword = req.body && typeof req.body.newPassword === 'string' ? req.body.newPassword : '';
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ ok: false, erro: 'Informe a senha atual e a nova senha' });
+        }
+        if (newPassword.length < 6) {
+            return res.status(400).json({ ok: false, erro: 'A nova senha deve ter ao menos 6 caracteres' });
+        }
+
+        const user = await db.users.getByUsername(username);
+        if (!user || !user.password) {
+            return res.status(400).json({ ok: false, erro: 'Usuário inválido para alteração de senha' });
+        }
+
+        const match = await bcrypt.compare(currentPassword, user.password);
+        if (!match) return res.status(403).json({ ok: false, erro: 'Senha atual incorreta' });
+
+        const hash = await bcrypt.hash(newPassword, 10);
+        await db.users.update(username, { password: hash });
+
+        res.json({ ok: true });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao alterar senha' });
+    }
+});
+
+router.get('/access', verifyToken, async (req, res) => {
+    let effectiveUser = req.user;
+    const normRole = (v) => String(v || '').trim().toLowerCase();
+    try {
+        const username = req.user && req.user.username;
+        const dbUser = username ? await db.users.getByUsername(username) : null;
+        if (dbUser) {
+            effectiveUser = { username: dbUser.username, role: normRole(dbUser.role), name: dbUser.name, email: dbUser.email || null };
+        }
+    } catch (_) {}
+    const role = effectiveUser && effectiveUser.role;
     const allowAll = process.env.SHOW_ALL_DASH === '1';
     const publicPaths = allowAll
         ? Object.keys(PUBLIC_PAGE_ACCESS)
@@ -27,9 +79,16 @@ router.get('/access', verifyToken, (req, res) => {
             .filter(([, roles]) => role === 'admin' || roles.includes(role))
             .map(([path]) => `/protected${path}`);
 
+    if ((role === 'admin' || [ROLES.ADMIN, ROLES.RH, ROLES.RH_GERAL, ROLES.DP].includes(role)) && !protectedPaths.includes('/protected/dashboard-disciplinar.html')) {
+        protectedPaths.push('/protected/dashboard-disciplinar.html');
+    }
+
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.json({
         ok: true,
-        user: req.user,
+        user: effectiveUser,
         access: { publicPaths, protectedPaths, allowAll }
     });
 });
@@ -58,7 +117,7 @@ router.post('/login', loginLimiter, async (req, res) => {
         if (user) {
             const match = await bcrypt.compare(password, user.password);
             if (match) {
-                const token = jwt.sign({ username: user.username, role: user.role, name: user.name }, SECRET, { expiresIn: '8h' });
+                const token = jwt.sign({ username: user.username, role: user.role, name: user.name, email: user.email || null }, SECRET, { expiresIn: '8h' });
                 
                 res.cookie('token', token, { 
                     httpOnly: true, 
@@ -69,7 +128,8 @@ router.post('/login', loginLimiter, async (req, res) => {
 
                 // Redirect based on role
                 let redirect = '/protected/index.html';
-                if (user.role === 'portaria') redirect = '/protected/dashboard-portaria.html';
+                if (user.role === 'portaria') redirect = '/protected/dashboard-portaria.html?monitor=1';
+                if (String(user.role || '').trim().toLowerCase() === ROLES.GERENTE) redirect = '/protected/dashboard-vagas.html';
                 
                 return res.json({ ok: true, redirect });
             }
@@ -91,10 +151,10 @@ router.post('/login', loginLimiter, async (req, res) => {
 
     const portariaAccounts = [];
     if (process.env.PORTARIA_USER && process.env.PORTARIA_PASS) {
-        portariaAccounts.push({ username: String(process.env.PORTARIA_USER).trim().toLowerCase(), password: String(process.env.PORTARIA_PASS), role: ROLES.PORTARIA, redirect: '/protected/dashboard-portaria.html' });
+        portariaAccounts.push({ username: String(process.env.PORTARIA_USER).trim().toLowerCase(), password: String(process.env.PORTARIA_PASS), role: ROLES.PORTARIA, redirect: '/protected/dashboard-portaria.html?monitor=1' });
     }
     if (isDevLoginEnabled) {
-        portariaAccounts.push({ username: 'portaria', password: 'portaria', role: ROLES.PORTARIA, redirect: '/protected/dashboard-portaria.html' });
+        portariaAccounts.push({ username: 'portaria', password: 'portaria', role: ROLES.PORTARIA, redirect: '/protected/dashboard-portaria.html?monitor=1' });
     }
 
     const matchedLegacy = [...rhAccounts, ...portariaAccounts].find(a => username === a.username && password === a.password);
@@ -131,7 +191,7 @@ router.post('/login', loginLimiter, async (req, res) => {
                 user = newUser;
             }
 
-            const token = jwt.sign({ username: user.username, role: user.role, name: user.name }, SECRET, { expiresIn: '8h' });
+            const token = jwt.sign({ username: user.username, role: user.role, name: user.name, email: user.email || null }, SECRET, { expiresIn: '8h' });
             
             res.cookie('token', token, { 
                 httpOnly: true, 
@@ -142,7 +202,8 @@ router.post('/login', loginLimiter, async (req, res) => {
 
             // Redirect based on role
             let redirect = '/protected/index.html';
-            if (user.role === 'portaria') redirect = '/protected/dashboard-portaria.html';
+            if (user.role === 'portaria') redirect = '/protected/dashboard-portaria.html?monitor=1';
+            if (String(user.role || '').trim().toLowerCase() === ROLES.GERENTE) redirect = '/protected/dashboard-vagas.html';
             if (user.role === ROLES.PENDENTE) redirect = '/login.html?error=pendente';
 
             return res.json({ ok: true, redirect });

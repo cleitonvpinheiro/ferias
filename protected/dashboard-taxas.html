@@ -57,10 +57,10 @@
             <button class="btn btn-outline" onclick="exportarExcel()">
                 📊 Excel
             </button>
-            <button class="btn btn-outline" onclick="gerarArquivoPagamento()">
+            <button class="btn btn-outline" onclick="gerarArquivoPagamento()" id="btnGerarPagamento">
                 💰 <span data-translate="rh_dash_taxas_generate_payment">Gerar Pagamento</span>
             </button>
-            <button class="btn btn-primary" onclick="carregarSolicitacoes()">
+            <button class="btn btn-primary" onclick="carregarSolicitacoes()" id="btnAtualizar">
                 🔄 <span data-translate="rh_dash_refresh">Atualizar</span>
             </button>
         </div>
@@ -97,8 +97,41 @@
 
   <script>
     let globalData = [];
+    let currentUser = null;
+    const isGestorUser = () => ['gestor', 'supervisor', 'gerente'].includes(String(currentUser && currentUser.role || '').trim().toLowerCase());
+    let isLoading = false;
+    let autoRefreshTimer = null;
+
+    function setLastUpdateLabel(date) {
+        const el = document.getElementById('lastUpdate');
+        if (!el) return;
+        const d = date instanceof Date ? date : new Date();
+        try {
+            el.textContent = `Atualizado às ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+        } catch {
+            el.textContent = 'Atualizado agora';
+        }
+    }
+
+    async function initUser() {
+        try {
+            const res = await fetch('/api/me', { headers: { 'Accept': 'application/json' } });
+            const data = await res.json();
+            if (res.ok && data && data.ok && data.user) {
+                currentUser = data.user;
+            }
+        } catch (e) {
+            console.error('Erro ao carregar usuário:', e);
+        }
+
+        const isGestor = isGestorUser();
+        const btnGerarPagamento = document.getElementById('btnGerarPagamento');
+        if (btnGerarPagamento) btnGerarPagamento.style.display = isGestor ? 'none' : '';
+    }
 
     async function carregarSolicitacoes() {
+        if (isLoading) return;
+        isLoading = true;
         const tbody = document.getElementById('lista-corpo');
         const emptyState = document.getElementById('empty-state');
         const table = document.getElementById('tabela-solicitacoes');
@@ -111,15 +144,24 @@
         tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-secondary);">Carregando dados...</td></tr>';
 
         try {
-            const res = await fetch('/api/rh/taxas');
-            globalData = await res.json();
+            if (!currentUser) await initUser();
+            const isGestor = isGestorUser();
+            const endpoint = isGestor ? '/api/gestor/taxas' : '/api/rh/taxas';
+            const res = await fetch(endpoint);
+            const parsed = await res.json().catch(() => null);
+            if (!res.ok) {
+                const msg = parsed && (parsed.erro || parsed.message) ? (parsed.erro || parsed.message) : 'Acesso negado';
+                throw new Error(msg);
+            }
+            globalData = Array.isArray(parsed) ? parsed : [];
             const data = globalData;
 
             // Calcular Estatísticas
             const stats = data.reduce((acc, curr) => {
-                if (curr.status === 'pendente') acc.pending++;
-                else if (curr.status === 'aprovado') acc.approved++;
-                else if (curr.status === 'reprovado') acc.rejected++;
+                const s = String(curr.status || '').toLowerCase();
+                if (s === 'pendente' || s.startsWith('aguardando_')) acc.pending++;
+                else if (s === 'aprovado') acc.approved++;
+                else if (s === 'reprovado') acc.rejected++;
                 return acc;
             }, { pending: 0, approved: 0, rejected: 0 });
 
@@ -144,27 +186,51 @@
                 let statusBadge = '';
                 let actionBtn = '';
                 
-                switch(item.status) {
-                    case 'pendente':
-                        statusBadge = '<span class="badge badge-pending">Pendente</span>';
+                const s = String(item.status || '').toLowerCase();
+                if (s === 'aguardando_aprovacao_gestor' || s === 'aguardando_aprovacao') {
+                    const aprovadorNome = item.aprovador_nome ? `: ${item.aprovador_nome}` : '';
+                    statusBadge = `<span class="badge badge-pending">Aguardando Aprovação do Gestor${aprovadorNome}</span>`;
+                    const isGestor = isGestorUser();
+                    if (isGestor) {
                         actionBtn = `
                             <div style="display: flex; gap: 6px;">
                                 <a href="/api/taxas/pdf/${item.id}" target="_blank" class="btn btn-sm btn-outline">PDF</a>
-                                <button onclick="aprovarTaxa('${item.id}')" class="btn btn-sm btn-success">Aprovar</button>
-                                <button onclick="reprovarTaxa('${item.id}')" class="btn btn-sm btn-danger">Reprovar</button>
+                                <button onclick="aprovarTaxaGestor('${item.id}')" class="btn btn-sm btn-success">Aprovar</button>
+                                <button onclick="reprovarTaxaGestor('${item.id}')" class="btn btn-sm btn-danger">Reprovar</button>
+                                <button onclick="solicitarAssinaturaGestor('${item.id}')" class="btn btn-sm btn-primary" title="Solicitar Assinatura ao Colaborador">🖊️ Assinatura</button>
                             </div>`;
-                        break;
-                    case 'aprovado':
-                        statusBadge = '<span class="badge badge-approved">Aprovado</span>';
-                        actionBtn = `<a href="/api/taxas/pdf/${item.id}" target="_blank" class="btn btn-sm btn-outline">PDF</a>`;
-                        break;
-                    case 'reprovado':
-                        statusBadge = '<span class="badge badge-rejected">Reprovado</span>';
-                        actionBtn = `<a href="/api/taxas/pdf/${item.id}" target="_blank" class="btn btn-sm btn-outline">PDF</a>`;
-                        break;
-                    default:
-                        statusBadge = `<span class="badge badge-neutral">${item.status}</span>`;
-                        actionBtn = '';
+                    } else {
+                        actionBtn = `<div style="display: flex; gap: 6px;">
+                            <a href="/api/taxas/pdf/${item.id}" target="_blank" class="btn btn-sm btn-outline">PDF</a>
+                        </div>`;
+                    }
+                } else if (s === 'aguardando_aprovacao_rh' || s === 'pendente') {
+                    const label = s === 'pendente' ? 'Pendente RH' : 'Aguardando Aprovação RH';
+                    statusBadge = `<span class="badge badge-pending">${label}</span>`;
+                    actionBtn = `
+                        <div style="display: flex; gap: 6px;">
+                            <a href="/api/taxas/pdf/${item.id}" target="_blank" class="btn btn-sm btn-outline">PDF</a>
+                            <button onclick="aprovarTaxa('${item.id}')" class="btn btn-sm btn-success">Aprovar</button>
+                            <button onclick="reprovarTaxa('${item.id}')" class="btn btn-sm btn-danger">Reprovar</button>
+                        </div>`;
+                } else if (s === 'aguardando_assinatura') {
+                    statusBadge = '<span class="badge badge-pending">Aguardando Assinatura</span>';
+                    const copiarBtn = `<button onclick="copiarLinkAssinatura('${item.id}')" class="btn btn-sm btn-primary" title="Copiar Link">🔗 Copiar Link</button>`;
+                    const reenviarBtn = `<button onclick="reenviarAssinatura('${item.id}')" class="btn btn-sm btn-success" title="Reenviar Link">📧 Reenviar</button>`;
+                    actionBtn = `<div style="display: flex; gap: 6px;">
+                        ${copiarBtn}
+                        ${reenviarBtn}
+                        <a href="/api/taxas/pdf/${item.id}" target="_blank" class="btn btn-sm btn-outline">PDF</a>
+                    </div>`;
+                } else if (s === 'aprovado') {
+                    statusBadge = '<span class="badge badge-approved">Aprovado</span>';
+                    actionBtn = `<a href="/api/taxas/pdf/${item.id}" target="_blank" class="btn btn-sm btn-outline">PDF</a>`;
+                } else if (s === 'reprovado') {
+                    statusBadge = '<span class="badge badge-rejected">Reprovado</span>';
+                    actionBtn = `<a href="/api/taxas/pdf/${item.id}" target="_blank" class="btn btn-sm btn-outline">PDF</a>`;
+                } else {
+                    statusBadge = `<span class="badge badge-neutral">${item.status}</span>`;
+                    actionBtn = `<a href="/api/taxas/pdf/${item.id}" target="_blank" class="btn btn-sm btn-outline">PDF</a>`;
                 }
 
                 // Add Edit Button for Pending items (or all? usually pending/approved need fixes before payment)
@@ -175,7 +241,8 @@
                 const editBtn = `<button onclick="editarTaxa('${item.id}')" class="btn btn-sm btn-primary" style="background-color: var(--warning); border-color: var(--warning);" title="Editar">✏️</button>`;
                 
                 // Prepend edit button
-                if (item.status !== 'reprovado') {
+                const canEdit = !isGestorUser();
+                if (canEdit && item.status !== 'reprovado') {
                      if (actionBtn) {
                          // Insert inside the div
                          actionBtn = actionBtn.replace('<div style="display: flex; gap: 6px;">', '<div style="display: flex; gap: 6px;">' + editBtn);
@@ -185,8 +252,7 @@
                 }
 
                 const total = item.valores?.total_geral || '0.00';
-                const valorTaxa = item.valores?.taxa?.total || '0.00';
-                const valorVt = item.valores?.vt?.total || '0.00';
+                const valorTotalFmt = `R$ ${total}`;
 
                 tr.innerHTML = `
                     <td>
@@ -195,17 +261,18 @@
                     </td>
                     <td>${item.departamento}</td>
                     <td>${item.funcao}</td>
-                    <td style="font-family: monospace;">R$ ${valorTaxa}</td>
-                    <td style="font-family: monospace;">R$ ${valorVt}</td>
-                    <td style="font-family: monospace; font-weight: 600;">R$ ${total}</td>
+                    <td style="font-family: monospace; font-weight: 600;">${valorTotalFmt}</td>
                     <td>${statusBadge}</td>
                     <td>${actionBtn}</td>
                 `;
                 tbody.appendChild(tr);
             });
+            setLastUpdateLabel(new Date());
         } catch (error) {
             console.error('Erro ao carregar:', error);
             tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--danger); padding: 1rem;">Erro ao carregar dados. Tente novamente.</td></tr>';
+        } finally {
+            isLoading = false;
         }
     }
 
@@ -214,25 +281,95 @@
             alert('Sem dados para exportar');
             return;
         }
-
         const wb = XLSX.utils.book_new();
-        
-        // Mapear dados para formato amigável
-        const rows = globalData.map(item => ({
-            Nome: item.nome_taxa,
-            CPF: item.cpf,
-            Departamento: item.departamento,
-            Função: item.funcao,
-            'Valor Taxa (R$)': item.valores?.taxa?.total || '0.00',
-            'Valor VT (R$)': item.valores?.vt?.total || '0.00',
-            'Total (R$)': item.valores?.total_geral,
-            Status: item.status,
-            'Criado em': new Date(item.createdAt).toLocaleDateString('pt-BR')
-        }));
-
-        const ws = XLSX.utils.json_to_sheet(rows);
-        XLSX.utils.book_append_sheet(wb, ws, "Taxas");
-        XLSX.writeFile(wb, "Relatorio_Taxas.xlsx");
+        const normStr = (v) => String(v || '').trim();
+        const normUpper = (v) => normStr(v).toUpperCase();
+        const parseMoney = (v) => {
+            const n = Number(String(v || '').replace(',', '.'));
+            return isNaN(n) ? 0 : n;
+        };
+        const primeiraData = (item) => {
+            const src = item.dias_trabalhados && Array.isArray(item.dias_trabalhados) && item.dias_trabalhados[0] && item.dias_trabalhados[0].data
+                || item.created_at || item.updated_at || item.createdAt || item.updatedAt;
+            if (!src) return '';
+            try { return new Date(src).toLocaleDateString('pt-BR'); } catch { return ''; }
+        };
+        const motivosText = (m) => {
+            const arr = Array.isArray(m) ? m : [];
+            return arr.map(x => {
+                if (x === 'aumento_demanda') return 'Aumento de Demanda';
+                if (x === 'evento') return 'Evento';
+                if (x === 'vaga_aberta') return 'Vaga Aberta';
+                return normStr(x);
+            }).join(' | ');
+        };
+        const observacaoText = (item) => {
+            if (Array.isArray(item.motivo) && item.motivo.includes('evento') && normStr(item.detalhe_motivo)) {
+                return normStr(item.detalhe_motivo);
+            }
+            if (Array.isArray(item.motivo) && item.motivo.includes('vaga_aberta') && normStr(item.antecessor)) {
+                return `Antecessor: ${normStr(item.antecessor)}`;
+            }
+            return '';
+        };
+        const CLASS_MAP = {
+            'ALMOXARIFADO': 'Adm + Indiretos',
+            'ATENDIMENTO': 'Matriz',
+            'BAR': 'Matriz',
+            'CFTV': 'Adm + Indiretos',
+            'COMPRAS': 'Adm + Indiretos',
+            'CONTROLADORIA': 'Adm + Indiretos',
+            'COZINHA ATENDIMENTO': 'Adm + Indiretos',
+            'DHO': 'Adm + Indiretos',
+            'ESPACO KIDS': 'Matriz',
+            'EVENTOS': 'Adm + Indiretos',
+            'FABRICA DE MASSAS': 'Fábrica',
+            'FINANCEIRO': 'Adm + Indiretos',
+            'LAVANDERIA': 'Adm + Indiretos',
+            'LIMPEZA': 'Adm + Indiretos',
+            'MANUTENCAO': 'Adm + Indiretos',
+            'MANUTENÇÃO': 'Adm + Indiretos',
+            'MARKETING': 'Adm + Indiretos',
+            'PCP PROCESSOS': 'Adm + Indiretos',
+            'QUALIDADE': 'Adm + Indiretos',
+            'REFEITORIO': 'Adm + Indiretos',
+            'REFEITÓRIO': 'Adm + Indiretos',
+            'SALAO': 'Adm + Indiretos',
+            'SALÃO': 'Adm + Indiretos',
+            'SEAP': 'Adm + Indiretos',
+            'SEGURANCA': 'Adm + Indiretos',
+            'SEGURANÇA': 'Adm + Indiretos',
+            'SESMT': 'Adm + Indiretos',
+            'SHOPPING BARIGUI': 'Barigui',
+            'SHOPPING MUELLER': 'Mueller',
+            'SHOPPING PALLADIUM': 'Palladium',
+            'TI': 'Adm + Indiretos',
+            'TO GO MADALOSSO': 'To Go'
+        };
+        const classificar = (centro) => {
+            const key = normUpper(centro);
+            return CLASS_MAP[key] || '';
+        };
+        const rows = globalData.map(item => {
+            const setor = item.departamento || '';
+            const valor = parseMoney(item.valores?.total_geral || 0);
+            return {
+                'DATA DA TAXA': primeiraData(item),
+                'CPF': normStr(item.cpf),
+                'NOME COMPLETO': normStr(item.nome_taxa),
+                'VALOR': valor,
+                'PIX': normStr(item.pix || item.chave_pix),
+                'SETOR': normStr(setor),
+                'FUNÇÃO': normStr(item.funcao),
+                'MOTIVO': motivosText(item.motivo),
+                'OBSERVAÇÃO': observacaoText(item),
+                'CENTRO DE CUSTO': normStr(setor),
+                'CLASSIFICAÇÃO': classificar(setor)
+            };
+        });
+        const ws = XLSX.utils.json_to_sheet(rows, { header: ['DATA DA TAXA','CPF','NOME COMPLETO','VALOR','PIX','SETOR','FUNÇÃO','MOTIVO','OBSERVAÇÃO','CENTRO DE CUSTO','CLASSIFICAÇÃO'] });
+        XLSX.utils.book_append_sheet(wb, ws, "Pagamentos");
+        XLSX.writeFile(wb, `Relatorio_Pagamentos_${new Date().toISOString().split('T')[0]}.xlsx`);
     }
 
     async function aprovarTaxa(id) {
@@ -267,13 +404,154 @@
         }
     }
     
+    async function reenviarAprovacaoGestor(id) {
+        try {
+            const res = await fetch(`/api/rh/taxas/${id}/reenviar-aprovacao-gestor`, { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                alert(data.message || 'Reenviado com sucesso.');
+            } else {
+                alert(data.message || 'Erro ao reenviar.');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erro ao conectar com servidor.');
+        }
+    }
+
+    async function aprovarTaxaGestor(id) {
+        if (!confirm('Deseja aprovar esta taxa?')) return;
+        try {
+            const res = await fetch(`/api/gestor/taxas/${id}/aprovar`, { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                alert(data.message || 'Aprovado com sucesso.');
+                carregarSolicitacoes();
+            } else {
+                alert(data.message || 'Erro ao aprovar.');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erro ao conectar com servidor.');
+        }
+    }
+
+    async function solicitarAssinaturaGestor(id) {
+        if (!confirm('Deseja solicitar a assinatura do colaborador?')) return;
+        try {
+            const res = await fetch(`/api/gestor/taxas/${id}/solicitar-assinatura`, { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                alert(data.message || 'Assinatura solicitada.');
+                carregarSolicitacoes();
+            } else {
+                alert(data.message || 'Erro ao solicitar assinatura.');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erro ao conectar com servidor.');
+        }
+    }
+
+    async function reprovarTaxaGestor(id) {
+        if (!confirm('Deseja reprovar esta taxa?')) return;
+        try {
+            const res = await fetch(`/api/gestor/taxas/${id}/reprovar`, { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                alert(data.message || 'Reprovado com sucesso.');
+                carregarSolicitacoes();
+            } else {
+                alert(data.message || 'Erro ao reprovar.');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erro ao conectar com servidor.');
+        }
+    }
+    
+    async function reenviarAssinatura(id) {
+        try {
+            const res = await fetch(`/api/rh/taxas/${id}/reenviar-assinatura`, { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                alert(data.message || 'Reenviado com sucesso.');
+            } else {
+                alert(data.message || 'Erro ao reenviar.');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erro ao conectar com servidor.');
+        }
+    }
+    
+    async function copiarLinkAssinatura(id) {
+        const item = globalData.find(i => i.id === id);
+        if (!item) return alert('Item não encontrado.');
+        let token = item.signature_token || item.signatureToken;
+        if (!token) {
+            try {
+                const res = await fetch(`/api/rh/taxas/${id}/reenviar-assinatura`, { method: 'POST' });
+                const data = await res.json();
+                if (!res.ok) return alert(data.message || 'Erro ao gerar link de assinatura.');
+                token = data.token;
+                item.signature_token = token;
+            } catch (e) {
+                console.error(e);
+                return alert('Erro ao conectar com servidor.');
+            }
+        }
+        const url = `${window.location.origin}/taxas.html?token=${token}`;
+        navigator.clipboard.writeText(url).then(() => {
+            alert('Link copiado para a área de transferência.');
+        }).catch(() => {
+            prompt('Copie o link:', url);
+        });
+    }
+    
     async function gerarArquivoPagamento() {
         if (!confirm('Gerar arquivo de pagamento para todas as taxas APROVADAS?')) return;
-        window.open('/api/rh/taxas/arquivo-pagamento', '_blank');
+        const btns = document.querySelectorAll('.action-buttons .btn');
+        btns.forEach(b => b.disabled = true);
+        try {
+            const res = await fetch('/api/rh/taxas/arquivo-pagamento', { method: 'GET' });
+            if (!res.ok) {
+                const msg = await res.text();
+                alert(msg || 'Erro ao gerar arquivo.');
+                return;
+            }
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `remessa_pagamentos_${new Date().toISOString().split('T')[0]}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (e) {
+            console.error(e);
+            alert('Erro ao conectar com servidor.');
+        } finally {
+            btns.forEach(b => b.disabled = false);
+        }
+    }
+
+    function startAutoRefresh() {
+        if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+        autoRefreshTimer = setInterval(() => {
+            if (document.visibilityState === 'visible') carregarSolicitacoes();
+        }, 15000);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') carregarSolicitacoes();
+        });
     }
 
     // Carrega ao iniciar
-    document.addEventListener('DOMContentLoaded', carregarSolicitacoes);
+    document.addEventListener('DOMContentLoaded', () => {
+        carregarSolicitacoes();
+        startAutoRefresh();
+    });
   </script>
   <!-- Modal de Edição -->
   <div id="modal-edicao" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: var(--backdrop-bg);">

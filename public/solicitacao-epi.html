@@ -25,6 +25,7 @@
             align-items: center;
             justify-content: space-between;
             margin-bottom: 14px;
+            flex-wrap: wrap;
         }
         .title {
             font-weight: 900;
@@ -37,7 +38,7 @@
         }
         .grid {
             display: grid;
-            grid-template-columns: 360px 1fr;
+            grid-template-columns: minmax(320px, 420px) 1fr;
             gap: 14px;
         }
         @media (max-width: 900px) {
@@ -59,6 +60,7 @@
             font-size: 1rem;
             background: var(--card);
             color: var(--text);
+            min-height: 52px;
         }
 
         .doc-display {
@@ -114,6 +116,7 @@
             font-weight: 800;
             cursor: pointer;
             font-size: 1rem;
+            min-height: 52px;
         }
         .btn-primary { background: var(--accent); color: var(--brand-text); }
         .btn-primary:hover { background: var(--accent-hover); }
@@ -157,6 +160,7 @@
         .qty-btn {
             width: 44px;
             height: 44px;
+            min-height: 44px;
             padding: 0;
             border-radius: 12px;
             background: var(--bg);
@@ -197,9 +201,11 @@
             flex-direction: column;
             gap: 10px;
             z-index: 3000;
+            max-width: calc(100vw - 32px);
         }
         .toast {
             width: 320px;
+            max-width: 100%;
             background: var(--card);
             border: 1px solid var(--border);
             border-left: 6px solid var(--accent);
@@ -212,6 +218,144 @@
         .toast-title { font-weight: 900; margin: 0 0 4px; }
         .toast-msg { color: var(--muted); margin: 0; }
         .disabled { opacity: 0.6; pointer-events: none; }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            padding: 16px;
+        }
+        .modal {
+            width: 760px;
+            max-width: 100%;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+        }
+        .modal-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 14px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg);
+        }
+        .modal-body {
+            padding: 14px;
+        }
+        .sig-tabs{
+            display:flex;
+            gap:8px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        .sig-tab{
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-weight: 900;
+            cursor: pointer;
+        }
+        .sig-tab.active{
+            background: var(--text);
+            border-color: var(--text);
+            color: var(--brand-text);
+        }
+        .sig-area{
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        .sig-canvas{
+            width: 100%;
+            height: 220px;
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            background: #fff;
+            touch-action: none;
+        }
+        .sig-preview{
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            background: #0b1220;
+        }
+        .sig-preview video,
+        .sig-preview img{
+            width: 100%;
+            height: auto;
+            display:block;
+        }
+        .modal-actions{
+            display:flex;
+            gap:10px;
+            justify-content:flex-end;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .mode-tabs{
+            display:flex;
+            gap:8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .mode-tab{
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-weight: 900;
+            cursor: pointer;
+        }
+        .mode-tab.active{
+            background: var(--text);
+            border-color: var(--text);
+            color: var(--brand-text);
+        }
+
+        .toggle-btn{
+            width: 100%;
+            display: block;
+            padding: 14px 16px;
+            min-height: 56px;
+            font-size: 1.1rem;
+            font-weight: 900;
+            border-radius: 12px;
+        }
+        .toggle-btn.selected{
+            background: var(--accent);
+            color: var(--brand-text);
+            border-color: transparent;
+        }
+
+        @media (max-width: 900px) {
+            .wrap { padding: 14px; }
+            .top { margin-bottom: 12px; }
+            .mode-tabs { width: 100%; }
+            .mode-tab { flex: 1; }
+            .footer { flex-direction: column; align-items: stretch; }
+            .footer button { width: 100%; }
+            .qty-btn { width: 52px; height: 52px; min-height: 52px; font-size: 1.4rem; }
+            .qty-num { min-width: 52px; font-size: 1.2rem; }
+            .toast-wrap { top: 12px; right: 12px; }
+        }
+
+        @media (min-width: 901px) and (max-width: 1200px) {
+            .grid { align-items: start; }
+            .grid > .card:first-child { position: sticky; top: 14px; height: fit-content; }
+        }
     </style>
 </head>
 <body data-page="solicitacao-epi">
@@ -219,8 +363,15 @@
     <div class="wrap">
         <div class="top">
             <div>
-                <div class="title" data-translate="epi_title">Solicitação de EPI</div>
-                <div class="subtitle" data-translate="epi_subtitle">Informe CPF ou matrícula e selecione os EPIs desejados</div>
+                <div class="title" data-translate="epi_title">Solicitação / Devolução de EPI</div>
+                <div class="subtitle" id="page-subtitle" data-translate="epi_subtitle">Informe CPF ou matrícula e selecione os EPIs desejados</div>
+                <div class="muted" id="quick-help" style="margin-top:6px; font-size:0.95rem;">
+                    <span>1) Digite o CPF/matrícula</span> • <span>2) Selecione os itens</span> • <span>3) Assine e envie</span>
+                </div>
+                <div class="mode-tabs">
+                    <button class="mode-tab active" id="mode-retirada" onclick="trySetMode('retirada')">Solicitar</button>
+                    <button class="mode-tab" id="mode-devolucao" onclick="trySetMode('devolucao')">Devolver</button>
+                </div>
             </div>
             <div class="row">
                 <span class="badge" id="badge-total">0</span>
@@ -250,7 +401,7 @@
                         </div>
                     </div>
                     <div class="row">
-                        <button class="btn-ghost" id="btn-limpar" style="width:100%;" data-translate="public_clear">Limpar</button>
+                        <button class="btn-ghost" id="btn-limpar" style="width:100%;" data-translate="epi_new_employee">Novo colaborador</button>
                     </div>
                     <div class="sep"></div>
                     <div>
@@ -259,25 +410,62 @@
                     </div>
                     <div class="sep"></div>
                     <div>
-                        <div style="font-weight:900; margin-bottom:6px;" data-translate="epi_section_search">Buscar EPI</div>
+                        <div style="font-weight:900; margin-bottom:6px;" id="search-label" data-translate="epi_section_search">Buscar EPI</div>
                         <input id="search" autocomplete="off" placeholder="Digite nome do EPI..." disabled data-translate="epi_placeholder_search" />
                     </div>
                     <div class="footer">
                         <button class="btn-danger" id="btn-zerar" disabled data-translate="public_reset">Zerar</button>
                         <button class="btn-primary" id="btn-enviar" disabled data-translate="public_submit">Enviar solicitação</button>
                     </div>
-                    <div class="muted" style="margin-top:8px; font-size:0.9rem;">
-                        <span data-translate="epi_no_password">Esta tela não exige senha.</span>
-                    </div>
+                   
                 </div>
             </div>
 
             <div class="card">
                 <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;">
-                    <div style="font-weight:900;" data-translate="epi_available">EPIs disponíveis</div>
+                    <div style="font-weight:900;" id="list-title" data-translate="epi_available">EPIs disponíveis</div>
                     <button class="btn-ghost" id="btn-recarregar" disabled data-translate="public_reload">Recarregar</button>
                 </div>
                 <div id="list" class="epi-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="sig-modal" class="modal-overlay" role="dialog" aria-modal="true">
+        <div class="modal">
+            <div class="modal-header">
+                <div>
+                    <div style="font-weight:900; font-size:1.1rem;" id="sig-title">Assinatura do colaborador</div>
+                    <div class="muted" style="margin-top:4px;" id="sig-subtitle">Obrigatório para enviar a solicitação.</div>
+                </div>
+                <button class="btn-ghost" onclick="fecharAssinaturaModal()">Fechar</button>
+            </div>
+            <div class="modal-body">
+                <div class="sig-tabs">
+                    <button class="sig-tab active" id="sig-tab-assinatura" onclick="selecionarAssinaturaModo('assinatura')">Assinatura</button>
+                    <button class="sig-tab" id="sig-tab-foto" onclick="selecionarAssinaturaModo('foto')">Câmera</button>
+                </div>
+                <div class="sig-area" id="sig-area-assinatura">
+                    <canvas class="sig-canvas" id="sig-canvas"></canvas>
+                    <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
+                        <button class="btn-ghost" onclick="limparAssinatura()">Limpar</button>
+                    </div>
+                </div>
+                <div class="sig-area" id="sig-area-foto" style="display:none;">
+                    <div class="sig-preview">
+                        <video id="sig-video" playsinline autoplay muted></video>
+                        <img id="sig-foto" alt="Foto capturada" style="display:none;">
+                    </div>
+                    <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
+                        <button class="btn-ghost" onclick="iniciarCamera()">Iniciar câmera</button>
+                        <button class="btn-primary" onclick="capturarFoto()">Capturar</button>
+                        <button class="btn-ghost" onclick="limparFoto()">Limpar</button>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-ghost" onclick="fecharAssinaturaModal()">Cancelar</button>
+                    <button class="btn-primary" id="sig-btn-confirmar" onclick="confirmarEnvioAssinado()">Confirmar e enviar</button>
+                </div>
             </div>
         </div>
     </div>
@@ -287,16 +475,45 @@
             funcionario: null,
             doc: '',
             epis: [],
-            qtyById: new Map()
+            qtyById: new Map(),
+            mode: 'retirada',
+            itensEmPosse: [],
+            identifying: false,
+            autoIdentifyTimer: null
         };
+
+        let sigModo = 'assinatura';
+        let sigDesenhou = false;
+        let sigStream = null;
+        let sigFotoDataUrl = null;
+        let pendingItens = null;
+        let pendingTipo = 'retirada';
 
         function digitsOnly(v) {
             return String(v || '').replace(/\D/g, '');
         }
 
+        function formatDoc(digits) {
+            const d = digitsOnly(digits);
+            if (d.length === 0) return '';
+            if (d.length <= 11) {
+                const a = d.slice(0, 3);
+                const b = d.slice(3, 6);
+                const c = d.slice(6, 9);
+                const e = d.slice(9, 11);
+                let out = a;
+                if (b) out += '.' + b;
+                if (c) out += '.' + c;
+                if (e) out += '-' + e;
+                return out;
+            }
+            return d.slice(0, 14);
+        }
+
         function setDocValue(nextDigits) {
             const input = document.getElementById('doc');
-            input.value = String(nextDigits || '').slice(0, 14);
+            input.value = formatDoc(String(nextDigits || '').slice(0, 14));
+            maybeAutoIdentify();
         }
 
         function pressDocKey(key) {
@@ -313,6 +530,68 @@
 
         function clearDoc() {
             setDocValue('');
+        }
+
+        function maybeAutoIdentify() {
+            const raw = document.getElementById('doc').value;
+            const doc = digitsOnly(raw);
+            if (state.identifying) return;
+            if (!(doc.length === 11 || doc.length === 14)) return;
+            if (state.autoIdentifyTimer) clearTimeout(state.autoIdentifyTimer);
+            state.autoIdentifyTimer = setTimeout(() => {
+                const nowDoc = digitsOnly(document.getElementById('doc').value);
+                if (nowDoc !== doc) return;
+                identificar();
+            }, 250);
+        }
+
+        function resetParaProximo() {
+            if (state.autoIdentifyTimer) clearTimeout(state.autoIdentifyTimer);
+            state.autoIdentifyTimer = null;
+            state.identifying = false;
+
+            clearDoc();
+            const search = document.getElementById('search');
+            if (search) search.value = '';
+
+            state.doc = '';
+            state.funcionario = null;
+            state.epis = [];
+            state.qtyById = new Map();
+            state.itensEmPosse = [];
+            state.urlMode = '';
+
+            pendingItens = null;
+            pendingTipo = 'retirada';
+
+            setFuncionario(null);
+            setMode('retirada');
+            renderList();
+            updateUiEnabled();
+
+            const docEl = document.getElementById('doc');
+            if (docEl) docEl.focus();
+        }
+
+        function updateModeTabLabels() {
+            const tabRet = document.getElementById('mode-retirada');
+            const tabDev = document.getElementById('mode-devolucao');
+            if (tabRet) tabRet.textContent = 'Solicitar';
+            const posseCount = Array.isArray(state.itensEmPosse) ? state.itensEmPosse.length : 0;
+            if (tabDev) tabDev.textContent = posseCount > 0 ? `Devolver (${posseCount})` : 'Devolver';
+        }
+
+        function trySetMode(nextMode) {
+            const identified = Boolean(state.funcionario && state.funcionario.id);
+            if (!identified) {
+                showToast('Aviso', 'Digite CPF/matrícula e toque em Continuar.', 'error');
+                return;
+            }
+            if (nextMode === 'devolucao' && (!Array.isArray(state.itensEmPosse) || state.itensEmPosse.length === 0)) {
+                showToast('Aviso', 'Este colaborador não possui itens em posse para devolução.', 'error');
+                return;
+            }
+            setMode(nextMode);
         }
 
         function escapeHtml(input) {
@@ -344,6 +623,37 @@
             return t;
         }
 
+        function setMode(nextMode) {
+            const mode = nextMode === 'devolucao' ? 'devolucao' : 'retirada';
+            state.mode = mode;
+            state.qtyById = new Map();
+
+            const tabRet = document.getElementById('mode-retirada');
+            const tabDev = document.getElementById('mode-devolucao');
+            if (tabRet) tabRet.classList.toggle('active', mode === 'retirada');
+            if (tabDev) tabDev.classList.toggle('active', mode === 'devolucao');
+
+            const subtitle = document.getElementById('page-subtitle');
+            if (subtitle) {
+                subtitle.textContent =
+                    mode === 'retirada'
+                        ? 'Informe CPF ou matrícula e selecione os EPIs desejados'
+                        : 'Informe CPF ou matrícula e selecione os EPIs para devolução';
+            }
+
+            const searchLabel = document.getElementById('search-label');
+            if (searchLabel) searchLabel.textContent = mode === 'retirada' ? 'Buscar EPI' : 'Buscar em posse';
+
+            const btnEnviar = document.getElementById('btn-enviar');
+            if (btnEnviar) btnEnviar.textContent = mode === 'retirada' ? 'Enviar solicitação' : 'Enviar devolução';
+
+            const listTitle = document.getElementById('list-title');
+            if (listTitle) listTitle.textContent = mode === 'retirada' ? 'EPIs disponíveis' : 'EPIs em posse';
+
+            renderList();
+            updateUiEnabled();
+        }
+
         function updateUiEnabled() {
             const identified = Boolean(state.funcionario && state.funcionario.id);
             const total = totalSelected();
@@ -352,6 +662,11 @@
             document.getElementById('btn-zerar').disabled = !identified || total === 0;
             document.getElementById('btn-enviar').disabled = !identified || total === 0;
             document.getElementById('badge-total').textContent = String(total);
+            const tabRet = document.getElementById('mode-retirada');
+            const tabDev = document.getElementById('mode-devolucao');
+            if (tabRet) tabRet.disabled = !identified;
+            if (tabDev) tabDev.disabled = !identified || !Array.isArray(state.itensEmPosse) || state.itensEmPosse.length === 0;
+            updateModeTabLabels();
         }
 
         function setFuncionario(func) {
@@ -361,12 +676,7 @@
                 el.textContent = 'Não identificado';
                 return;
             }
-            const parts = [
-                func.nome ? func.nome : '',
-                func.cargo ? func.cargo : '',
-                func.setor ? func.setor : ''
-            ].filter(Boolean);
-            el.textContent = parts.join(' • ') || 'Identificado';
+            el.textContent = (func.nome ? String(func.nome) : '').trim() || 'Identificado';
         }
 
         function renderList() {
@@ -374,12 +684,32 @@
             const term = String(document.getElementById('search').value || '').toLowerCase().trim();
             list.innerHTML = '';
 
+            const posseIds = Array.isArray(state.itensEmPosse) ? state.itensEmPosse.map(x => String(x)) : [];
+            const posseSet = new Set(posseIds);
+            const epiMap = new Map((state.epis || []).map(e => [String(e.id), e]));
+            const baseList = state.mode === 'devolucao'
+                ? [
+                    ...(state.epis || []).filter(e => posseSet.has(String(e.id))),
+                    ...posseIds.filter(id => !epiMap.has(String(id))).map(id => ({ id, nome: id, estoque: null }))
+                ]
+                : (state.epis || []);
+
             const filtered = term
-                ? state.epis.filter(e => String(e.nome || '').toLowerCase().includes(term))
-                : state.epis;
+                ? baseList.filter(e => String(e.nome || '').toLowerCase().includes(term))
+                : baseList;
 
             if (!state.funcionario) {
                 list.innerHTML = '<div class="muted">Informe CPF/matrícula para carregar os EPIs.</div>';
+                return;
+            }
+
+            if (state.mode === 'devolucao' && posseIds.length === 0) {
+                list.innerHTML = `
+                    <div style="grid-column:1/-1; padding:14px; border:1px solid var(--border); background:var(--card); border-radius:12px;">
+                        <div style="font-weight:700; margin-bottom:6px;">Nenhum EPI em posse para devolução</div>
+                        <div class="muted">Se este colaborador já retirou EPIs, confirme se a retirada foi registrada no sistema.</div>
+                    </div>
+                `;
                 return;
             }
 
@@ -393,23 +723,42 @@
                 const qty = Number(state.qtyById.get(id) || 0);
                 const div = document.createElement('div');
                 div.className = 'epi';
-                div.dataset.name = String(epi.nome || '').toLowerCase();
-                div.innerHTML = `
-                    <div class="epi-head">
-                        <div>
-                            <div class="epi-name">${escapeHtml(epi.nome || id)}</div>
-                            <div class="epi-meta">Estoque: ${escapeHtml(epi.estoque ?? 0)} • #${escapeHtml(id)}</div>
+                if (state.mode === 'devolucao') {
+                    const selected = qty > 0;
+                    div.innerHTML = `
+                        <div class="epi-head">
+                            <div>
+                                <div class="epi-name">${escapeHtml(epi.nome || id)}</div>
+                                <div class="epi-meta">Em posse</div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="qty">
-                        <div class="muted">Quantidade</div>
-                        <div class="qty-controls">
-                            <button class="qty-btn" data-act="dec" data-id="${escapeHtml(id)}">-</button>
-                            <div class="qty-num" id="qty-${escapeHtml(id)}">${qty}</div>
-                            <button class="qty-btn" data-act="inc" data-id="${escapeHtml(id)}">+</button>
+                        <div class="qty devolucao">
+                            <div class="muted">Selecionar para devolver</div>
+                            <div class="qty-controls" style="width:100%;">
+                                <button class="toggle-btn ${selected ? 'selected' : ''}" data-act="toggle" data-id="${escapeHtml(id)}">${selected ? 'Selecionado' : 'Selecionar'}</button>
+                                <div class="qty-num" id="qty-${escapeHtml(id)}">${selected ? 1 : 0}</div>
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                } else {
+                    const isOut = !(Number(epi.estoque ?? 0) > 0);
+                    div.innerHTML = `
+                        <div class="epi-head">
+                            <div>
+                                <div class="epi-name">${escapeHtml(epi.nome || id)}</div>
+                                <div class="epi-meta">Estoque: ${escapeHtml(epi.estoque ?? 0)}</div>
+                            </div>
+                        </div>
+                        <div class="qty">
+                            <div class="muted">Quantidade</div>
+                            <div class="qty-controls">
+                                <button class="qty-btn" data-act="dec" data-id="${escapeHtml(id)}">-</button>
+                                <div class="qty-num" id="qty-${escapeHtml(id)}">${qty}</div>
+                                <button class="qty-btn" data-act="inc" data-id="${escapeHtml(id)}" ${isOut ? 'disabled' : ''}>+</button>
+                            </div>
+                        </div>
+                    `;
+                }
                 list.appendChild(div);
             });
 
@@ -423,6 +772,8 @@
                 showToast('Aviso', 'Informe CPF ou matrícula.', 'error');
                 return;
             }
+            if (state.identifying) return;
+            state.identifying = true;
             state.doc = doc;
             state.qtyById = new Map();
             setFuncionario(null);
@@ -437,10 +788,22 @@
                     return;
                 }
                 setFuncionario(data.funcionario);
+                state.itensEmPosse = Array.isArray(data.itensEmPosse) ? data.itensEmPosse.map(x => String(x)) : [];
+                showToast('Ok', `Identificado. Itens em posse: ${state.itensEmPosse.length}`, 'success');
+                if (!state.urlMode && state.mode !== 'devolucao' && state.itensEmPosse.length > 0) {
+                    setMode('devolucao');
+                }
                 await carregarEpis();
+                const search = document.getElementById('search');
+                if (search) search.focus();
+                const listTitle = document.getElementById('list-title');
+                if (listTitle && window.innerWidth <= 900) {
+                    listTitle.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
             } catch (e) {
                 showToast('Erro', 'Erro de conexão.', 'error');
             } finally {
+                state.identifying = false;
                 updateUiEnabled();
             }
         }
@@ -467,25 +830,290 @@
 
         async function enviar() {
             if (!state.funcionario) return;
-            const itens = [];
-            state.qtyById.forEach((q, id) => {
-                const n = Number(q || 0);
-                for (let i = 0; i < n; i++) itens.push(String(id));
-            });
+            let itens = [];
+            if (state.mode === 'devolucao') {
+                itens = Array.from(state.qtyById.keys()).map(x => String(x));
+            } else {
+                state.qtyById.forEach((q, id) => {
+                    const n = Number(q || 0);
+                    for (let i = 0; i < n; i++) itens.push(String(id));
+                });
+            }
             if (itens.length === 0) {
-                showToast('Aviso', 'Selecione ao menos 1 EPI.', 'error');
+                showToast('Aviso', state.mode === 'devolucao' ? 'Selecione ao menos 1 EPI para devolução.' : 'Selecione ao menos 1 EPI.', 'error');
                 return;
             }
 
+            pendingItens = itens;
+            pendingTipo = state.mode;
+            abrirAssinaturaModal();
+        }
+
+        function selecionarAssinaturaModo(modo) {
+            sigModo = modo === 'foto' ? 'foto' : 'assinatura';
+            const tabAss = document.getElementById('sig-tab-assinatura');
+            const tabFoto = document.getElementById('sig-tab-foto');
+            const areaAss = document.getElementById('sig-area-assinatura');
+            const areaFoto = document.getElementById('sig-area-foto');
+            if (tabAss) tabAss.classList.toggle('active', sigModo === 'assinatura');
+            if (tabFoto) tabFoto.classList.toggle('active', sigModo === 'foto');
+            if (areaAss) areaAss.style.display = sigModo === 'assinatura' ? 'grid' : 'none';
+            if (areaFoto) areaFoto.style.display = sigModo === 'foto' ? 'grid' : 'none';
+            if (sigModo === 'assinatura') {
+                requestAnimationFrame(() => {
+                    prepararCanvasAssinatura();
+                });
+            }
+        }
+
+        function abrirAssinaturaModal() {
+            sigDesenhou = false;
+            sigFotoDataUrl = null;
+            selecionarAssinaturaModo('assinatura');
+            pararCamera();
+            limparFoto();
+            const title = document.getElementById('sig-title');
+            const subtitle = document.getElementById('sig-subtitle');
+            if (title) title.textContent = state.mode === 'devolucao' ? 'Assinatura para devolução' : 'Assinatura do colaborador';
+            if (subtitle) subtitle.textContent = state.mode === 'devolucao' ? 'Obrigatório para enviar a devolução.' : 'Obrigatório para enviar a solicitação.';
+            document.getElementById('sig-modal').style.display = 'flex';
+            requestAnimationFrame(() => {
+                prepararCanvasAssinatura();
+                limparAssinatura();
+            });
+        }
+
+        function fecharAssinaturaModal() {
+            document.getElementById('sig-modal').style.display = 'none';
+            pararCamera();
+        }
+
+        function prepararCanvasAssinatura() {
+            const canvas = document.getElementById('sig-canvas');
+            if (!canvas) return;
+            const ratio = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = Math.max(1, Math.floor(rect.width * ratio));
+            canvas.height = Math.max(1, Math.floor(rect.height * ratio));
+            const ctx = canvas.getContext('2d');
+            ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = '#0f172a';
+
+            const stateDraw = { drawing: false, last: null };
+            const getPoint = (e) => {
+                const r = canvas.getBoundingClientRect();
+                return { x: (e.clientX - r.left), y: (e.clientY - r.top) };
+            };
+            const start = (e) => {
+                stateDraw.drawing = true;
+                stateDraw.last = getPoint(e);
+                sigDesenhou = true;
+                if (e && e.pointerId != null) {
+                    try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+                }
+            };
+            const move = (e) => {
+                if (!stateDraw.drawing) return;
+                const p = getPoint(e);
+                const prev = stateDraw.last;
+                if (!prev) {
+                    stateDraw.last = p;
+                    return;
+                }
+                ctx.beginPath();
+                ctx.moveTo(prev.x, prev.y);
+                ctx.lineTo(p.x, p.y);
+                ctx.stroke();
+                stateDraw.last = p;
+            };
+            const end = (e) => {
+                stateDraw.drawing = false;
+                stateDraw.last = null;
+                if (e && e.pointerId != null) {
+                    try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+                }
+            };
+            const supportsPointer = typeof window !== 'undefined' && 'PointerEvent' in window;
+            if (supportsPointer) {
+                canvas.onpointerdown = start;
+                canvas.onpointermove = move;
+                canvas.onpointerup = end;
+                canvas.onpointercancel = end;
+                canvas.onmousedown = null;
+                canvas.onmousemove = null;
+                canvas.onmouseup = null;
+                canvas.ontouchstart = null;
+                canvas.ontouchmove = null;
+                canvas.ontouchend = null;
+                canvas.ontouchcancel = null;
+                return;
+            }
+
+            canvas.onmousedown = (e) => start(e);
+            canvas.onmousemove = (e) => move(e);
+            canvas.onmouseup = () => end({});
+            canvas.onmouseleave = () => end({});
+
+            const touchPoint = (touchEvent) => {
+                const t = touchEvent.touches && touchEvent.touches[0] ? touchEvent.touches[0] : null;
+                if (!t) return null;
+                const r = canvas.getBoundingClientRect();
+                return { x: t.clientX - r.left, y: t.clientY - r.top };
+            };
+
+            canvas.ontouchstart = (e) => {
+                e.preventDefault();
+                const p = touchPoint(e);
+                if (!p) return;
+                stateDraw.drawing = true;
+                stateDraw.last = p;
+                sigDesenhou = true;
+            };
+            canvas.ontouchmove = (e) => {
+                e.preventDefault();
+                if (!stateDraw.drawing) return;
+                const p = touchPoint(e);
+                const prev = stateDraw.last;
+                if (!p || !prev) return;
+                ctx.beginPath();
+                ctx.moveTo(prev.x, prev.y);
+                ctx.lineTo(p.x, p.y);
+                ctx.stroke();
+                stateDraw.last = p;
+            };
+            canvas.ontouchend = (e) => {
+                e.preventDefault();
+                end({});
+            };
+            canvas.ontouchcancel = (e) => {
+                e.preventDefault();
+                end({});
+            };
+        }
+
+        function limparAssinatura() {
+            const canvas = document.getElementById('sig-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            sigDesenhou = false;
+        }
+
+        async function iniciarCamera() {
+            try {
+                const video = document.getElementById('sig-video');
+                const img = document.getElementById('sig-foto');
+                if (img) img.style.display = 'none';
+                if (!video) return;
+                pararCamera();
+                sigStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+                video.srcObject = sigStream;
+                await video.play();
+            } catch (e) {
+                showToast('Erro', 'Não foi possível acessar a câmera.', 'error');
+            }
+        }
+
+        function pararCamera() {
+            try {
+                const video = document.getElementById('sig-video');
+                if (video) video.srcObject = null;
+                if (sigStream) sigStream.getTracks().forEach(t => t.stop());
+            } catch (_) {}
+            sigStream = null;
+        }
+
+        function capturarFoto() {
+            const video = document.getElementById('sig-video');
+            const img = document.getElementById('sig-foto');
+            if (!video || !img) return;
+            const w = video.videoWidth || 0;
+            const h = video.videoHeight || 0;
+            if (!w || !h) {
+                showToast('Aviso', 'Câmera não está pronta.', 'error');
+                return;
+            }
+            const c = document.createElement('canvas');
+            const maxW = 900;
+            const scale = Math.min(1, maxW / w);
+            c.width = Math.floor(w * scale);
+            c.height = Math.floor(h * scale);
+            const ctx = c.getContext('2d');
+            ctx.drawImage(video, 0, 0, c.width, c.height);
+            sigFotoDataUrl = c.toDataURL('image/jpeg', 0.85);
+            img.src = sigFotoDataUrl;
+            img.style.display = 'block';
+        }
+
+        function limparFoto() {
+            sigFotoDataUrl = null;
+            const img = document.getElementById('sig-foto');
+            if (img) {
+                img.removeAttribute('src');
+                img.style.display = 'none';
+            }
+        }
+
+        function exportarAssinaturaCompacta(canvas) {
+            if (!canvas) return null;
+            const srcW = canvas.width || 0;
+            const srcH = canvas.height || 0;
+            if (!srcW || !srcH) return null;
+
+            const maxW = 900;
+            const maxH = 260;
+            const scale = Math.min(1, maxW / srcW, maxH / srcH);
+            const outW = Math.max(1, Math.floor(srcW * scale));
+            const outH = Math.max(1, Math.floor(srcH * scale));
+
+            const out = document.createElement('canvas');
+            out.width = outW;
+            out.height = outH;
+            const ctx = out.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, outW, outH);
+            ctx.drawImage(canvas, 0, 0, outW, outH);
+            return out.toDataURL('image/jpeg', 0.82);
+        }
+
+        async function confirmarEnvioAssinado() {
+            if (!state.funcionario || !pendingItens || pendingItens.length === 0) return;
+
+            let assinatura = null;
+            let assinatura_tipo = null;
+            let evidencia_foto = null;
+
+            if (sigModo === 'assinatura') {
+                if (!sigDesenhou) {
+                    showToast('Aviso', 'Assine no campo ou use a câmera.', 'error');
+                    return;
+                }
+                const canvas = document.getElementById('sig-canvas');
+                assinatura = exportarAssinaturaCompacta(canvas);
+                assinatura_tipo = 'canvas_jpeg';
+            } else {
+                if (!sigFotoDataUrl) {
+                    showToast('Aviso', 'Capture uma foto ou use assinatura.', 'error');
+                    return;
+                }
+                evidencia_foto = sigFotoDataUrl;
+            }
+
             const btn = document.getElementById('btn-enviar');
+            const btnConfirm = document.getElementById('sig-btn-confirmar');
             btn.classList.add('disabled');
             btn.textContent = 'Enviando...';
+            if (btnConfirm) btnConfirm.classList.add('disabled');
+            if (btnConfirm) btnConfirm.textContent = 'Enviando...';
 
             try {
                 const res = await fetch('/api/epi/solicitacoes', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                    body: JSON.stringify({ funcionario_id: state.funcionario.id, itens_solicitados: itens })
+                    body: JSON.stringify({ funcionario_id: state.funcionario.id, tipo: pendingTipo, itens_solicitados: pendingItens, assinatura, assinatura_tipo, evidencia_foto })
                 });
                 const data = await res.json();
                 if (!data || !data.ok) {
@@ -493,29 +1121,29 @@
                     return;
                 }
                 state.qtyById = new Map();
+                if (pendingTipo === 'devolucao') {
+                    const setSent = new Set((pendingItens || []).map(x => String(x)));
+                    state.itensEmPosse = (state.itensEmPosse || []).filter(id => !setSent.has(String(id)));
+                }
                 renderList();
-                showToast('Sucesso', 'Solicitação enviada para a portaria.', 'success');
+                showToast('Sucesso', pendingTipo === 'devolucao' ? 'Devolução enviada para a portaria.' : 'Solicitação enviada para a portaria.', 'success');
+                pendingItens = null;
+                fecharAssinaturaModal();
+                resetParaProximo();
             } catch (e) {
                 showToast('Erro', 'Erro de conexão.', 'error');
             } finally {
                 btn.classList.remove('disabled');
-                btn.textContent = 'Enviar solicitação';
+                btn.textContent = state.mode === 'devolucao' ? 'Enviar devolução' : 'Enviar solicitação';
+                if (btnConfirm) btnConfirm.classList.remove('disabled');
+                if (btnConfirm) btnConfirm.textContent = 'Confirmar e enviar';
                 updateUiEnabled();
             }
         }
 
         const btnLimpar = document.getElementById('btn-limpar');
         if (btnLimpar) btnLimpar.onclick = () => {
-            clearDoc();
-            const search = document.getElementById('search');
-            if (search) search.value = '';
-            state.doc = '';
-            state.funcionario = null;
-            state.epis = [];
-            state.qtyById = new Map();
-            setFuncionario(null);
-            renderList();
-            updateUiEnabled();
+            resetParaProximo();
         };
 
         const btnRecarregar = document.getElementById('btn-recarregar');
@@ -553,6 +1181,20 @@
             const id = String(btn.getAttribute('data-id') || '');
             const act = String(btn.getAttribute('data-act') || '');
             const cur = Number(state.qtyById.get(id) || 0);
+            if (state.mode === 'devolucao') {
+                const next = cur ? 0 : 1;
+                if (next === 0) state.qtyById.delete(id);
+                else state.qtyById.set(id, 1);
+                const qtyEl = document.getElementById(`qty-${id}`);
+                if (qtyEl) qtyEl.textContent = String(next);
+                const toggleBtn = btn;
+                if (toggleBtn) {
+                    toggleBtn.textContent = next ? 'Selecionado' : 'Selecionar';
+                    toggleBtn.classList.toggle('selected', !!next);
+                }
+                updateUiEnabled();
+                return;
+            }
             const next = act === 'inc' ? (cur + 1) : Math.max(0, cur - 1);
             if (next === 0) state.qtyById.delete(id);
             else state.qtyById.set(id, next);
@@ -561,8 +1203,28 @@
             updateUiEnabled();
         });
 
-        renderList();
-        updateUiEnabled();
+        (function initFromUrl() {
+            try {
+                const params = new URLSearchParams(window.location.search || '');
+                const mode = String(params.get('mode') || '').trim().toLowerCase();
+                const doc = digitsOnly(String(params.get('doc') || ''));
+                if (mode === 'devolucao' || mode === 'retirada') {
+                    state.urlMode = mode;
+                    setMode(mode);
+                } else {
+                    state.urlMode = '';
+                    setMode('retirada');
+                }
+                if (doc) {
+                    const docEl = document.getElementById('doc');
+                    if (docEl) docEl.value = formatDoc(String(doc));
+                    requestAnimationFrame(() => identificar());
+                }
+            } catch (_) {
+                state.urlMode = '';
+                setMode('retirada');
+            }
+        })();
     </script>
 </body>
 </html>

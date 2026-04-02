@@ -12,6 +12,9 @@
 <body data-page="rh-index">
   
   <main class="portal-container">
+    <div style="margin-bottom: 20px;">
+        <a href="/" style="color: var(--muted); text-decoration: none; font-size: 0.9rem;">&larr; Voltar ao Portal de Formulários</a>
+    </div>
     <div class="portal-logo-container">
         <img class="brand-logo portal-logo" src="/assets/logo.png" alt="Logo Família Madalosso">
     </div>
@@ -20,6 +23,8 @@
         <h1 class="page-title" data-translate="rh_portal_title">Portal do RH</h1>
         <p class="page-subtitle" data-translate="rh_portal_subtitle">Selecione o módulo que deseja acessar</p>
     </div>
+
+    <div id="dp-alerts" style="display:none; margin: 16px 0; padding: 14px 16px; border-radius: 12px; border: 1px solid #fbbf24; background: #fffbeb; color: #78350f;"></div>
 
     <div class="portal-grid">
         <a href="/protected/dashboard-rh.html" class="portal-card">
@@ -75,6 +80,18 @@
             <h2 data-translate="rh_card_funcionarios_title">Funcionários</h2>
             <p data-translate="rh_card_funcionarios_desc">Cadastro e importação de base de funcionários (CPF/Matrícula).</p>
         </a>
+        
+        <a href="/protected/dashboard-beneficios.html" class="portal-card">
+            <div class="card-icon">💳</div>
+            <h2>Benefícios</h2>
+            <p>Consulta de últimas compras de VT e benefícios por colaborador.</p>
+        </a>
+
+        <a href="/protected/dashboard-disciplinar.html" class="portal-card">
+            <div class="card-icon">⚠️</div>
+            <h2>Advertências e Suspensões</h2>
+            <p>Gestão de ocorrências disciplinares por colaborador.</p>
+        </a>
 
         <a href="/protected/dashboard-desligamento.html" class="portal-card">
             <div class="card-icon">🚪</div>
@@ -119,9 +136,34 @@
                             <th style="padding: 8px 6px;">Cargo</th>
                             <th style="padding: 8px 6px;">Setor</th>
                             <th style="padding: 8px 6px;">Matrícula</th>
+                            <th style="padding: 8px 6px;">Período de Experiência</th>
+                            <th style="padding: 8px 6px;">Estabilidade</th>
+                            <th style="padding: 8px 6px;">Ações</th>
                         </tr>
                     </thead>
                     <tbody id="gestor-equipe-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div id="gestor-ferias-section" style="display:none; margin-top: 24px;">
+        <h2 style="margin: 0 0 10px 0; font-size: 1.1rem; color: var(--text-primary);">Férias da Equipe</h2>
+        <div style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+            <div id="gestor-ferias-loading" style="color: var(--text-secondary); font-size: 0.9rem;">Carregando...</div>
+            <div id="gestor-ferias-empty" style="display:none; color: var(--text-secondary); font-size: 0.9rem;">Nenhuma solicitação encontrada.</div>
+            <div style="overflow-x:auto;">
+                <table id="gestor-ferias-table" style="width:100%; border-collapse: collapse; display:none;">
+                    <thead>
+                        <tr style="text-align:left; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 0.85rem;">
+                            <th style="padding: 8px 6px;">Colaborador</th>
+                            <th style="padding: 8px 6px;">Setor</th>
+                            <th style="padding: 8px 6px;">Início</th>
+                            <th style="padding: 8px 6px;">Período</th>
+                            <th style="padding: 8px 6px;">Status</th>
+                            <th style="padding: 8px 6px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gestor-ferias-body"></tbody>
                 </table>
             </div>
         </div>
@@ -135,7 +177,7 @@
   <script>
     async function checkAccess() {
         try {
-            const res = await fetch('/api/access');
+            const res = await fetch('/api/access', { cache: 'no-store' });
             if (res.status === 401 || res.status === 403) {
                 window.location.href = '/login.html';
                 return;
@@ -150,7 +192,8 @@
             const cards = document.querySelectorAll('.portal-card');
             cards.forEach(card => {
                 const href = card.getAttribute('href');
-                if (role === 'admin' || allowed.has(href)) {
+                const canSeeDisciplinar = href === '/protected/dashboard-disciplinar.html' && ['admin', 'rh', 'rh_geral', 'dp'].includes(role);
+                if (role === 'admin' || allowed.has(href) || canSeeDisciplinar) {
                     card.style.display = ''; 
                 } else {
                     card.style.display = 'none';
@@ -194,13 +237,60 @@
                 infoDiv.appendChild(logoutBtn);
             }
 
+            await renderDpAlerts(role);
+
             if (role === 'gestor') {
                 renderEquipeGestor();
+                renderFeriasEquipeGestor();
             }
 
         } catch (e) {
             console.error(e);
             // window.location.href = '/login.html'; // Optional: Redirect on error
+        }
+    }
+
+    async function renderDpAlerts(role) {
+        const container = document.getElementById('dp-alerts');
+        if (!container) return;
+
+        if (role !== 'dp') {
+            container.style.display = 'none';
+            container.innerHTML = '';
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/rh/alertas', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.ok) throw new Error(data.erro || 'Falha ao carregar alertas');
+
+            const vagasTotal = Number(data.vagas_desligamento?.total || 0);
+            const expTotal = Number(data.experiencia?.total || 0);
+            const feriasTotal = Number(data.ferias_aquisitivo?.total || 0);
+            const total = vagasTotal + expTotal + feriasTotal;
+
+            if (!total) {
+                container.style.display = 'none';
+                container.innerHTML = '';
+                return;
+            }
+
+            const parts = [];
+            parts.push(`<div style="font-weight:900; letter-spacing:0.02em; margin-bottom:6px;">Alertas DP</div>`);
+            parts.push(`<div style="font-size:0.95rem; margin-bottom:10px;">Há <strong>${total}</strong> item(ns) em atenção.</div>`);
+            parts.push('<div style="display:flex; flex-wrap:wrap; gap:10px;">');
+            if (vagasTotal) parts.push(`<a href="/protected/dashboard-vagas.html" style="text-decoration:none; color: inherit; border:1px solid #fed7aa; background:#fff7ed; padding:8px 10px; border-radius:10px; font-weight:800;">Vagas (desligamento): ${vagasTotal}</a>`);
+            if (expTotal) parts.push(`<a href="/protected/dashboard-experiencia.html" style="text-decoration:none; color: inherit; border:1px solid #fed7aa; background:#fff7ed; padding:8px 10px; border-radius:10px; font-weight:800;">Experiência (45/90): ${expTotal}</a>`);
+            if (feriasTotal) parts.push(`<a href="/protected/dashboard-rh.html" style="text-decoration:none; color: inherit; border:1px solid #fed7aa; background:#fff7ed; padding:8px 10px; border-radius:10px; font-weight:800;">Férias (aquisitivo): ${feriasTotal}</a>`);
+            parts.push('</div>');
+
+            container.innerHTML = parts.join('');
+            container.style.display = '';
+        } catch (e) {
+            container.style.display = 'none';
+            container.innerHTML = '';
+            console.error(e);
         }
     }
     
@@ -223,6 +313,21 @@
                 empty.style.display = '';
                 return;
             }
+            // Optional: carregar avaliações de experiência para inferir status
+            let experienciaMap = new Map();
+            try {
+                const avRes = await fetch('/api/avaliacoes?tipo=experiencia', { headers: { 'Accept': 'application/json' } });
+                if (avRes.ok) {
+                    const avs = await avRes.json();
+                    avs.forEach(a => {
+                        const fid = String(a.funcionario || a.avaliado || '').trim();
+                        if (!fid) return;
+                        const list = experienciaMap.get(fid) || [];
+                        list.push(a);
+                        experienciaMap.set(fid, list);
+                    });
+                }
+            } catch (_) {}
             tbody.innerHTML = '';
             equipe.forEach(f => {
                 const tr = document.createElement('tr');
@@ -239,15 +344,189 @@
                 const tdMatricula = document.createElement('td');
                 tdMatricula.style.padding = '8px 6px';
                 tdMatricula.textContent = f.matricula || '';
+                const tdPeriodo = document.createElement('td');
+                tdPeriodo.style.padding = '8px 6px';
+                // Sem data de admissão no schema atual; exibir informação das avaliações, se houver
+                const avs = experienciaMap.get(String(f.id)) || [];
+                if (avs.length > 0) {
+                    // Mostra a data da avaliação mais recente como referência de acompanhamento
+                    avs.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+                    const dt = new Date(avs[0].createdAt);
+                    tdPeriodo.textContent = `Acompanhado desde ${dt.toLocaleDateString()}`;
+                } else {
+                    tdPeriodo.textContent = '—';
+                }
+                const tdEstabilidade = document.createElement('td');
+                tdEstabilidade.style.padding = '8px 6px';
+                // Heurística simples: se há avaliações de experiência recentes (< 90 dias), considerar em experiência
+                let statusEstabilidade = 'Desconhecido';
+                if (avs.length > 0) {
+                    const now = Date.now();
+                    const recent = avs.find(a => (now - new Date(a.createdAt).getTime()) <= (90 * 24 * 60 * 60 * 1000));
+                    statusEstabilidade = recent ? 'Em experiência' : 'Com estabilidade';
+                }
+                tdEstabilidade.textContent = statusEstabilidade;
+                const tdAcoes = document.createElement('td');
+                tdAcoes.style.padding = '8px 6px';
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-sm btn-outline';
+                btn.textContent = 'Enviar alerta';
+                btn.onclick = () => enviarAlertaFuncionario(f, statusEstabilidade);
+                tdAcoes.appendChild(btn);
                 tr.appendChild(tdNome);
                 tr.appendChild(tdCargo);
                 tr.appendChild(tdSetor);
                 tr.appendChild(tdMatricula);
+                tr.appendChild(tdPeriodo);
+                tr.appendChild(tdEstabilidade);
+                tr.appendChild(tdAcoes);
                 tbody.appendChild(tr);
             });
             table.style.display = '';
         } catch (e) {
             loading.textContent = 'Erro ao carregar equipe';
+        }
+    }
+
+    function formatStatusFerias(status) {
+        switch (String(status || '')) {
+            case 'pendente_rh': return 'Pendente RH';
+            case 'pendente_gestor': return 'Ajuste solicitado';
+            case 'aguardando_assinatura': return 'Aguardando assinatura';
+            case 'assinado': return 'Assinado (pendente)';
+            case 'concluido': return 'Concluído';
+            case 'reprovado': return 'Reprovado';
+            default: return status || '—';
+        }
+    }
+
+    async function renderFeriasEquipeGestor() {
+        const section = document.getElementById('gestor-ferias-section');
+        const loading = document.getElementById('gestor-ferias-loading');
+        const empty = document.getElementById('gestor-ferias-empty');
+        const table = document.getElementById('gestor-ferias-table');
+        const tbody = document.getElementById('gestor-ferias-body');
+
+        section.style.display = '';
+        loading.style.display = '';
+        empty.style.display = 'none';
+        table.style.display = 'none';
+
+        try {
+            const res = await fetch('/api/gestor/solicitacoes', { headers: { 'Accept': 'application/json' }, credentials: 'include' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.ok) throw new Error(data.erro || 'Falha ao carregar solicitações');
+
+            const lista = Array.isArray(data.solicitacoes) ? data.solicitacoes : [];
+            loading.style.display = 'none';
+
+            if (lista.length === 0) {
+                empty.style.display = '';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            lista.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid var(--border)';
+
+                const tdNome = document.createElement('td');
+                tdNome.style.padding = '8px 6px';
+                tdNome.textContent = item.nome || '';
+
+                const tdSetor = document.createElement('td');
+                tdSetor.style.padding = '8px 6px';
+                tdSetor.textContent = item.setor || '';
+
+                const tdInicio = document.createElement('td');
+                tdInicio.style.padding = '8px 6px';
+                tdInicio.textContent = item.inicio ? new Date(item.inicio).toLocaleDateString('pt-BR') : '—';
+
+                const tdPeriodo = document.createElement('td');
+                tdPeriodo.style.padding = '8px 6px';
+                tdPeriodo.textContent = item.tipoGozo || item.tipo_gozo || '—';
+
+                const tdStatus = document.createElement('td');
+                tdStatus.style.padding = '8px 6px';
+                tdStatus.textContent = formatStatusFerias(item.status);
+
+                const tdAcoes = document.createElement('td');
+                tdAcoes.style.padding = '8px 6px';
+                const btnVer = document.createElement('a');
+                btnVer.className = 'btn btn-sm btn-outline';
+                btnVer.textContent = 'Ver';
+                btnVer.href = `/ferias.html?id=${encodeURIComponent(item.id)}`;
+                tdAcoes.appendChild(btnVer);
+
+                tr.appendChild(tdNome);
+                tr.appendChild(tdSetor);
+                tr.appendChild(tdInicio);
+                tr.appendChild(tdPeriodo);
+                tr.appendChild(tdStatus);
+                tr.appendChild(tdAcoes);
+                tbody.appendChild(tr);
+            });
+
+            table.style.display = '';
+        } catch (_) {
+            loading.textContent = 'Erro ao carregar solicitações';
+        }
+    }
+    
+    async function enviarAlertaFuncionario(func, estabilidade) {
+        try {
+            const defaultSubject = `Alerta do colaborador ${func.nome || ''}`;
+            const defaultBody = `Colaborador: ${func.nome || ''}\nMatrícula: ${func.matricula || ''}\nSetor: ${func.setor || ''}\nCargo: ${func.cargo || ''}\nEstabilidade: ${estabilidade || 'Desconhecido'}\n\nObservações:`;
+            const to = '';
+            const { value: formValues } = await Swal.fire({
+                title: 'Enviar alerta',
+                html: `
+                    <div style="text-align:left; display:flex; flex-direction:column; gap:10px;">
+                        <div>
+                            <div style="font-size:0.8rem; font-weight:700; color: var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:6px;">Destinatário (email)</div>
+                            <input id="alert-to" class="swal2-input" value="${to}" placeholder="ex: rh@empresa.com">
+                        </div>
+                        <div>
+                            <div style="font-size:0.8rem; font-weight:700; color: var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:6px;">Assunto</div>
+                            <input id="alert-subject" class="swal2-input" value="${defaultSubject}">
+                        </div>
+                        <div>
+                            <div style="font-size:0.8rem; font-weight:700; color: var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:6px;">Mensagem</div>
+                            <textarea id="alert-body" class="swal2-textarea" rows="6" style="resize:vertical;">${defaultBody}</textarea>
+                        </div>
+                    </div>
+                `,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'Enviar',
+                preConfirm: () => {
+                    const to = document.getElementById('alert-to').value.trim();
+                    const subject = document.getElementById('alert-subject').value.trim();
+                    const body = document.getElementById('alert-body').value;
+                    return { to, subject, body };
+                }
+            });
+            if (!formValues) return;
+            const payload = {
+                funcionario_id: func.id,
+                to: formValues.to,
+                subject: formValues.subject,
+                body: formValues.body
+            };
+            const res = await fetch('/api/gestor/alerta-equipe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.ok) {
+                Swal.fire('Enviado', 'Alerta enviado com sucesso.', 'success');
+            } else {
+                Swal.fire('Erro', data.erro || 'Falha ao enviar alerta', 'error');
+            }
+        } catch (e) {
+            Swal.fire('Erro', 'Erro de conexão ao enviar alerta', 'error');
         }
     }
     

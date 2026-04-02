@@ -78,6 +78,7 @@
         border-radius: 12px;
         transition: all 0.2s ease;
         height: 100%;
+        min-height: 112px;
         text-align: center;
         color: var(--muted);
     }
@@ -107,6 +108,14 @@
         filter: grayscale(0);
         opacity: 1;
         transform: scale(1.1);
+    }
+    
+    .motivo-details {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+        margin-top: 10px;
+        margin-bottom: 16px;
     }
 
     /* Form Header Bar */
@@ -231,21 +240,25 @@
           <input type="hidden" id="taxa_id_draft">
       </div>
 
-      <h2 class="section-title" data-translate="taxas_section_fee">Dados da Taxa</h2>
-      <label>
-        Nome Completo
-        <input type="text" id="nome_taxa" required>
-      </label>
-      
-      <div class="grid-2">
-          <label>
-            CPF
-            <input type="text" id="cpf" required placeholder="000.000.000-00">
-          </label>
-          <label>
-            Função
-            <input type="text" id="funcao" required>
-          </label>
+      <div id="dadosTaxaManualArea" hidden>
+        <h2 class="section-title" data-translate="taxas_section_fee">Dados da Taxa</h2>
+        <label>
+          Nome Completo
+          <input type="text" id="nome_taxa" required>
+        </label>
+        
+        <div class="grid-2">
+            <label>
+              CPF
+              <input type="text" id="cpf" required placeholder="000.000.000-00">
+            </label>
+            <label>
+              Função
+              <select id="funcao" required>
+                <option value="">Selecione...</option>
+              </select>
+            </label>
+        </div>
       </div>
 
       <h2 class="section-title" data-translate="taxas_section_banking">Dados Bancários</h2>
@@ -258,6 +271,7 @@
               <option value="">Selecione...</option>
               <option value="transferencia">Transferência Bancária</option>
               <option value="pix">PIX</option>
+              <option value="youcard">YOUCARD</option>
             </select>
           </div>
 
@@ -298,44 +312,57 @@
                 <input type="text" id="pix" placeholder="CPF, E-mail ou Telefone">
               </div>
           </div>
+
+          <div id="fields-youcard" style="display: none;">
+              <div class="input-group full-width">
+                <label for="youcard_cpf">CPF vinculado ao YOUCARD</label>
+                <input type="text" id="youcard_cpf" readonly tabindex="-1">
+              </div>
+          </div>
       </div>
 
       <div class="grid-2">
         <label>
             Departamento
-            <input type="text" id="departamento" required>
+            <select id="departamento" required>
+              <option value="">Carregando...</option>
+            </select>
         </label>
       </div>
 
       <h2 class="section-title" data-translate="taxas_section_reason">Motivo</h2>
       <div class="selection-grid">
           <label class="selection-card">
-            <input type="checkbox" name="motivo" value="aumento_demanda">
-            <div class="selection-content">
-                <div class="selection-icon">📈</div>
-                <span>Aumento de Demanda</span>
-            </div>
+              <input type="checkbox" name="motivo" value="aumento_demanda">
+              <div class="selection-content">
+                  <div class="selection-icon">📈</div>
+                  <span>Aumento de Demanda</span>
+              </div>
           </label>
           <label class="selection-card">
-            <input type="checkbox" name="motivo" value="evento">
-            <div class="selection-content">
-            <div class="selection-icon">🎉</div>
-            <span>Evento</span>
-        </div>
-      </label>
-      <div id="eventoArea" hidden style="margin-top: 10px; grid-column: 1 / -1;">
-          <input type="text" id="nome_evento" placeholder="Nome do Evento (Ex: Dia das Mães)">
-      </div>
-      <label class="selection-card">
-        <input type="checkbox" name="motivo" value="vaga_aberta" id="checkVagaAberta">
-            <div class="selection-content">
-                <div class="selection-icon">👤</div>
-                <span>Vaga Aberta (Antecessor)</span>
-            </div>
+              <input type="checkbox" name="motivo" value="evento">
+              <div class="selection-content">
+                  <div class="selection-icon">🎉</div>
+                  <span>Evento</span>
+              </div>
+          </label>
+          <label class="selection-card">
+              <input type="checkbox" name="motivo" value="vaga_aberta" id="checkVagaAberta">
+              <div class="selection-content">
+                  <div class="selection-icon">👤</div>
+                  <span>Vaga Aberta (Antecessor)</span>
+              </div>
           </label>
       </div>
-      <div id="antecessorArea" hidden style="margin-top: 10px;">
-          <input type="text" id="antecessor" placeholder="Nome do antecessor">
+      <div class="motivo-details">
+          <div id="eventoArea" class="input-group" hidden>
+              <label for="nome_evento">Nome do Evento</label>
+              <input type="text" id="nome_evento" placeholder="Ex: Dia das Mães">
+          </div>
+          <div id="antecessorArea" class="input-group" hidden>
+              <label for="antecessor">Nome do antecessor</label>
+              <input type="text" id="antecessor" placeholder="Ex: Fulano de Tal">
+          </div>
       </div>
 
       <h2 class="section-title">Valores</h2>
@@ -352,7 +379,7 @@
               <tr>
                   <td>TAXA</td>
                   <td><input type="number" id="valor_taxa" step="0.01" placeholder="0.00"></td>
-                  <td><input type="number" id="qtd_taxa" step="1" placeholder="0"></td>
+                  <td style="text-align: center; color: var(--muted);">—</td>
                   <td><input type="number" id="total_taxa" readonly tabindex="-1"></td>
               </tr>
               <tr>
@@ -386,60 +413,20 @@
                   <option value="domingo">Domingo</option>
               </select>
           </div>
-          <div class="date-row">
-            <input type="date" class="input-date-worked">
-            <select class="select-day-week">
-                <option value="">Dia da Semana</option>
-                <option value="segunda">Segunda-feira</option>
-                <option value="terca">Terça-feira</option>
-                <option value="quarta">Quarta-feira</option>
-                <option value="quinta">Quinta-feira</option>
-                <option value="sexta">Sexta-feira</option>
-                <option value="sabado">Sábado</option>
-                <option value="domingo">Domingo</option>
-            </select>
-        </div>
-        <div class="date-row">
-            <input type="date" class="input-date-worked">
-            <select class="select-day-week">
-                <option value="">Dia da Semana</option>
-                <option value="segunda">Segunda-feira</option>
-                <option value="terca">Terça-feira</option>
-                <option value="quarta">Quarta-feira</option>
-                <option value="quinta">Quinta-feira</option>
-                <option value="sexta">Sexta-feira</option>
-                <option value="sabado">Sábado</option>
-                <option value="domingo">Domingo</option>
-            </select>
-        </div>
-        <div class="date-row">
-            <input type="date" class="input-date-worked">
-            <select class="select-day-week">
-                <option value="">Dia da Semana</option>
-                <option value="segunda">Segunda-feira</option>
-                <option value="terca">Terça-feira</option>
-                <option value="quarta">Quarta-feira</option>
-                <option value="quinta">Quinta-feira</option>
-                <option value="sexta">Sexta-feira</option>
-                <option value="sabado">Sábado</option>
-                <option value="domingo">Domingo</option>
-            </select>
-        </div>
       </div>
-      <button type="button" id="btnAddDate" style="margin-top: 10px; font-size: 0.8rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; cursor: pointer;">+ Adicionar Data</button>
 
       <h2 class="section-title">Observações de Pagamento</h2>
       <div style="background: var(--brand-bg); color: var(--brand-text); padding: 16px; border-radius: 8px; font-size: 0.9rem; margin-bottom: 24px;">
           <ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px;">
-              <li>Os formulários devem ser entregues na segunda-feira até as 12:00 e serão pagos na terça-feira.</li>
-              <li>Formulários entregues na quinta-feira até as 12:00 serão pagos na sexta-feira.</li>
+              <li>Os formulários devem ser entregues na segunda-feira até as 10:00 e serão pagos na terça-feira.</li>
+              <li>Formulários entregues na quinta-feira até as 10:00 serão pagos na sexta-feira.</li>
               <li>Formulários não entregues no prazo, ou em caso de falta de dados cadastrais/legíveis, só serão pagos no prazo seguinte.</li>
           </ul>
       </div>
 
       <label>
-        E-mail do Líder/Gestor (para aprovação)
-        <input type="email" id="email_gestor" required placeholder="gestor@familiamadalosso.com.br">
+        Aprovador responsável
+        <input type="text" id="aprovador_nome" readonly placeholder="Selecione um colaborador">
       </label>
 
       <label>
@@ -488,7 +475,7 @@
       <img src="/assets/logo.png" alt="Logo" class="footer-logo">
       <p data-translate="public_footer_rights">&copy; 2025 Família Madalosso. Todos os direitos reservados.</p>
       <div style="display: flex; gap: 12px; align-items: center;">
-          <a href="/dashboard-taxas.html" style="font-size: 0.75rem; color: var(--muted); text-decoration: none;" data-translate="public_footer_rh_access">Acesso RH</a>
+          <a href="/protected/dashboard-taxas.html" style="font-size: 0.75rem; color: var(--muted); text-decoration: none;" data-translate="public_footer_rh_access">Acesso RH</a>
       </div>
     </div>
   </footer>

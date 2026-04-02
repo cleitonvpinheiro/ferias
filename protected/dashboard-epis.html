@@ -122,6 +122,13 @@
             <input type="number" id="novoEstoque" placeholder="0" data-translate="rh_dash_epis_placeholder_estoque" step="1" min="0">
         </div>
         <div class="form-group">
+            <label>Possui CA</label>
+            <select id="novoPossuiCa" onchange="atualizarCampoCA()">
+                <option value="1" selected>Sim</option>
+                <option value="0">Não</option>
+            </select>
+        </div>
+        <div class="form-group">
             <label data-translate="rh_dash_epis_label_ca">Validade do CA</label>
             <input type="date" id="novoCA">
         </div>
@@ -233,7 +240,14 @@
                   const estoque = epi.estoque || 0;
                   const estoqueClass = estoque <= 5 ? 'color: var(--danger); font-weight: bold;' : 'color: var(--text-secondary);';
 
-                  const caStatus = epi.ca_validade ? new Date(epi.ca_validade) < new Date() ? '<span style="color:var(--danger); font-weight:600;">CA vencido</span>' : `<span style="color:var(--success); font-weight:600;">CA válido até ${new Date(epi.ca_validade).toLocaleDateString('pt-BR')}</span>` : '<span style="color:var(--text-secondary);">CA não informado</span>';
+                  const possuiCa = epi.possui_ca == null ? 1 : (Number(epi.possui_ca) ? 1 : 0);
+                  const caStatus = !possuiCa
+                      ? '<span style="color:var(--text-secondary);">Não possui CA</span>'
+                      : (epi.ca_validade
+                          ? (new Date(epi.ca_validade) < new Date()
+                              ? '<span style="color:var(--danger); font-weight:600;">CA vencido</span>'
+                              : `<span style="color:var(--success); font-weight:600;">CA válido até ${new Date(epi.ca_validade).toLocaleDateString('pt-BR')}</span>`)
+                          : '<span style="color:var(--text-secondary);">CA não informado</span>');
                   div.innerHTML = `
                       <div class="epi-info">
                           <h3>${epi.nome}</h3>
@@ -425,6 +439,8 @@
 
           const nome = document.getElementById('novoNome').value;
           const valor = document.getElementById('novoValor').value;
+          const possui_ca = document.getElementById('novoPossuiCa').value;
+          const ca_validade = (String(possui_ca) === '1') ? (document.getElementById('novoCA').value || null) : null;
 
           if (!nome || !valor) return alert('Preencha todos os campos');
 
@@ -432,7 +448,7 @@
               const res = await fetch('/api/rh/epis', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ nome, valor, estoque: document.getElementById('novoEstoque').value || 0, ca_validade: document.getElementById('novoCA').value || null })
+                  body: JSON.stringify({ nome, valor, estoque: document.getElementById('novoEstoque').value || 0, possui_ca, ca_validade })
               });
 
               const data = await res.json();
@@ -441,6 +457,8 @@
                   document.getElementById('novoValor').value = '';
                   document.getElementById('novoEstoque').value = '';
                   document.getElementById('novoCA').value = '';
+                  document.getElementById('novoPossuiCa').value = '1';
+                  atualizarCampoCA();
                   carregarEpis();
               } else {
                   alert('Erro: ' + data.erro);
@@ -449,6 +467,15 @@
               console.error(e);
               alert('Erro ao adicionar EPI');
           }
+      }
+
+      function atualizarCampoCA() {
+          const possui = document.getElementById('novoPossuiCa').value;
+          const ca = document.getElementById('novoCA');
+          if (!ca) return;
+          const enabled = String(possui) === '1';
+          ca.disabled = !enabled;
+          if (!enabled) ca.value = '';
       }
 
       async function uploadExcel(input) {
@@ -500,6 +527,7 @@
 
       // Carregar ao iniciar
       (async () => {
+          atualizarCampoCA();
           await carregarEpis();
           carregarDescontos();
           carregarMovimentacoes();

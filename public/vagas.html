@@ -22,10 +22,13 @@
     <form id="formVagas" novalidate>
       <h2 class="section-title" data-translate="vagas_section_general">Dados Gerais</h2>
       <div class="grid-2">
-          <label>
-            Cargo
-            <input type="text" id="cargo" required>
+        <label>
+            Departamento
+            <select id="setor" required>
+              <option value="">Selecione...</option>
+            </select>
           </label>
+          
           <label>
             Número de Vagas
             <input type="number" id="numero_vagas" required min="1" value="1">
@@ -33,19 +36,16 @@
       </div>
       <div class="grid-2">
           <label>
-            Setor
-            <input type="text" id="setor" required>
+            Função
+            <select id="cargo" required>
+              <option value="">Selecione...</option>
+            </select>
           </label>
           <label>
             Data de Abertura
             <input type="date" id="data_abertura" required>
           </label>
       </div>
-
-      <label>
-        Email do Gestor (para notificações)
-        <input type="email" id="email_gestor" required placeholder="gestor@familiamadalosso.com.br">
-      </label>
 
       <h2 class="section-title" data-translate="vagas_section_reason">Motivo da Contratação</h2>
       <div class="radio-group-box">
@@ -61,15 +61,24 @@
       
       <div id="substituicaoArea">
           <label>
-            Substituição a (Nome)
-            <input type="text" id="substituicao_nome">
+            Colaborador que será desligado
+            <select id="substituicao_nome" required>
+              <option value="">Selecione...</option>
+            </select>
           </label>
           
-          <label>Será desligado?</label>
-          <div class="radio-group-inline">
-              <label><input type="radio" name="sera_desligado" value="sim"> Sim</label>
-              <label><input type="radio" name="sera_desligado" value="nao" checked> Não</label>
+          <div id="seraDesligadoArea" style="display:none">
+            <label>Será desligado?</label>
+            <div class="radio-group-inline">
+                <label><input type="radio" name="sera_desligado" value="sim" checked> Sim</label>
+                <label><input type="radio" name="sera_desligado" value="nao"> Não</label>
+            </div>
           </div>
+
+          <label id="dataDesligamentoArea">
+            Data prevista de desligamento
+            <input type="date" id="data_desligamento" required>
+          </label>
       </div>
 
       <label>
@@ -80,7 +89,13 @@
       <h2 class="section-title" data-translate="vagas_section_hiring">Contratação</h2>
       <label>
         Escala / Horário de Trabalho
-        <input type="text" id="escala_horario" placeholder="Ex: 6x1, 08:00 às 16:20" required>
+        <input type="text" id="escala_horario" list="escalaOptions" placeholder="Ex: 6x1, 08:00 às 16:20" required>
+        <datalist id="escalaOptions">
+          <option value="6x1 - 08:00 às 16:20"></option>
+          <option value="6x1 - 09:00 às 17:20"></option>
+          <option value="6x1 - 14:40 às 23:00"></option>
+          <option value="5x2 - 08:00 às 17:48"></option>
+        </datalist>
       </label>
       
       <label>Tipo de Contratação</label>
@@ -91,8 +106,13 @@
 
       <h2 class="section-title" data-translate="vagas_section_profile">Perfil da Vaga</h2>
       <label>
-        Salário e Benefícios
-        <input type="text" id="salario_beneficios" required>
+        Nível
+        <select id="salario_beneficios" required>
+          <option value="">Selecione...</option>
+          <option value="JR">JR</option>
+          <option value="PL">PL</option>
+          <option value="SR">SR</option>
+        </select>
       </label>
 
       <div class="grid-2">
@@ -140,7 +160,7 @@
       <h2 class="section-title" data-translate="vagas_section_requester">Dados do Solicitante</h2>
       <label>
         E-mail do Gestor/Solicitante
-        <input type="email" id="email_gestor" placeholder="seu.email@familiamadalosso.com.br" required>
+        <input type="email" id="email_gestor" placeholder="seu.email@familiamadalosso.com.br" required readonly>
       </label>
 
       <h2 class="section-title" data-translate="public_section_signature">Assinatura do Responsável</h2>

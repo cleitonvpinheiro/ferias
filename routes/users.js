@@ -4,10 +4,11 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const db = require('../services/db');
 const ldapService = require('../services/ldapService');
-const { verifyToken, checkRole, ROLES } = require('../middleware/auth');
+const { verifyToken, checkRole, ROLES, getProtectedPages, getEffectiveProtectedPathsForRole, reloadRolePermissions } = require('../middleware/auth');
 
 // Middleware: Only Admin and RH Geral can manage users
 const userManageAuth = [verifyToken, checkRole([ROLES.ADMIN, ROLES.RH_GERAL, ROLES.RH])];
+const rolePermAuth = [verifyToken, checkRole([ROLES.ADMIN, ROLES.RH_GERAL])];
 
 // GET /users - List all users
 router.get('/users', userManageAuth, async (req, res) => {
@@ -23,7 +24,7 @@ router.get('/users', userManageAuth, async (req, res) => {
 // POST /users - Create new user
 router.post('/users', userManageAuth, async (req, res) => {
     try {
-        const { username, password, role, name } = req.body;
+        const { username, password, role, name, email } = req.body;
         
         if (!username || !password || !role) {
             return res.status(400).json({ ok: false, erro: 'Campos obrigatórios ausentes' });
@@ -42,7 +43,8 @@ router.post('/users', userManageAuth, async (req, res) => {
             username,
             password: hash,
             role,
-            name: name || username
+            name: name || username,
+            email: email || null
         });
 
         res.json({ ok: true });
@@ -56,8 +58,12 @@ router.post('/users', userManageAuth, async (req, res) => {
 router.put('/users/:username', userManageAuth, async (req, res) => {
     try {
         const { username } = req.params;
-        const { password, role, name } = req.body;
+        const { password, role, name, email } = req.body;
         
+        if (username === 'admin' && role && role !== 'admin') {
+            return res.status(403).json({ ok: false, erro: 'Não é possível alterar o perfil do admin principal' });
+        }
+
         const existing = await db.users.getByUsername(username);
         if (!existing) {
             return res.status(404).json({ ok: false, erro: 'Usuário não encontrado' });
@@ -70,6 +76,7 @@ router.put('/users/:username', userManageAuth, async (req, res) => {
         }
         if (role) updates.role = role;
         if (name) updates.name = name;
+        if (Object.prototype.hasOwnProperty.call(req.body || {}, 'email')) updates.email = email;
         
         await db.users.update(username, updates);
         
@@ -96,6 +103,36 @@ router.delete('/users/:username', userManageAuth, async (req, res) => {
     }
 });
 
+router.get('/roles/protected-pages', rolePermAuth, async (req, res) => {
+    res.json({ ok: true, pages: getProtectedPages() });
+});
+
+router.get('/roles/permissions/:role', rolePermAuth, async (req, res) => {
+    const role = String(req.params.role || '').trim().toLowerCase();
+    res.json({ ok: true, role, protectedPaths: getEffectiveProtectedPathsForRole(role) });
+});
+
+router.put('/roles/permissions/:role', rolePermAuth, async (req, res) => {
+    try {
+        const role = String(req.params.role || '').trim().toLowerCase();
+        if (!role) return res.status(400).json({ ok: false, erro: 'Perfil inválido' });
+        if (role === ROLES.ADMIN) return res.status(403).json({ ok: false, erro: 'Não é permitido alterar permissões do admin' });
+        if (role === ROLES.PENDENTE) return res.status(403).json({ ok: false, erro: 'Não é permitido alterar permissões do perfil pendente' });
+
+        const protectedPaths = Array.isArray(req.body && req.body.protectedPaths) ? req.body.protectedPaths : [];
+        const allowedPages = new Set(getProtectedPages());
+        const sanitized = Array.from(new Set(protectedPaths.filter(p => allowedPages.has(p)))).sort((a, b) => a.localeCompare(b));
+
+        await db.rolePermissions.upsert({ role, protected_paths: sanitized });
+        await reloadRolePermissions();
+
+        res.json({ ok: true, role, protectedPaths: sanitized });
+    } catch (e) {
+        console.error('Erro ao salvar permissões:', e);
+        res.status(500).json({ ok: false, erro: 'Erro ao salvar permissões' });
+    }
+});
+
 // POST /users/import-ldap - Bulk import from LDAP
 router.post('/users/import-ldap', userManageAuth, async (req, res) => {
     try {
@@ -118,7 +155,8 @@ router.post('/users/import-ldap', userManageAuth, async (req, res) => {
                         username,
                         password: crypto.randomBytes(16).toString('hex'), // Random pass
                         role: 'rh_geral', // Default role
-                        name: u.displayName || u.cn || username
+                        name: u.displayName || u.cn || username,
+                        email: u.mail || u.email || null
                     });
                     importedCount++;
                 }

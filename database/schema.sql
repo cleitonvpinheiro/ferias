@@ -7,6 +7,12 @@ CREATE TABLE IF NOT EXISTS funcionarios (
     matricula TEXT,
     cargo TEXT,
     setor TEXT,
+    data_admissao TEXT,
+    nascimento TEXT,
+    sexo TEXT,
+    raca_cor TEXT,
+    nacionalidade TEXT,
+    tipo_vinculo TEXT,
     banco TEXT,
     agencia TEXT,
     conta TEXT,
@@ -21,6 +27,7 @@ CREATE TABLE IF NOT EXISTS epis (
     nome TEXT,
     valor REAL,
     estoque INTEGER,
+    possui_ca INTEGER DEFAULT 1,
     ca_validade DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -33,6 +40,7 @@ CREATE TABLE IF NOT EXISTS movimentacoes_epis (
     itens_devolvidos TEXT, -- JSON Array of IDs
     evidencia TEXT,
     tipo_evidencia TEXT,
+    termo TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -50,6 +58,7 @@ CREATE TABLE IF NOT EXISTS descontos_epis (
 CREATE TABLE IF NOT EXISTS solicitacoes_epis (
     id TEXT PRIMARY KEY,
     funcionario_id TEXT NOT NULL,
+    tipo TEXT DEFAULT 'retirada',
     itens_solicitados TEXT NOT NULL, -- JSON Array of EPI IDs (pode repetir)
     status TEXT DEFAULT 'pendente', -- pendente | atendida | cancelada
     atendido_at DATETIME,
@@ -85,6 +94,16 @@ CREATE TABLE IF NOT EXISTS onthejob (
     status TEXT DEFAULT 'pendente',
     dados TEXT, -- JSON
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS disciplinar_registros (
+    id TEXT PRIMARY KEY,
+    funcionario_id TEXT NOT NULL,
+    tipo TEXT NOT NULL,
+    dados TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(funcionario_id) REFERENCES funcionarios(id)
 );
 
 CREATE TABLE IF NOT EXISTS avaliacoes (
@@ -167,6 +186,9 @@ CREATE TABLE IF NOT EXISTS taxas (
     status TEXT DEFAULT 'rascunho',
     email_gestor TEXT,
     email_solicitante TEXT,
+    aprovador_nome TEXT,
+    aprovador_username TEXT,
+    approval_token TEXT,
     signature_token TEXT,
     assinatura TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -238,6 +260,7 @@ CREATE TABLE IF NOT EXISTS users (
     password TEXT NOT NULL,
     role TEXT NOT NULL,
     name TEXT,
+    email TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

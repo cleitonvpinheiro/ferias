@@ -70,6 +70,71 @@
             </button>
         </div>
     </div>
+    
+    <div class="user-form" style="display:block;">
+        <h3 style="margin-bottom: 10px; color: var(--primary-color);">Alterar Perfil (Permissões)</h3>
+        <form onsubmit="salvarPerfilRapido(event)">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Usuário</label>
+                    <select id="quickUser" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Perfil de Acesso</label>
+                    <select id="quickRole" required>
+                        <option value="admin">Administrador (Acesso Total)</option>
+                        <option value="rh_geral">RH Geral (Acesso Total)</option>
+                        <option value="dp">Departamento Pessoal</option>
+                        <option value="recrutamento">Recrutamento e Seleção</option>
+                        <option value="td">Treinamento e Desenv.</option>
+                        <option value="sesmt">SESMT</option>
+                        <option value="portaria">Portaria</option>
+                        <option value="gestor">Gestor</option>
+                        <option value="supervisor">Supervisor</option>
+                        <option value="gerente">Gerente</option>
+                        <option value="endomarketing">Endomarketing</option>
+                    </select>
+                </div>
+            </div>
+            <div class="btn-row">
+                <button type="submit" class="btn btn-primary">Salvar Perfil</button>
+            </div>
+        </form>
+    </div>
+    
+    <div class="user-form" style="display:block;">
+        <h3 style="margin-bottom: 10px; color: var(--primary-color);">Permissões por Perfil (Acessos)</h3>
+        <form onsubmit="salvarPermissoesPerfil(event)">
+            <div class="form-grid" style="grid-template-columns: 1fr;">
+                <div class="form-group">
+                    <label>Perfil</label>
+                    <select id="permRole" required>
+                        <option value="" data-translate="rh_dash_select">Selecione...</option>
+                        <option value="rh_geral">RH Geral</option>
+                        <option value="dp">Departamento Pessoal</option>
+                        <option value="recrutamento">Recrutamento e Seleção</option>
+                        <option value="td">T&D</option>
+                        <option value="sesmt">SESMT</option>
+                        <option value="portaria">Portaria</option>
+                        <option value="gestor">Gestor</option>
+                        <option value="supervisor">Supervisor</option>
+                        <option value="gerente">Gerente</option>
+                        <option value="endomarketing">Endomarketing</option>
+                        <option value="rh">RH (Legacy)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Páginas liberadas</label>
+                    <div id="permPages" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px;"></div>
+                </div>
+            </div>
+            <div class="btn-row">
+                <button type="button" class="btn btn-outline" onclick="marcarTodasPerms()">Marcar todas</button>
+                <button type="button" class="btn btn-outline" onclick="desmarcarTodasPerms()">Desmarcar</button>
+                <button type="submit" class="btn btn-primary">Salvar Permissões</button>
+            </div>
+        </form>
+    </div>
 
     <!-- User Form (Create/Edit) -->
     <div id="user-form-container" class="user-form">
@@ -88,6 +153,10 @@
                     <input type="text" id="name" placeholder="ex: João Silva" data-translate="rh_dash_usuarios_placeholder_name">
                 </div>
                 <div class="form-group">
+                    <label>E-mail</label>
+                    <input type="email" id="email" placeholder="ex: joao.silva@familiamadalosso.com.br">
+                </div>
+                <div class="form-group">
                     <label data-translate="rh_dash_usuarios_label_password">Senha</label>
                     <input type="password" id="password" placeholder="******">
                     <small style="color: var(--text-secondary);" id="password-hint" data-translate="rh_dash_usuarios_password_hint_new">Obrigatório para novos usuários</small>
@@ -104,6 +173,8 @@
                         <option value="sesmt">SESMT</option>
                         <option value="portaria">Portaria</option>
                         <option value="gestor">Gestor</option>
+                        <option value="supervisor">Supervisor</option>
+                        <option value="gerente">Gerente</option>
                         <option value="endomarketing">Endomarketing</option>
                     </select>
                 </div>
@@ -123,6 +194,7 @@
                     <tr>
                         <th data-translate="rh_dash_usuarios_th_username">Usuário</th>
                         <th data-translate="rh_dash_th_nome">Nome</th>
+                        <th>E-mail</th>
                         <th data-translate="rh_dash_usuarios_th_role">Perfil</th>
                         <th data-translate="rh_dash_usuarios_th_created">Criado em</th>
                         <th data-translate="rh_dash_th_acao">Ações</th>
@@ -144,12 +216,25 @@
                 <select id="gestorSelect"></select>
             </div>
             <div class="form-group">
-                <label>Adicionar Colaborador à Equipe</label>
+                <label>Adicionar Setor à Equipe</label>
                 <div style="display:flex; gap:8px;">
-                    <select id="funcionarioSelect" style="flex:1;"></select>
-                    <button class="btn btn-primary" onclick="addMembroEquipe()">Adicionar</button>
+                    <select id="setorEquipeSelect" style="flex:1;"></select>
+                    <button class="btn btn-primary" onclick="addSetorEquipe()">Adicionar</button>
                 </div>
             </div>
+        </div>
+        <div class="table-wrapper" style="margin-top: 12px;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Setores vinculados</th>
+                        <th style="width: 80px;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="setoresEquipeList">
+                    <tr><td colspan="2" style="color: var(--text-secondary);">Selecione um gestor para visualizar os setores.</td></tr>
+                </tbody>
+            </table>
         </div>
         <div class="table-wrapper">
             <table>
@@ -159,11 +244,10 @@
                         <th>Setor</th>
                         <th>Cargo</th>
                         <th>Matrícula</th>
-                        <th style="width: 80px;">Ações</th>
                     </tr>
                 </thead>
                 <tbody id="equipeList">
-                    <tr><td colspan="5" style="color: var(--text-secondary);">Selecione um gestor para visualizar a equipe.</td></tr>
+                    <tr><td colspan="4" style="color: var(--text-secondary);">Selecione um gestor para visualizar a equipe.</td></tr>
                 </tbody>
             </table>
         </div>
@@ -181,6 +265,8 @@
         'sesmt': 'SESMT',
         'portaria': 'Portaria',
         'gestor': 'Gestor',
+        'supervisor': 'Supervisor',
+        'gerente': 'Gerente',
         'endomarketing': 'Endomarketing'
     };
 
@@ -218,9 +304,169 @@
             if (!res.ok) throw new Error('Erro ao carregar');
             const users = await res.json();
             renderUsers(users);
+            fillQuickPerfil(users);
+            await initPermissoesPerfil();
         } catch (e) {
             console.error(e);
             alert('Erro ao carregar usuários');
+        }
+    }
+    
+    let __permPagesAll = [];
+    let __permInitDone = false;
+    
+    async function initPermissoesPerfil() {
+        if (__permInitDone) return;
+        __permInitDone = true;
+        const roleSel = document.getElementById('permRole');
+        if (!roleSel) return;
+        try {
+            const res = await fetch('/api/roles/protected-pages', { headers: { 'Accept': 'application/json' } });
+            const data = await res.json();
+            if (!res.ok || !data.ok) return;
+            __permPagesAll = Array.isArray(data.pages) ? data.pages : [];
+            renderPermPages([]);
+            roleSel.addEventListener('change', carregarPermissoesPerfil);
+        } catch (e) {
+            console.error('Erro ao carregar páginas de permissão:', e);
+        }
+    }
+    
+    function renderPermPages(selectedPaths) {
+        const wrap = document.getElementById('permPages');
+        if (!wrap) return;
+        const selected = new Set(Array.isArray(selectedPaths) ? selectedPaths : []);
+        wrap.innerHTML = '';
+        __permPagesAll.forEach(p => {
+            const id = `perm_${p.replace(/[^a-zA-Z0-9]/g, '_')}`;
+            const div = document.createElement('div');
+            div.style.border = '1px solid var(--border)';
+            div.style.borderRadius = '8px';
+            div.style.padding = '10px 12px';
+            div.style.background = 'var(--bg-surface)';
+            div.innerHTML = `
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                    <input type="checkbox" value="${p}" ${selected.has(p) ? 'checked' : ''}>
+                    <span style="font-size:0.95rem;">${p}</span>
+                </label>
+            `;
+            wrap.appendChild(div);
+        });
+    }
+    
+    async function carregarPermissoesPerfil() {
+        const role = document.getElementById('permRole')?.value;
+        if (!role) return renderPermPages([]);
+        try {
+            const res = await fetch(`/api/roles/permissions/${encodeURIComponent(role)}`, { headers: { 'Accept': 'application/json' } });
+            const data = await res.json();
+            if (!res.ok || !data.ok) {
+                alert((data && (data.erro || data.message)) || 'Erro ao carregar permissões');
+                return;
+            }
+            renderPermPages(data.protectedPaths || []);
+        } catch (e) {
+            console.error(e);
+            alert('Erro ao conectar com servidor.');
+        }
+    }
+    
+    function marcarTodasPerms() {
+        renderPermPages(__permPagesAll);
+    }
+    
+    function desmarcarTodasPerms() {
+        renderPermPages([]);
+    }
+    
+    async function salvarPermissoesPerfil(e) {
+        e.preventDefault();
+        const role = document.getElementById('permRole')?.value;
+        if (!role) return;
+        const wrap = document.getElementById('permPages');
+        const checks = wrap ? Array.from(wrap.querySelectorAll('input[type="checkbox"]')) : [];
+        const selected = checks.filter(c => c.checked).map(c => c.value);
+        if (!confirm(`Salvar permissões do perfil ${ROLES_MAP[role] || role}?`)) return;
+        try {
+            const res = await fetch(`/api/roles/permissions/${encodeURIComponent(role)}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ protectedPaths: selected })
+            });
+            const data = await res.json();
+            if (!res.ok || !data.ok) {
+                alert('Erro: ' + ((data && data.erro) || 'Falha ao salvar'));
+                return;
+            }
+            alert('Permissões salvas com sucesso.');
+        } catch (err) {
+            console.error(err);
+            alert('Erro ao salvar permissões');
+        }
+    }
+    
+    function fillQuickPerfil(users) {
+        const quickUser = document.getElementById('quickUser');
+        const quickRole = document.getElementById('quickRole');
+        if (!quickUser || !quickRole) return;
+        const all = Array.isArray(users) ? [...users] : [];
+        all.sort((a, b) => (a.name || a.username || '').localeCompare(b.name || b.username || ''));
+        quickUser.innerHTML = '<option value="">Selecione...</option>';
+        all.forEach(u => {
+            const opt = document.createElement('option');
+            opt.value = u.username;
+            opt.dataset.role = u.role || '';
+            opt.textContent = `${u.name || u.username} (${u.username})`;
+            quickUser.appendChild(opt);
+        });
+        const applyRoleFromUser = () => {
+            const opt = quickUser.selectedOptions && quickUser.selectedOptions[0];
+            if (!opt) return;
+            const role = opt.dataset.role || '';
+            if (role) quickRole.value = role;
+        };
+        if (!quickUser.dataset.bound) {
+            quickUser.addEventListener('change', applyRoleFromUser);
+            quickUser.dataset.bound = '1';
+        }
+        if (!quickUser.value) {
+            const first = all.find(u => u.username !== 'admin') || all[0];
+            if (first) {
+                quickUser.value = first.username;
+                applyRoleFromUser();
+            }
+        } else {
+            applyRoleFromUser();
+        }
+    }
+    
+    async function salvarPerfilRapido(e) {
+        e.preventDefault();
+        const username = document.getElementById('quickUser')?.value;
+        const role = document.getElementById('quickRole')?.value;
+        if (!username || !role) return;
+        if (!confirm(`Alterar o perfil de ${username} para ${ROLES_MAP[role] || role}?`)) return;
+        try {
+            const res = await fetch(`/api/users/${encodeURIComponent(username)}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ role })
+            });
+            const data = await res.json();
+            if (!data.ok) {
+                alert('Erro: ' + (data.erro || 'Falha ao salvar'));
+                return;
+            }
+            loadUsers();
+        } catch (err) {
+            console.error(err);
+            alert('Erro ao salvar perfil');
         }
     }
 
@@ -232,17 +478,52 @@
             const tr = document.createElement('tr');
             const roleName = ROLES_MAP[u.role] || u.role;
             const date = new Date(u.created_at).toLocaleDateString('pt-BR');
-            
-            tr.innerHTML = `
-                <td><strong>${u.username}</strong></td>
-                <td>${u.name || '-'}</td>
-                <td><span class="badge badge-info">${roleName}</span></td>
-                <td>${date}</td>
-                <td>
-                    <button class="btn btn-sm btn-outline" onclick="editUser('${u.username}', '${u.role}', '${u.name || ''}')">✏️</button>
-                    ${u.username !== 'admin' ? `<button class="btn btn-sm btn-outline" style="color: var(--danger); border-color: var(--danger);" onclick="deleteUser('${u.username}')">🗑️</button>` : ''}
-                </td>
-            `;
+
+            const tdUser = document.createElement('td');
+            const strong = document.createElement('strong');
+            strong.textContent = u.username || '';
+            tdUser.appendChild(strong);
+
+            const tdName = document.createElement('td');
+            tdName.textContent = u.name || '-';
+
+            const tdEmail = document.createElement('td');
+            tdEmail.textContent = u.email || '-';
+
+            const tdRole = document.createElement('td');
+            const badge = document.createElement('span');
+            badge.className = 'badge badge-info';
+            badge.textContent = roleName || '';
+            tdRole.appendChild(badge);
+
+            const tdDate = document.createElement('td');
+            tdDate.textContent = date;
+
+            const tdActions = document.createElement('td');
+            const btnEdit = document.createElement('button');
+            btnEdit.type = 'button';
+            btnEdit.className = 'btn btn-sm btn-outline';
+            btnEdit.textContent = '✏️';
+            btnEdit.addEventListener('click', () => editUser(u.username, u.role, u.name, u.email));
+            tdActions.appendChild(btnEdit);
+
+            if (u.username !== 'admin') {
+                const btnDel = document.createElement('button');
+                btnDel.type = 'button';
+                btnDel.className = 'btn btn-sm btn-outline';
+                btnDel.style.color = 'var(--danger)';
+                btnDel.style.borderColor = 'var(--danger)';
+                btnDel.textContent = '🗑️';
+                btnDel.addEventListener('click', () => deleteUser(u.username));
+                tdActions.appendChild(btnDel);
+            }
+
+            tr.appendChild(tdUser);
+            tr.appendChild(tdName);
+            tr.appendChild(tdEmail);
+            tr.appendChild(tdRole);
+            tr.appendChild(tdDate);
+            tr.appendChild(tdActions);
             tbody.appendChild(tr);
         });
     }
@@ -257,7 +538,7 @@
         document.getElementById('password').required = true;
     }
 
-    function editUser(username, role, name) {
+    function editUser(username, role, name, email) {
         document.getElementById('user-form-container').style.display = 'block';
         document.getElementById('form-title').innerText = 'Editar Usuário';
         document.getElementById('edit-mode').value = 'edit';
@@ -265,8 +546,9 @@
         
         document.getElementById('username').value = username;
         document.getElementById('username').disabled = true; // Cannot change username
-        document.getElementById('name').value = name;
-        document.getElementById('role').value = role;
+        document.getElementById('name').value = name || '';
+        document.getElementById('email').value = email || '';
+        document.getElementById('role').value = role || '';
         
         document.getElementById('password').value = '';
         document.getElementById('password').required = false;
@@ -282,15 +564,18 @@
         
         const mode = document.getElementById('edit-mode').value;
         const username = document.getElementById('username').value;
+        const originalUsername = document.getElementById('original-username').value;
         const name = document.getElementById('name').value;
+        const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
         const role = document.getElementById('role').value;
         
-        const payload = { name, role };
+        const payload = { name, role, email };
         if (password) payload.password = password;
         if (mode === 'create') payload.username = username;
 
-        const url = mode === 'create' ? '/api/users' : `/api/users/${username}`;
+        const targetUsername = mode === 'create' ? username : (originalUsername || username);
+        const url = mode === 'create' ? '/api/users' : `/api/users/${encodeURIComponent(targetUsername)}`;
         const method = mode === 'create' ? 'POST' : 'PUT';
 
         try {
@@ -320,7 +605,7 @@
         if (!confirm(`Tem certeza que deseja remover o usuário ${username}?`)) return;
         
         try {
-            const res = await fetch(`/api/users/${username}`, { 
+            const res = await fetch(`/api/users/${encodeURIComponent(username)}`, { 
                 method: 'DELETE',
                 headers: { 'Accept': 'application/json' }
             });
@@ -373,7 +658,10 @@
             loadUsers();
             await carregarGestores();
             await carregarFuncionarios();
-            document.getElementById('gestorSelect').addEventListener('change', carregarEquipe);
+            document.getElementById('gestorSelect').addEventListener('change', () => {
+                carregarSetoresEquipe();
+                carregarEquipe();
+            });
         }
     })();
 
@@ -382,7 +670,10 @@
             const res = await fetch('/api/users', { headers: { 'Accept': 'application/json' } });
             if (!res.ok) return;
             const all = await res.json();
-            const gestores = all.filter(u => u.role === 'gestor').sort((a,b) => (a.name || a.username).localeCompare(b.name || b.username));
+            const allowed = new Set(['supervisor', 'gerente', 'admin', 'rh_geral', 'rh']);
+            const gestores = all
+                .filter(u => allowed.has(String(u && u.role || '').trim().toLowerCase()))
+                .sort((a, b) => (a.name || a.username).localeCompare(b.name || b.username));
             const sel = document.getElementById('gestorSelect');
             sel.innerHTML = '<option value="">Selecione...</option>';
             gestores.forEach(g => {
@@ -401,13 +692,16 @@
             const res = await fetch('/api/rh/funcionarios', { headers: { 'Accept': 'application/json' } });
             if (!res.ok) return;
             const funcionarios = await res.json();
-            const sel = document.getElementById('funcionarioSelect');
+            const setores = Array.from(new Set((funcionarios || [])
+                .map(f => String(f && f.setor || '').trim())
+                .filter(Boolean)))
+                .sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
+            const sel = document.getElementById('setorEquipeSelect');
             sel.innerHTML = '<option value="">Selecione...</option>';
-            funcionarios.sort((a,b) => (a.nome || '').localeCompare(b.nome || ''));
-            funcionarios.forEach(f => {
+            setores.forEach(s => {
                 const opt = document.createElement('option');
-                opt.value = f.id;
-                opt.textContent = `${f.nome} ${f.matricula ? `• ${f.matricula}` : ''} ${f.setor ? `• ${f.setor}` : ''}`;
+                opt.value = s;
+                opt.textContent = s;
                 sel.appendChild(opt);
             });
         } catch (e) {
@@ -415,23 +709,108 @@
         }
     }
 
+    async function carregarSetoresEquipe() {
+        const gestor = document.getElementById('gestorSelect').value;
+        const tbody = document.getElementById('setoresEquipeList');
+        if (!gestor) {
+            tbody.innerHTML = '<tr><td colspan="2" style="color: var(--text-secondary);">Selecione um gestor para visualizar os setores.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = '<tr><td colspan="2" style="color: var(--text-secondary);">Carregando...</td></tr>';
+        try {
+            const res = await fetch(`/api/rh/equipe-setores/${encodeURIComponent(gestor)}`, { headers: { 'Accept': 'application/json' } });
+            if (!res.ok) {
+                tbody.innerHTML = '<tr><td colspan="2" style="color: var(--danger);">Erro ao carregar setores.</td></tr>';
+                return;
+            }
+            const setores = await res.json();
+            if (!Array.isArray(setores) || setores.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="2" style="color: var(--text-secondary);">Nenhum setor vinculado.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = '';
+            setores.forEach(s => {
+                const encoded = encodeURIComponent(String(s));
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${s}</td>
+                    <td><button class="btn btn-sm btn-outline" onclick="removerSetorEquipe('${encoded}')">Remover</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (e) {
+            console.error('Erro ao carregar setores', e);
+            tbody.innerHTML = '<tr><td colspan="2" style="color: var(--danger);">Erro ao carregar setores.</td></tr>';
+        }
+    }
+
+    async function addSetorEquipe() {
+        const gestor = document.getElementById('gestorSelect').value;
+        const setor = document.getElementById('setorEquipeSelect').value;
+        if (!gestor || !setor) {
+            alert('Selecione o gestor e o setor.');
+            return;
+        }
+        try {
+            const res = await fetch(`/api/rh/equipe-setores/${encodeURIComponent(gestor)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ setor })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.ok) {
+                document.getElementById('setorEquipeSelect').value = '';
+                carregarSetoresEquipe();
+                carregarEquipe();
+                return;
+            }
+            alert('Erro: ' + (data.erro || 'Falha ao adicionar setor'));
+        } catch (e) {
+            console.error('Erro ao adicionar setor', e);
+            alert('Erro ao adicionar setor');
+        }
+    }
+
+    async function removerSetorEquipe(encodedSetor) {
+        const setor = decodeURIComponent(String(encodedSetor || ''));
+        const gestor = document.getElementById('gestorSelect').value;
+        if (!gestor || !setor) return;
+        if (!confirm('Remover setor desta equipe?')) return;
+        try {
+            const res = await fetch(`/api/rh/equipe-setores/${encodeURIComponent(gestor)}/${encodeURIComponent(setor)}`, {
+                method: 'DELETE',
+                headers: { 'Accept': 'application/json' }
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.ok) {
+                carregarSetoresEquipe();
+                carregarEquipe();
+                return;
+            }
+            alert('Erro: ' + (data.erro || 'Falha ao remover setor'));
+        } catch (e) {
+            console.error('Erro ao remover setor', e);
+            alert('Erro ao remover setor');
+        }
+    }
+
     async function carregarEquipe() {
         const gestor = document.getElementById('gestorSelect').value;
         const tbody = document.getElementById('equipeList');
         if (!gestor) {
-            tbody.innerHTML = '<tr><td colspan="5" style="color: var(--text-secondary);">Selecione um gestor para visualizar a equipe.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" style="color: var(--text-secondary);">Selecione um gestor para visualizar a equipe.</td></tr>';
             return;
         }
-        tbody.innerHTML = '<tr><td colspan="5" style="color: var(--text-secondary);">Carregando...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="color: var(--text-secondary);">Carregando...</td></tr>';
         try {
             const res = await fetch(`/api/rh/equipe/${encodeURIComponent(gestor)}`, { headers: { 'Accept': 'application/json' } });
             if (!res.ok) {
-                tbody.innerHTML = '<tr><td colspan="5" style="color: var(--danger);">Erro ao carregar equipe.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" style="color: var(--danger);">Erro ao carregar equipe.</td></tr>';
                 return;
             }
             const equipe = await res.json();
             if (!Array.isArray(equipe) || equipe.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="color: var(--text-secondary);">Sem membros nesta equipe.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" style="color: var(--text-secondary);">Sem membros nesta equipe.</td></tr>';
                 return;
             }
             tbody.innerHTML = '';
@@ -442,60 +821,12 @@
                     <td>${f.setor || ''}</td>
                     <td>${f.cargo || ''}</td>
                     <td>${f.matricula || ''}</td>
-                    <td><button class="btn btn-sm btn-outline" onclick="removerMembroEquipe('${f.id}')">Remover</button></td>
                 `;
                 tbody.appendChild(tr);
             });
         } catch (e) {
             console.error('Erro ao carregar equipe', e);
-            tbody.innerHTML = '<tr><td colspan="5" style="color: var(--danger);">Erro ao carregar equipe.</td></tr>';
-        }
-    }
-
-    async function addMembroEquipe() {
-        const gestor = document.getElementById('gestorSelect').value;
-        const funcId = document.getElementById('funcionarioSelect').value;
-        if (!gestor || !funcId) {
-            alert('Selecione o gestor e o colaborador.');
-            return;
-        }
-        try {
-            const res = await fetch(`/api/rh/equipe/${encodeURIComponent(gestor)}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                body: JSON.stringify({ funcionario_id: funcId })
-            });
-            const data = await res.json();
-            if (data.ok) {
-                document.getElementById('funcionarioSelect').value = '';
-                carregarEquipe();
-            } else {
-                alert('Erro: ' + (data.erro || 'Falha ao adicionar membro'));
-            }
-        } catch (e) {
-            console.error('Erro ao adicionar membro', e);
-            alert('Erro ao adicionar membro');
-        }
-    }
-
-    async function removerMembroEquipe(funcId) {
-        const gestor = document.getElementById('gestorSelect').value;
-        if (!gestor || !funcId) return;
-        if (!confirm('Remover colaborador desta equipe?')) return;
-        try {
-            const res = await fetch(`/api/rh/equipe/${encodeURIComponent(gestor)}/${encodeURIComponent(funcId)}`, {
-                method: 'DELETE',
-                headers: { 'Accept': 'application/json' }
-            });
-            const data = await res.json();
-            if (data.ok) {
-                carregarEquipe();
-            } else {
-                alert('Erro: ' + (data.erro || 'Falha ao remover membro'));
-            }
-        } catch (e) {
-            console.error('Erro ao remover membro', e);
-            alert('Erro ao remover membro');
+            tbody.innerHTML = '<tr><td colspan="4" style="color: var(--danger);">Erro ao carregar equipe.</td></tr>';
         }
     }
   </script>

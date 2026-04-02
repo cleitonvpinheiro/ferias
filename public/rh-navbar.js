@@ -15,20 +15,26 @@ function renderRHNavbar(activePage) {
             </a>
         </div>
         <nav class="rh-sidebar-menu">
-            <a href="/protected/dashboard-rh.html" class="rh-side-link ${activePage === 'ferias' ? 'active' : ''}"><span data-translate="rh_nav_ferias">Férias</span></a>
-            <a href="/protected/dashboard-taxas.html" class="rh-side-link ${activePage === 'taxas' ? 'active' : ''}"><span data-translate="rh_nav_pgto_taxas">Pgto Taxas</span></a>
-            <a href="/protected/dashboard-solicitacoes-taxa.html" class="rh-side-link ${activePage === 'req_taxas' ? 'active' : ''}"><span data-translate="rh_nav_req_taxas">Req. Taxas</span></a>
-            <a href="/protected/dashboard-candidatos.html" class="rh-side-link ${activePage === 'candidatos' ? 'active' : ''}"><span data-translate="rh_nav_candidatos">Candidatos</span></a>
-            <a href="/protected/dashboard-recrutamento.html" class="rh-side-link ${activePage === 'recrutamento' ? 'active' : ''}"><span data-translate="rh_nav_recrutamento">Recrutamento Interno</span></a>
-            <a href="/protected/dashboard-onthejob.html" class="rh-side-link ${activePage === 'onthejob' ? 'active' : ''}"><span data-translate="rh_nav_onthejob">On The Job</span></a>
-            <a href="/protected/dashboard-vagas.html" class="rh-side-link ${activePage === 'vagas' ? 'active' : ''}"><span data-translate="rh_nav_vagas">Vagas</span></a>
-            <a href="/protected/dashboard-epis.html" class="rh-side-link ${activePage === 'epis' ? 'active' : ''}"><span data-translate="rh_nav_epis">EPIs</span></a>
-            <a href="/protected/dashboard-desligamento.html" class="rh-side-link ${activePage === 'desligamento' ? 'active' : ''}"><span data-translate="rh_nav_desligamento">Desligamento</span></a>
-            <a href="/protected/dashboard-avaliacao.html" class="rh-side-link ${activePage === 'avaliacoes' ? 'active' : ''}"><span data-translate="rh_nav_avaliacoes">Avaliações</span></a>
-            <a href="/protected/dashboard-experiencia.html" class="rh-side-link ${activePage === 'experiencia' ? 'active' : ''}"><span data-translate="rh_nav_experiencia">Experiência</span></a>
-            <a href="/protected/dashboard-formularios.html" class="rh-side-link ${activePage === 'formularios' ? 'active' : ''}" data-role="admin"><span data-translate="rh_nav_formularios">Formulários</span></a>
+            <a href="/protected/dashboard-rh.html" data-protected-path="/protected/dashboard-rh.html" class="rh-side-link ${activePage === 'ferias' ? 'active' : ''}"><span data-translate="rh_nav_ferias">Férias</span></a>
+            <a href="/protected/dashboard-taxas.html" data-protected-path="/protected/dashboard-taxas.html" class="rh-side-link ${activePage === 'taxas' ? 'active' : ''}"><span data-translate="rh_nav_pgto_taxas">Pgto Taxas</span></a>
+            <a href="/protected/dashboard-solicitacoes-taxa.html" data-protected-path="/protected/dashboard-solicitacoes-taxa.html" class="rh-side-link ${activePage === 'req_taxas' ? 'active' : ''}"><span data-translate="rh_nav_req_taxas">Req. Taxas</span></a>
+            <a href="/protected/dashboard-candidatos.html" data-protected-path="/protected/dashboard-candidatos.html" class="rh-side-link ${activePage === 'candidatos' ? 'active' : ''}"><span data-translate="rh_nav_candidatos">Candidatos</span></a>
+            <a href="/protected/dashboard-recrutamento.html" data-protected-path="/protected/dashboard-recrutamento.html" class="rh-side-link ${activePage === 'recrutamento' ? 'active' : ''}"><span data-translate="rh_nav_recrutamento">Recrutamento Interno</span></a>
+            <a href="/protected/dashboard-onthejob.html" data-protected-path="/protected/dashboard-onthejob.html" class="rh-side-link ${activePage === 'onthejob' ? 'active' : ''}"><span data-translate="rh_nav_onthejob">On The Job</span></a>
+            <a href="/protected/dashboard-vagas.html" data-protected-path="/protected/dashboard-vagas.html" class="rh-side-link ${activePage === 'vagas' ? 'active' : ''}"><span data-translate="rh_nav_vagas">Vagas</span></a>
+            <a href="/protected/dashboard-epis.html" data-protected-path="/protected/dashboard-epis.html" class="rh-side-link ${activePage === 'epis' ? 'active' : ''}"><span data-translate="rh_nav_epis">EPIs</span></a>
+            <a href="/protected/dashboard-desligamento.html" data-protected-path="/protected/dashboard-desligamento.html" class="rh-side-link ${activePage === 'desligamento' ? 'active' : ''}"><span data-translate="rh_nav_desligamento">Desligamento</span></a>
+            <a href="/protected/dashboard-avaliacao.html" data-protected-path="/protected/dashboard-avaliacao.html" class="rh-side-link ${activePage === 'avaliacoes' ? 'active' : ''}"><span data-translate="rh_nav_avaliacoes">Avaliações</span></a>
+            <a href="/protected/dashboard-experiencia.html" data-protected-path="/protected/dashboard-experiencia.html" class="rh-side-link ${activePage === 'experiencia' ? 'active' : ''}"><span data-translate="rh_nav_experiencia">Experiência</span></a>
+            <a href="/protected/dashboard-beneficios.html" class="rh-side-link ${activePage === 'beneficios' ? 'active' : ''}" data-protected-path="/protected/dashboard-beneficios.html"><span>Benefícios</span></a>
+            <a href="/protected/dashboard-disciplinar.html" class="rh-side-link ${activePage === 'disciplinar' ? 'active' : ''}" data-protected-path="/protected/dashboard-disciplinar.html"><span>Advertências</span></a>
+            <a href="/protected/dashboard-formularios.html" class="rh-side-link ${activePage === 'formularios' ? 'active' : ''}" data-protected-path="/protected/dashboard-formularios.html"><span data-translate="rh_nav_formularios">Formulários</span></a>
         </nav>
         <div class="rh-sidebar-footer">
+            <a class="back-to-forms" href="/" style="display:inline-flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--border); border-radius:6px; color:var(--text); text-decoration:none; background:var(--bg-surface);">
+                ⬅ <span>Formulários</span>
+            </a>
+            <button class="logout-btn" onclick="changePassword()" style="margin-top: 8px;">🔑 <span>Alterar senha</span></button>
             <button class="logout-btn" onclick="logout()">🚪 <span data-translate="rh_nav_sair">Sair</span></button>
         </div>
     </aside>
@@ -83,24 +89,21 @@ function renderRHNavbar(activePage) {
 
 async function checkNavbarPermissions() {
     try {
-        const res = await fetch('/api/access', { headers: { 'Accept': 'application/json' } });
+        const res = await fetch('/api/access', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
         if (!res.ok) return;
         const data = await res.json();
         const allowAll = !!(data && data.access && data.access.allowAll);
-        if (allowAll) {
-            const adminLinks = document.querySelectorAll('[data-role="admin"]');
-            adminLinks.forEach(link => link.style.display = '');
-            return;
-        }
-        // Fallback: hide admin-only links for non-admins
-        const meRes = await fetch('/api/me');
-        if (meRes.ok) {
-            const me = await meRes.json();
-            if (me.user.role !== 'admin') {
-                const adminLinks = document.querySelectorAll('[data-role="admin"]');
-                adminLinks.forEach(link => link.style.display = 'none');
-            }
-        }
+        const role = data && data.user && data.user.role;
+        const allowed = new Set((data && data.access && data.access.protectedPaths) ? data.access.protectedPaths : []);
+
+        document.querySelectorAll('[data-protected-path]').forEach(link => {
+            const p = link.getAttribute('data-protected-path');
+            if (!p) return;
+            const canSeeDisciplinar = p === '/protected/dashboard-disciplinar.html' && ['admin', 'rh', 'rh_geral', 'dp'].includes(role);
+            const canSeeBeneficios = p === '/protected/dashboard-beneficios.html' && ['admin', 'rh', 'rh_geral', 'dp'].includes(role);
+            const canSee = allowAll || role === 'admin' || allowed.has(p) || canSeeDisciplinar || canSeeBeneficios;
+            link.style.display = canSee ? '' : 'none';
+        });
     } catch (e) {
         console.error('Erro ao verificar permissões da navbar', e);
     }
@@ -113,5 +116,42 @@ async function logout() {
     } catch (e) {
         console.error('Erro ao sair', e);
         window.location.href = '/login.html';
+    }
+}
+
+async function changePassword() {
+    const currentPassword = prompt('Senha atual:');
+    if (currentPassword === null) return;
+    const newPassword = prompt('Nova senha (mín. 6 caracteres):');
+    if (newPassword === null) return;
+    const confirmPassword = prompt('Confirmar nova senha:');
+    if (confirmPassword === null) return;
+    if (newPassword !== confirmPassword) {
+        alert('As senhas não conferem.');
+        return;
+    }
+    if (String(newPassword).length < 6) {
+        alert('A nova senha deve ter ao menos 6 caracteres.');
+        return;
+    }
+    try {
+        const res = await fetch('/api/me/password', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ currentPassword, newPassword })
+        });
+        if (res.ok) {
+            alert('Senha alterada com sucesso.');
+            return;
+        }
+        let msg = 'Erro ao alterar senha.';
+        try {
+            const data = await res.json();
+            if (data && data.erro) msg = data.erro;
+        } catch (_) {}
+        alert(msg);
+    } catch (e) {
+        console.error('Erro ao alterar senha', e);
+        alert('Erro ao alterar senha.');
     }
 }

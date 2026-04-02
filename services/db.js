@@ -18,13 +18,47 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
 db.run('PRAGMA foreign_keys = ON');
 
 db.exec(`
+CREATE TABLE IF NOT EXISTS funcionarios (
+    id TEXT PRIMARY KEY,
+    nome TEXT NOT NULL,
+    cpf TEXT UNIQUE,
+    matricula TEXT,
+    cargo TEXT,
+    setor TEXT,
+    data_admissao TEXT,
+    nascimento TEXT,
+    sexo TEXT,
+    raca_cor TEXT,
+    nacionalidade TEXT,
+    tipo_vinculo TEXT,
+    banco TEXT,
+    agencia TEXT,
+    conta TEXT,
+    tipo_conta TEXT,
+    chave_pix TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_funcionarios_cpf ON funcionarios(cpf);
+CREATE INDEX IF NOT EXISTS idx_funcionarios_matricula ON funcionarios(matricula);
+`, (err) => {
+    if (err) console.error('Erro ao preparar tabela funcionarios:', err);
+});
+
+db.exec(`
 CREATE TABLE IF NOT EXISTS solicitacoes_epis (
     id TEXT PRIMARY KEY,
     funcionario_id TEXT NOT NULL,
+    tipo TEXT DEFAULT 'retirada',
     itens_solicitados TEXT NOT NULL,
     status TEXT DEFAULT 'pendente',
     atendido_at DATETIME,
     atendido_por TEXT,
+    assinatura TEXT,
+    assinatura_tipo TEXT,
+    assinatura_at DATETIME,
+    assinatura_por TEXT,
+    evidencia_foto TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -45,6 +79,169 @@ CREATE INDEX IF NOT EXISTS idx_gestor_equipes_gestor ON gestor_equipes(gestor_us
 CREATE INDEX IF NOT EXISTS idx_gestor_equipes_func ON gestor_equipes(funcionario_id);
 `, (err) => {
     if (err) console.error('Erro ao preparar tabela gestor_equipes:', err);
+});
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS gestor_setores (
+    gestor_username TEXT NOT NULL,
+    setor TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (gestor_username, setor)
+);
+CREATE INDEX IF NOT EXISTS idx_gestor_setores_gestor ON gestor_setores(gestor_username);
+`, (err) => {
+    if (err) console.error('Erro ao preparar tabela gestor_setores:', err);
+});
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS disciplinar_registros (
+    id TEXT PRIMARY KEY,
+    funcionario_id TEXT NOT NULL,
+    tipo TEXT NOT NULL,
+    dados TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(funcionario_id) REFERENCES funcionarios(id)
+);
+CREATE INDEX IF NOT EXISTS idx_disciplinar_funcionario_created ON disciplinar_registros(funcionario_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_disciplinar_tipo_created ON disciplinar_registros(tipo, created_at);
+`, (err) => {
+    if (err) console.error('Erro ao preparar tabela disciplinar_registros:', err);
+});
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS formularios_dashboards (
+    id TEXT PRIMARY KEY,
+    titulo TEXT,
+    tipo TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_form_dashboards_tipo_updated ON formularios_dashboards(tipo, updated_at);
+`, (err) => {
+    if (err) console.error('Erro ao preparar tabela formularios_dashboards:', err);
+});
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS role_permissions (
+    role TEXT PRIMARY KEY,
+    protected_paths TEXT,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+`, (err) => {
+    if (err) console.error('Erro ao preparar tabela role_permissions:', err);
+});
+
+db.serialize(() => {
+    db.all(`PRAGMA table_info(funcionarios)`, (err, rows) => {
+        if (err || !Array.isArray(rows)) return;
+        const cols = new Set(rows.map(r => r && r.name).filter(Boolean));
+        const toAdd = [
+            ['data_admissao', 'TEXT'],
+            ['nascimento', 'TEXT'],
+            ['sexo', 'TEXT'],
+            ['raca_cor', 'TEXT'],
+            ['nacionalidade', 'TEXT'],
+            ['tipo_vinculo', 'TEXT']
+        ];
+        toAdd.forEach(([name, type]) => {
+            if (cols.has(name)) return;
+            db.run(`ALTER TABLE funcionarios ADD COLUMN ${name} ${type}`, () => {});
+        });
+    });
+
+    db.all(`PRAGMA table_info(solicitacoes_epis)`, (err, rows) => {
+        if (err || !Array.isArray(rows)) return;
+        const cols = new Set(rows.map(r => r && r.name).filter(Boolean));
+        const toAdd = [
+            ['assinatura', 'TEXT'],
+            ['assinatura_tipo', 'TEXT'],
+            ['assinatura_at', 'DATETIME'],
+            ['assinatura_por', 'TEXT'],
+            ['evidencia_foto', 'TEXT'],
+            ['tipo', `TEXT DEFAULT 'retirada'`]
+        ];
+        toAdd.forEach(([name, type]) => {
+            if (cols.has(name)) return;
+            db.run(`ALTER TABLE solicitacoes_epis ADD COLUMN ${name} ${type}`, () => {});
+        });
+    });
+
+    db.all(`PRAGMA table_info(users)`, (err, rows) => {
+        if (err || !Array.isArray(rows)) return;
+        const cols = new Set(rows.map(r => r && r.name).filter(Boolean));
+        const toAdd = [
+            ['email', 'TEXT']
+        ];
+        toAdd.forEach(([name, type]) => {
+            if (cols.has(name)) return;
+            db.run(`ALTER TABLE users ADD COLUMN ${name} ${type}`, () => {});
+        });
+    });
+
+    db.all(`PRAGMA table_info(taxas)`, (err, rows) => {
+        if (err || !Array.isArray(rows)) return;
+        const cols = new Set(rows.map(r => r && r.name).filter(Boolean));
+        const toAdd = [
+            ['aprovador_nome', 'TEXT'],
+            ['aprovador_username', 'TEXT'],
+            ['approval_token', 'TEXT']
+        ];
+        toAdd.forEach(([name, type]) => {
+            if (cols.has(name)) return;
+            db.run(`ALTER TABLE taxas ADD COLUMN ${name} ${type}`, () => {});
+        });
+    });
+
+    db.all(`PRAGMA table_info(movimentacoes_epis)`, (err, rows) => {
+        if (err || !Array.isArray(rows)) return;
+        const cols = new Set(rows.map(r => r && r.name).filter(Boolean));
+        const toAdd = [
+            ['evidencia', 'TEXT'],
+            ['tipo_evidencia', 'TEXT'],
+            ['termo', 'TEXT']
+        ];
+        toAdd.forEach(([name, type]) => {
+            if (cols.has(name)) return;
+            db.run(`ALTER TABLE movimentacoes_epis ADD COLUMN ${name} ${type}`, () => {});
+        });
+    });
+
+    db.all(`PRAGMA table_info(epis)`, (err, rows) => {
+        if (err || !Array.isArray(rows)) return;
+        const cols = new Set(rows.map(r => r && r.name).filter(Boolean));
+        if (!cols.has('possui_ca')) {
+            db.run(`ALTER TABLE epis ADD COLUMN possui_ca INTEGER DEFAULT 1`, () => {});
+        }
+    });
+
+    db.all(`PRAGMA table_info(formularios)`, (err, rows) => {
+        if (err || !Array.isArray(rows)) return;
+        const hasDashboardId = rows.some(r => r && r.name === 'dashboard_id');
+        if (!hasDashboardId) {
+            db.run(`ALTER TABLE formularios ADD COLUMN dashboard_id TEXT`, () => {
+                db.run(`UPDATE formularios SET dashboard_id = id WHERE dashboard_id IS NULL OR dashboard_id = ''`);
+                db.run(`CREATE INDEX IF NOT EXISTS idx_formularios_dashboard_id ON formularios(dashboard_id)`);
+                db.run(`
+                    INSERT OR IGNORE INTO formularios_dashboards (id, titulo, tipo, created_at, updated_at)
+                    SELECT dashboard_id, titulo, tipo, MIN(created_at), MAX(updated_at)
+                    FROM formularios
+                    WHERE dashboard_id IS NOT NULL AND dashboard_id <> ''
+                    GROUP BY dashboard_id
+                `);
+            });
+        } else {
+            db.run(`UPDATE formularios SET dashboard_id = id WHERE dashboard_id IS NULL OR dashboard_id = ''`);
+            db.run(`CREATE INDEX IF NOT EXISTS idx_formularios_dashboard_id ON formularios(dashboard_id)`);
+            db.run(`
+                INSERT OR IGNORE INTO formularios_dashboards (id, titulo, tipo, created_at, updated_at)
+                SELECT dashboard_id, titulo, tipo, MIN(created_at), MAX(updated_at)
+                FROM formularios
+                WHERE dashboard_id IS NOT NULL AND dashboard_id <> ''
+                GROUP BY dashboard_id
+            `);
+        }
+    });
 });
 
 const run = (sql, params = []) => new Promise((resolve, reject) => {
@@ -140,6 +337,7 @@ const purgeTestData = async ({ preserveFuncionarios = true } = {}) => {
         'entrevistas_desligamento',
         'recrutamento_interno',
         'onthejob',
+        'disciplinar_registros',
         'avaliacoes',
         'acessos',
         'uniformes'
@@ -192,6 +390,7 @@ const solicitacoesRepo = {
         
         return rows.map(r => ({
             ...r,
+            funcionarioId: r.funcionario_id,
             tipoGozo: r.tipo_gozo,
             gestorEmail: r.gestor_email,
             nomeGestor: r.nome_gestor,
@@ -210,6 +409,7 @@ const solicitacoesRepo = {
         const history = await all('SELECT * FROM historico_solicitacoes WHERE solicitacao_id = ? ORDER BY data', [id]);
         return { 
             ...row,
+            funcionarioId: row.funcionario_id,
             tipoGozo: row.tipo_gozo,
             gestorEmail: row.gestor_email,
             nomeGestor: row.nome_gestor,
@@ -227,12 +427,13 @@ const solicitacoesRepo = {
             id, nome, setor, inicio, inicio2, tipoGozo, decimo, gestorEmail, nomeGestor, 
             status, statusRH, sugestaoData, justificativa, assinatura, signatureToken, signedAt, createdAt, updatedAt, historico 
         } = data;
+        const funcionarioId = data.funcionarioId || data.funcionario_id || null;
         
         await run(`INSERT INTO solicitacoes_ferias (
-            id, nome, setor, inicio, inicio2, tipo_gozo, decimo, gestor_email, nome_gestor, 
+            id, funcionario_id, nome, setor, inicio, inicio2, tipo_gozo, decimo, gestor_email, nome_gestor, 
             status, status_rh, sugestao_data, justificativa, assinatura, signature_token, signed_at, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
-            id, nome, setor, inicio, inicio2, tipoGozo, decimo, gestorEmail, nomeGestor,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+            id, funcionarioId, nome, setor, inicio, inicio2, tipoGozo, decimo, gestorEmail, nomeGestor,
             status, statusRH, sugestaoData, justificativa, assinatura, signatureToken, signedAt, createdAt, updatedAt
         ]);
 
@@ -254,12 +455,13 @@ const solicitacoesRepo = {
             nome, setor, inicio, inicio2, tipoGozo, decimo, gestorEmail, nomeGestor, 
             status, statusRH, sugestaoData, justificativa, assinatura, signatureToken, signedAt, updatedAt 
         } = data;
+        const funcionarioId = data.funcionarioId || data.funcionario_id || null;
 
         await run(`UPDATE solicitacoes_ferias SET 
-            nome=?, setor=?, inicio=?, inicio2=?, tipo_gozo=?, decimo=?, gestor_email=?, nome_gestor=?, 
+            funcionario_id=?, nome=?, setor=?, inicio=?, inicio2=?, tipo_gozo=?, decimo=?, gestor_email=?, nome_gestor=?, 
             status=?, status_rh=?, sugestao_data=?, justificativa=?, assinatura=?, signature_token=?, signed_at=?, updated_at=?
             WHERE id=?`, [
-            nome, setor, inicio, inicio2, tipoGozo, decimo, gestorEmail, nomeGestor,
+            funcionarioId, nome, setor, inicio, inicio2, tipoGozo, decimo, gestorEmail, nomeGestor,
             status, statusRH, sugestaoData, justificativa, assinatura, signatureToken, signedAt, updatedAt, id
         ]);
 
@@ -284,13 +486,49 @@ const funcionariosRepo = {
     getAll: async () => await all('SELECT * FROM funcionarios'),
     getById: async (id) => await get('SELECT * FROM funcionarios WHERE id = ?', [id]),
     create: async (data) => {
-        await run(`INSERT INTO funcionarios (id, nome, cpf, matricula, cargo, setor, banco, agencia, conta, tipo_conta, chave_pix) VALUES (?,?,?,?,?,?,?,?,?,?,?)`, 
-            [data.id, data.nome, data.cpf, data.matricula, data.cargo, data.setor, data.banco, data.agencia, data.conta, data.tipo_conta, data.chave_pix]);
+        await run(`INSERT INTO funcionarios (id, nome, cpf, matricula, cargo, setor, data_admissao, nascimento, sexo, raca_cor, nacionalidade, tipo_vinculo, banco, agencia, conta, tipo_conta, chave_pix) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+            [
+                data.id,
+                data.nome,
+                data.cpf,
+                data.matricula,
+                data.cargo,
+                data.setor,
+                data.data_admissao || null,
+                data.nascimento || null,
+                data.sexo || null,
+                data.raca_cor || null,
+                data.nacionalidade || null,
+                data.tipo_vinculo || null,
+                data.banco,
+                data.agencia,
+                data.conta,
+                data.tipo_conta,
+                data.chave_pix
+            ]);
         return data;
     },
     update: async (id, data) => {
-        await run(`UPDATE funcionarios SET nome=?, cpf=?, matricula=?, cargo=?, setor=?, banco=?, agencia=?, conta=?, tipo_conta=?, chave_pix=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`, 
-            [data.nome, data.cpf, data.matricula, data.cargo, data.setor, data.banco, data.agencia, data.conta, data.tipo_conta, data.chave_pix, id]);
+        await run(`UPDATE funcionarios SET nome=?, cpf=?, matricula=?, cargo=?, setor=?, data_admissao=?, nascimento=?, sexo=?, raca_cor=?, nacionalidade=?, tipo_vinculo=?, banco=?, agencia=?, conta=?, tipo_conta=?, chave_pix=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+            [
+                data.nome,
+                data.cpf,
+                data.matricula,
+                data.cargo,
+                data.setor,
+                data.data_admissao || null,
+                data.nascimento || null,
+                data.sexo || null,
+                data.raca_cor || null,
+                data.nacionalidade || null,
+                data.tipo_vinculo || null,
+                data.banco,
+                data.agencia,
+                data.conta,
+                data.tipo_conta,
+                data.chave_pix,
+                id
+            ]);
         return data;
     },
     delete: async (id) => await run('DELETE FROM funcionarios WHERE id = ?', [id]),
@@ -302,11 +540,15 @@ const funcionariosRepo = {
 const gestorEquipesRepo = {
     getEquipeByGestor: async (gestorUsername) => {
         return await all(
-            `SELECT f.* 
-             FROM funcionarios f 
-             JOIN gestor_equipes g ON f.id = g.funcionario_id 
-             WHERE g.gestor_username = ?`,
-            [gestorUsername]
+            `SELECT DISTINCT f.*
+             FROM funcionarios f
+             WHERE f.id IN (
+                SELECT funcionario_id FROM gestor_equipes WHERE gestor_username = ?
+             )
+             OR UPPER(TRIM(COALESCE(f.setor, ''))) IN (
+                SELECT UPPER(TRIM(COALESCE(setor, ''))) FROM gestor_setores WHERE gestor_username = ?
+             )`,
+            [gestorUsername, gestorUsername]
         );
     },
     addMembro: async (gestorUsername, funcionarioId) => {
@@ -331,27 +573,82 @@ const gestorEquipesRepo = {
     }
 };
 
+const gestorSetoresRepo = {
+    getSetoresByGestor: async (gestorUsername) => {
+        const rows = await all(
+            `SELECT setor FROM gestor_setores WHERE gestor_username = ? ORDER BY setor`,
+            [gestorUsername]
+        );
+        return (rows || []).map(r => r && r.setor).filter(Boolean);
+    },
+    addSetor: async (gestorUsername, setor) => {
+        await run(
+            `INSERT OR IGNORE INTO gestor_setores (gestor_username, setor) VALUES (?, ?)`,
+            [gestorUsername, setor]
+        );
+        return { gestorUsername, setor };
+    },
+    removeSetor: async (gestorUsername, setor) => {
+        await run(
+            `DELETE FROM gestor_setores WHERE gestor_username = ? AND setor = ?`,
+            [gestorUsername, setor]
+        );
+        return { gestorUsername, setor };
+    }
+};
+
 const taxasRepo = {
     getAll: async () => {
         const rows = await all('SELECT * FROM taxas');
-        return rows.map(r => parseJsonFields(r, ['motivo', 'valores']));
+        return rows.map(r => {
+            const parsed = parseJsonFields(r, ['motivo', 'valores']);
+            if (!parsed) return parsed;
+            if (parsed.chave_pix && !parsed.pix) parsed.pix = parsed.chave_pix;
+            if (parsed.pix && !parsed.chave_pix) parsed.chave_pix = parsed.pix;
+            return parsed;
+        });
     },
     getById: async (id) => {
         const row = await get('SELECT * FROM taxas WHERE id = ?', [id]);
-        return parseJsonFields(row, ['motivo', 'valores']);
+        const parsed = parseJsonFields(row, ['motivo', 'valores']);
+        if (!parsed) return parsed;
+        if (parsed.chave_pix && !parsed.pix) parsed.pix = parsed.chave_pix;
+        if (parsed.pix && !parsed.chave_pix) parsed.chave_pix = parsed.pix;
+        return parsed;
     },
     create: async (data) => {
-        await run(`INSERT INTO taxas (id, nome_taxa, cpf, funcao, forma_pagamento, chave_pix, banco, agencia, conta, tipo_conta, departamento, motivo, detalhe_motivo, antecessor, valores, status, email_gestor, email_solicitante, signature_token, assinatura, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-            [data.id, data.nome_taxa, data.cpf, data.funcao, data.forma_pagamento, data.chave_pix, data.banco, data.agencia, data.conta, data.tipo_conta, data.departamento, JSON.stringify(data.motivo), data.detalhe_motivo, data.antecessor, JSON.stringify(data.valores), data.status, data.email_gestor, data.email_solicitante, data.signatureToken, data.assinatura, data.createdAt, data.updatedAt]);
+        const chavePix = data.chave_pix ?? data.pix ?? null;
+        await run(`INSERT INTO taxas (id, nome_taxa, cpf, funcao, forma_pagamento, chave_pix, banco, agencia, conta, tipo_conta, departamento, motivo, detalhe_motivo, antecessor, valores, status, email_gestor, email_solicitante, approval_token, signature_token, assinatura, aprovador_nome, aprovador_username, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+            [data.id, data.nome_taxa, data.cpf, data.funcao, data.forma_pagamento, chavePix, data.banco, data.agencia, data.conta, data.tipo_conta, data.departamento, JSON.stringify(data.motivo), data.detalhe_motivo, data.antecessor, JSON.stringify(data.valores), data.status, data.email_gestor, data.email_solicitante, data.approvalToken || data.approval_token || null, data.signatureToken || data.signature_token || null, data.assinatura, data.aprovador_nome || null, data.aprovador_username || null, data.createdAt, data.updatedAt]);
         return data;
     },
     update: async (id, data) => {
-        await run(`UPDATE taxas SET nome_taxa=?, cpf=?, funcao=?, forma_pagamento=?, chave_pix=?, banco=?, agencia=?, conta=?, tipo_conta=?, departamento=?, motivo=?, detalhe_motivo=?, antecessor=?, valores=?, status=?, email_gestor=?, email_solicitante=?, signature_token=?, assinatura=?, updated_at=? WHERE id=?`,
-            [data.nome_taxa, data.cpf, data.funcao, data.forma_pagamento, data.chave_pix, data.banco, data.agencia, data.conta, data.tipo_conta, data.departamento, JSON.stringify(data.motivo), data.detalhe_motivo, data.antecessor, JSON.stringify(data.valores), data.status, data.email_gestor, data.email_solicitante, data.signatureToken, data.assinatura, data.updatedAt, id]);
+        const chavePix = data.chave_pix ?? data.pix ?? null;
+        await run(`UPDATE taxas SET nome_taxa=?, cpf=?, funcao=?, forma_pagamento=?, chave_pix=?, banco=?, agencia=?, conta=?, tipo_conta=?, departamento=?, motivo=?, detalhe_motivo=?, antecessor=?, valores=?, status=?, email_gestor=?, email_solicitante=?, approval_token=?, signature_token=?, assinatura=?, aprovador_nome=?, aprovador_username=?, updated_at=? WHERE id=?`,
+            [data.nome_taxa, data.cpf, data.funcao, data.forma_pagamento, chavePix, data.banco, data.agencia, data.conta, data.tipo_conta, data.departamento, JSON.stringify(data.motivo), data.detalhe_motivo, data.antecessor, JSON.stringify(data.valores), data.status, data.email_gestor, data.email_solicitante, data.approvalToken || data.approval_token || null, data.signatureToken || data.signature_token || null, data.assinatura, data.aprovador_nome || null, data.aprovador_username || null, data.updatedAt, id]);
         return data;
     },
     read: () => { throw new Error("Use async methods for taxas"); },
     write: () => { throw new Error("Use async methods for taxas"); }
+};
+
+const rolePermissionsRepo = {
+    getAll: async () => {
+        const rows = await all('SELECT role, protected_paths, updated_at FROM role_permissions');
+        return rows.map(r => parseJsonFields(r, ['protected_paths']));
+    },
+    getByRole: async (role) => {
+        const row = await get('SELECT role, protected_paths, updated_at FROM role_permissions WHERE role = ?', [role]);
+        return parseJsonFields(row, ['protected_paths']);
+    },
+    upsert: async ({ role, protected_paths }) => {
+        const updatedAt = new Date().toISOString();
+        await run(
+            `INSERT OR REPLACE INTO role_permissions (role, protected_paths, updated_at) VALUES (?, ?, ?)`,
+            [role, JSON.stringify(Array.isArray(protected_paths) ? protected_paths : []), updatedAt]
+        );
+        return { role, protected_paths, updated_at: updatedAt };
+    }
 };
 
 // ... Add similar for vagas and candidatos if needed, but for now focusing on main entities ...
@@ -364,7 +661,9 @@ module.exports = {
     solicitacoes: solicitacoesRepo,
     funcionarios: funcionariosRepo,
     gestorEquipes: gestorEquipesRepo,
+    gestorSetores: gestorSetoresRepo,
     taxas: taxasRepo,
+    rolePermissions: rolePermissionsRepo,
     solicitacoesTaxa: {
         getAll: async () => {
             return await all('SELECT * FROM solicitacoes_taxa');
@@ -435,6 +734,10 @@ module.exports = {
                 [titulo, data.descricao, data.requisitos, data.status, data.ativa ? 1 : 0, departamento, JSON.stringify(rest), id]);
             return data;
         },
+        delete: async (id) => {
+            await run('DELETE FROM vagas WHERE id = ?', [id]);
+            return { id };
+        },
         read: () => { throw new Error("Use async methods for vagas"); },
         write: () => { throw new Error("Use async methods for vagas"); }
     },
@@ -479,6 +782,10 @@ module.exports = {
                 [nome, email, telefone, curriculo, status, observacao, data_entrevista, local_entrevista, entrevistador, JSON.stringify(historico), JSON.stringify(rest), id]);
             return data;
         },
+        delete: async (id) => {
+            await run('DELETE FROM candidatos WHERE id = ?', [id]);
+            return { id };
+        },
         read: () => { throw new Error("Use async methods for candidatos"); },
         write: () => { throw new Error("Use async methods for candidatos"); }
     },
@@ -487,28 +794,82 @@ module.exports = {
             const rows = await all('SELECT * FROM formularios');
             return rows.map(r => {
                 const parsed = parseJsonFields(r, ['questoes']);
-                return { ...parsed, questoes: normalizeFormularioQuestoes(parsed.questoes) };
+                const dashboardId = parsed.dashboard_id || parsed.dashboardId || parsed.id;
+                return { ...parsed, dashboardId, questoes: normalizeFormularioQuestoes(parsed.questoes) };
             });
         },
         getById: async (id) => {
             const row = await get('SELECT * FROM formularios WHERE id = ?', [id]);
             const parsed = parseJsonFields(row, ['questoes']);
             if (!parsed) return parsed;
-            return { ...parsed, questoes: normalizeFormularioQuestoes(parsed.questoes) };
+            const dashboardId = parsed.dashboard_id || parsed.dashboardId || parsed.id;
+            return { ...parsed, dashboardId, questoes: normalizeFormularioQuestoes(parsed.questoes) };
+        },
+        getByDashboardId: async (dashboardId) => {
+            const rows = await all('SELECT * FROM formularios WHERE dashboard_id = ? ORDER BY created_at DESC', [dashboardId]);
+            return rows.map(r => {
+                const parsed = parseJsonFields(r, ['questoes']);
+                const dash = parsed.dashboard_id || parsed.dashboardId || parsed.id;
+                return { ...parsed, dashboardId: dash, questoes: normalizeFormularioQuestoes(parsed.questoes) };
+            });
         },
         create: async (data) => {
             const questoes = normalizeFormularioQuestoes(data.questoes);
-            await run(`INSERT INTO formularios (id, titulo, tipo, questoes, ativo, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [data.id, data.titulo, data.tipo, JSON.stringify(questoes), data.ativo ? 1 : 0, data.createdAt || new Date().toISOString(), data.updatedAt || new Date().toISOString()]);
+            const dashboardId = data.dashboardId || data.dashboard_id || data.id;
+            await run(`INSERT INTO formularios (id, titulo, tipo, questoes, ativo, created_at, updated_at, dashboard_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                [data.id, data.titulo, data.tipo, JSON.stringify(questoes), data.ativo ? 1 : 0, data.createdAt || new Date().toISOString(), data.updatedAt || new Date().toISOString(), dashboardId]);
             return data;
         },
         update: async (id, data) => {
             const questoes = normalizeFormularioQuestoes(data.questoes);
-            await run(`UPDATE formularios SET titulo=?, tipo=?, questoes=?, ativo=?, updated_at=? WHERE id=?`,
-                [data.titulo, data.tipo, JSON.stringify(questoes), data.ativo ? 1 : 0, data.updatedAt || new Date().toISOString(), id]);
+            const dashboardId = data.dashboardId || data.dashboard_id || id;
+            await run(`UPDATE formularios SET titulo=?, tipo=?, questoes=?, ativo=?, updated_at=?, dashboard_id=? WHERE id=?`,
+                [data.titulo, data.tipo, JSON.stringify(questoes), data.ativo ? 1 : 0, data.updatedAt || new Date().toISOString(), dashboardId, id]);
             return data;
         },
-        delete: async (id) => await run('DELETE FROM formularios WHERE id = ?', [id])
+        delete: async (id) => {
+            await run('BEGIN TRANSACTION');
+            try {
+                await run('DELETE FROM respostas_formularios WHERE formulario_id = ?', [id]);
+                await run('DELETE FROM formularios WHERE id = ?', [id]);
+                await run('COMMIT');
+            } catch (e) {
+                try { await run('ROLLBACK'); } catch (_) {}
+                throw e;
+            }
+        }
+    },
+    dashboardsFormularios: {
+        getAll: async () => {
+            const rows = await all(`
+                SELECT d.*,
+                    (SELECT COUNT(*) FROM formularios f WHERE f.dashboard_id = d.id) AS forms_count,
+                    (SELECT COUNT(*) FROM respostas_formularios r JOIN formularios f ON f.id = r.formulario_id WHERE f.dashboard_id = d.id) AS respostas_count
+                FROM formularios_dashboards d
+                ORDER BY d.updated_at DESC
+            `);
+            return rows;
+        },
+        getById: async (id) => {
+            const row = await get('SELECT * FROM formularios_dashboards WHERE id = ?', [id]);
+            return row || null;
+        },
+        create: async (data) => {
+            const createdAt = data.createdAt || new Date().toISOString();
+            const updatedAt = data.updatedAt || new Date().toISOString();
+            await run(
+                `INSERT OR IGNORE INTO formularios_dashboards (id, titulo, tipo, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+                [data.id, data.titulo || null, data.tipo || null, createdAt, updatedAt]
+            );
+            await run(
+                `UPDATE formularios_dashboards SET titulo = COALESCE(?, titulo), tipo = COALESCE(?, tipo), updated_at = ? WHERE id = ?`,
+                [data.titulo || null, data.tipo || null, updatedAt, data.id]
+            );
+            return data;
+        },
+        touch: async (id) => {
+            await run(`UPDATE formularios_dashboards SET updated_at = ? WHERE id = ?`, [new Date().toISOString(), id]);
+        }
     },
     respostas: {
         getAll: async () => {
@@ -519,6 +880,16 @@ module.exports = {
             const rows = await all('SELECT * FROM respostas_formularios WHERE formulario_id = ?', [formId]);
             return rows.map(r => parseJsonFields(r, ['respostas']));
         },
+        getByDashboardId: async (dashboardId) => {
+            const rows = await all(`
+                SELECT r.*, f.titulo AS formulario_titulo, f.id AS formulario_id
+                FROM respostas_formularios r
+                JOIN formularios f ON f.id = r.formulario_id
+                WHERE f.dashboard_id = ?
+                ORDER BY r.created_at DESC
+            `, [dashboardId]);
+            return rows.map(r => parseJsonFields(r, ['respostas']));
+        },
         create: async (data) => {
             await run(`INSERT INTO respostas_formularios (id, formulario_id, funcionario_id, respostas, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`,
                 [data.id, data.formulario_id, data.funcionario_id, JSON.stringify(data.respostas), data.createdAt || new Date().toISOString(), data.updatedAt || new Date().toISOString()]);
@@ -526,11 +897,11 @@ module.exports = {
         }
     },
     users: {
-        getAll: async () => await all('SELECT id, username, role, name, created_at FROM users'),
+        getAll: async () => await all('SELECT id, username, role, name, email, created_at FROM users'),
         getByUsername: async (username) => await get('SELECT * FROM users WHERE username = ?', [username]),
         create: async (data) => {
-            await run(`INSERT INTO users (username, password, role, name, created_at) VALUES (?, ?, ?, ?, ?)`,
-                [data.username, data.password, data.role, data.name, new Date().toISOString()]);
+            await run(`INSERT INTO users (username, password, role, name, email, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+                [data.username, data.password, data.role, data.name, data.email || null, new Date().toISOString()]);
             return data;
         },
         update: async (username, data) => {
@@ -548,6 +919,10 @@ module.exports = {
                 fields.push('name = ?');
                 params.push(data.name);
             }
+            if (Object.prototype.hasOwnProperty.call(data, 'email')) {
+                fields.push('email = ?');
+                params.push(data.email || null);
+            }
             
             if (fields.length === 0) return null;
             
@@ -562,13 +937,13 @@ module.exports = {
         getAll: async () => await all('SELECT * FROM epis'),
         getById: async (id) => await get('SELECT * FROM epis WHERE id = ?', [id]),
         create: async (data) => {
-            await run(`INSERT INTO epis (id, nome, valor, estoque, ca_validade, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [data.id, data.nome, data.valor, data.estoque, data.ca_validade, data.createdAt, data.updatedAt]);
+            await run(`INSERT INTO epis (id, nome, valor, estoque, possui_ca, ca_validade, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                [data.id, data.nome, data.valor, data.estoque, data.possui_ca ? 1 : 0, data.ca_validade, data.createdAt, data.updatedAt]);
             return data;
         },
         update: async (id, data) => {
-             await run(`UPDATE epis SET nome=?, valor=?, estoque=?, ca_validade=?, updated_at=? WHERE id=?`,
-                [data.nome, data.valor, data.estoque, data.ca_validade, data.updatedAt, id]);
+             await run(`UPDATE epis SET nome=?, valor=?, estoque=?, possui_ca=?, ca_validade=?, updated_at=? WHERE id=?`,
+                [data.nome, data.valor, data.estoque, data.possui_ca ? 1 : 0, data.ca_validade, data.updatedAt, id]);
              return data;
         },
         delete: async (id) => await run('DELETE FROM epis WHERE id = ?', [id]),
@@ -586,14 +961,20 @@ module.exports = {
         },
         create: async (data) => {
             await run(
-                `INSERT INTO solicitacoes_epis (id, funcionario_id, itens_solicitados, status, atendido_at, atendido_por, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                `INSERT INTO solicitacoes_epis (id, funcionario_id, tipo, itens_solicitados, status, atendido_at, atendido_por, assinatura, assinatura_tipo, assinatura_at, assinatura_por, evidencia_foto, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     data.id,
                     data.funcionario_id,
+                    data.tipo || 'retirada',
                     JSON.stringify(Array.isArray(data.itens_solicitados) ? data.itens_solicitados : []),
                     data.status || 'pendente',
                     data.atendido_at || null,
                     data.atendido_por || null,
+                    data.assinatura || null,
+                    data.assinatura_tipo || null,
+                    data.assinatura_at || null,
+                    data.assinatura_por || null,
+                    data.evidencia_foto || null,
                     data.createdAt,
                     data.updatedAt
                 ]
@@ -602,8 +983,19 @@ module.exports = {
         },
         updateStatus: async (id, data) => {
             await run(
-                `UPDATE solicitacoes_epis SET status=?, atendido_at=?, atendido_por=?, updated_at=? WHERE id=?`,
-                [data.status, data.atendido_at || null, data.atendido_por || null, data.updatedAt, id]
+                `UPDATE solicitacoes_epis SET status=?, atendido_at=?, atendido_por=?, assinatura=?, assinatura_tipo=?, assinatura_at=?, assinatura_por=?, evidencia_foto=?, updated_at=? WHERE id=?`,
+                [
+                    data.status,
+                    data.atendido_at || null,
+                    data.atendido_por || null,
+                    data.assinatura || null,
+                    data.assinatura_tipo || null,
+                    data.assinatura_at || null,
+                    data.assinatura_por || null,
+                    data.evidencia_foto || null,
+                    data.updatedAt,
+                    id
+                ]
             );
             return data;
         },
@@ -783,6 +1175,79 @@ module.exports = {
         },
         read: () => { throw new Error("Use async methods for onthejob"); },
         write: () => { throw new Error("Use async methods for onthejob"); }
+    },
+    disciplinar: {
+        getAll: async () => {
+            const rows = await all('SELECT * FROM disciplinar_registros');
+            return rows.map(r => {
+                const dados = r.dados ? JSON.parse(r.dados) : {};
+                return {
+                    ...dados,
+                    id: r.id,
+                    funcionarioId: r.funcionario_id,
+                    tipo: r.tipo,
+                    createdAt: r.created_at,
+                    updatedAt: r.updated_at
+                };
+            });
+        },
+        getById: async (id) => {
+            const row = await get('SELECT * FROM disciplinar_registros WHERE id = ?', [id]);
+            if (!row) return null;
+            const dados = row.dados ? JSON.parse(row.dados) : {};
+            return {
+                ...dados,
+                id: row.id,
+                funcionarioId: row.funcionario_id,
+                tipo: row.tipo,
+                createdAt: row.created_at,
+                updatedAt: row.updated_at
+            };
+        },
+        create: async (data) => {
+            const {
+                id,
+                funcionarioId,
+                tipo,
+                createdAt,
+                updatedAt,
+                ...rest
+            } = data;
+            await run(
+                'INSERT INTO disciplinar_registros (id, funcionario_id, tipo, dados, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+                [id, funcionarioId, tipo, JSON.stringify(rest), createdAt, updatedAt]
+            );
+            return data;
+        },
+        update: async (id, data) => {
+            const current = await get('SELECT * FROM disciplinar_registros WHERE id = ?', [id]);
+            if (!current) return null;
+            const currentDados = current.dados ? JSON.parse(current.dados) : {};
+
+            const {
+                funcionarioId,
+                tipo,
+                updatedAt,
+                ...rest
+            } = data;
+
+            const newFuncionarioId = funcionarioId !== undefined ? funcionarioId : current.funcionario_id;
+            const newTipo = tipo !== undefined ? tipo : current.tipo;
+            const newUpdatedAt = updatedAt || new Date().toISOString();
+            const newDados = { ...currentDados, ...rest };
+
+            await run(
+                'UPDATE disciplinar_registros SET funcionario_id=?, tipo=?, dados=?, updated_at=? WHERE id=?',
+                [newFuncionarioId, newTipo, JSON.stringify(newDados), newUpdatedAt, id]
+            );
+            return { ...data, id };
+        },
+        remove: async (id) => {
+            await run('DELETE FROM disciplinar_registros WHERE id = ?', [id]);
+            return { ok: true };
+        },
+        read: () => { throw new Error("Use async methods for disciplinar"); },
+        write: () => { throw new Error("Use async methods for disciplinar"); }
     },
     avaliacoes: {
         getAll: async () => {

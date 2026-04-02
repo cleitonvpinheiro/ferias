@@ -215,6 +215,48 @@ window.setPageLanguage = (lang, { persist = true } = {}) => setLanguage(lang, { 
 const form = document.getElementById('formTalentos');
 const feedback = document.getElementById('feedback');
 
+function normalizeCpfDigits(v) {
+    return String(v || '').replace(/\D/g, '').slice(0, 11);
+}
+
+function formatCpf(v) {
+    const d = normalizeCpfDigits(v);
+    if (!d) return '';
+    let out = d.slice(0, 3);
+    if (d.length > 3) out += '.' + d.slice(3, 6);
+    if (d.length > 6) out += '.' + d.slice(6, 9);
+    if (d.length > 9) out += '-' + d.slice(9, 11);
+    return out;
+}
+
+function isValidCpf(cpf) {
+    const digits = normalizeCpfDigits(cpf);
+    if (!digits || digits.length !== 11) return false;
+    if (/^(\d)\1{10}$/.test(digits)) return false;
+    const nums = digits.split('').map(n => Number(n));
+    if (nums.some(n => Number.isNaN(n))) return false;
+
+    let sum = 0;
+    for (let i = 0; i < 9; i++) sum += nums[i] * (10 - i);
+    let dv1 = (sum * 10) % 11;
+    if (dv1 === 10) dv1 = 0;
+    if (dv1 !== nums[9]) return false;
+
+    sum = 0;
+    for (let i = 0; i < 10; i++) sum += nums[i] * (11 - i);
+    let dv2 = (sum * 10) % 11;
+    if (dv2 === 10) dv2 = 0;
+    return dv2 === nums[10];
+}
+
+const cpfInput = form ? form.querySelector('input[name="cpf"]') : null;
+if (cpfInput) {
+    cpfInput.addEventListener('input', () => {
+        cpfInput.value = formatCpf(cpfInput.value);
+    });
+    cpfInput.value = formatCpf(cpfInput.value);
+}
+
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -224,6 +266,17 @@ form.addEventListener('submit', async (e) => {
     
     try {
         const formData = new FormData(form);
+        if (cpfInput) {
+            const cpfDigits = normalizeCpfDigits(cpfInput.value);
+            if (cpfDigits) {
+                if (!isValidCpf(cpfDigits)) {
+                    throw new Error('CPF inválido.');
+                }
+                formData.set('cpf', cpfDigits);
+            } else {
+                formData.delete('cpf');
+            }
+        }
         
         // Tratar arquivo
         const fileInput = document.getElementById('curriculo');

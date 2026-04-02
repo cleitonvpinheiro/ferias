@@ -5,7 +5,8 @@ const crypto = require('crypto');
 const emailService = require('../services/email');
 const { dpAuth, verifyToken, checkRole, ROLES } = require('../middleware/auth');
 
-const solicitacaoTaxaFormAuth = [verifyToken, checkRole([ROLES.DP, ROLES.RH_GERAL, ROLES.RH, ROLES.GESTOR])];
+const solicitacaoTaxaFormAuth = [verifyToken, checkRole([ROLES.DP, ROLES.RH_GERAL, ROLES.RH, ROLES.GESTOR, ROLES.SUPERVISOR, ROLES.GERENTE])];
+const gestorReqTaxasAuth = [verifyToken, checkRole([ROLES.GESTOR, ROLES.GERENTE, ROLES.SUPERVISOR])];
 
 // Endpoint público para criar solicitação
 router.post('/solicitacao-taxa', solicitacaoTaxaFormAuth, async (req, res) => {
@@ -80,6 +81,50 @@ router.put('/rh/solicitacoes-taxa/:id', dpAuth, async (req, res) => {
         res.json({ ok: true, message: 'Solicitação atualizada.' });
     } catch (e) {
         console.error(e);
+        res.status(500).json({ message: 'Erro ao atualizar.' });
+    }
+});
+
+// Endpoints para Gestores/Gerentes visualizarem e aprovarem requisições vinculadas ao seu setor
+router.get('/gestor/solicitacoes-taxa', gestorReqTaxasAuth, async (req, res) => {
+    try {
+        const username = req.user && req.user.username;
+        const all = await db.solicitacoesTaxa.getAll();
+        let setores = [];
+        try {
+            if (username && db.gestorSetores && db.gestorSetores.getSetoresByGestor) {
+                setores = await db.gestorSetores.getSetoresByGestor(username);
+            }
+        } catch (_) {}
+        if (!Array.isArray(setores) || setores.length === 0) {
+            return res.json(all);
+        }
+        const norm = (s) => String(s || '').trim().toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const setoresSet = new Set(setores.map(norm));
+        const filtered = all.filter(i => setoresSet.has(norm(i && i.departamento)));
+        res.json(filtered);
+    } catch (e) {
+        console.error('Erro ao listar solicitações para gestor:', e);
+        res.status(500).json({ message: 'Erro ao buscar solicitações.' });
+    }
+});
+
+router.put('/gestor/solicitacoes-taxa/:id', gestorReqTaxasAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updates = req.body;
+        const existing = await db.solicitacoesTaxa.getById(id);
+        if (!existing) return res.status(404).json({ message: 'Solicitação não encontrada' });
+        const updatedItem = {
+            ...existing,
+            ...updates,
+            updatedAt: new Date().toISOString()
+        };
+        await db.solicitacoesTaxa.update(id, updatedItem);
+        res.json({ ok: true, message: 'Solicitação atualizada.' });
+    } catch (e) {
+        console.error('Erro ao atualizar solicitação por gestor:', e);
         res.status(500).json({ message: 'Erro ao atualizar.' });
     }
 });

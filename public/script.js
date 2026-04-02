@@ -95,6 +95,10 @@ function fillForm(data) {
         const el = document.getElementById(id);
         if (el) el.value = val || '';
     };
+    if (selectFuncionario) {
+        const fid = String(data.funcionarioId || data.funcionario_id || '').trim();
+        if (fid) selectFuncionario.value = fid;
+    }
     
     setVal('nome', data.nome);
     setVal('setor', data.setor);
@@ -189,19 +193,25 @@ function renderHistorico(historico) {
             const date = new Date(item.data).toLocaleString('pt-BR');
             const statusMap = {
                 'pendente_rh': 'Aguardando RH',
+                'pendente_gestor': 'Ajuste solicitado pelo RH',
                 'aprovado': 'Aprovado',
                 'reprovado': 'Reprovado',
-                'pendente_assinatura': 'Aguardando Assinatura'
+                'aguardando_assinatura': 'Aguardando Assinatura',
+                'assinado': 'Assinado',
+                'concluido': 'Concluído',
+                'reenvio': 'Reenvio ao RH',
+                'assinatura_colaborador': 'Assinatura do colaborador'
             };
-            const statusLabel = statusMap[item.status] || item.status;
+            const acao = item.acao || item.status || '';
+            const statusLabel = statusMap[acao] || acao || '—';
             
             li.innerHTML = `
                 <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
                     <strong style="color:#1e293b">${statusLabel}</strong>
                     <span style="color:#64748b; font-size:0.75rem">${date}</span>
                 </div>
-                ${item.obs ? `<div style="color:#475569; margin-top:4px;">${item.obs}</div>` : ''}
-                ${item.usuario ? `<div style="color:#94a3b8; font-size:0.75rem; margin-top:4px;">Por: ${item.usuario}</div>` : ''}
+                ${item.justificativa ? `<div style="color:#475569; margin-top:4px;">${item.justificativa}</div>` : ''}
+                ${item.ator ? `<div style="color:#94a3b8; font-size:0.75rem; margin-top:4px;">Por: ${item.ator}</div>` : ''}
             `;
             historicoLista.appendChild(li);
         });
@@ -280,7 +290,27 @@ if (requestId) {
             if (data.ok === false) {
                 showFeedback(data.erro);
             } else {
-                populateAndDisable(data);
+                if (modeRH) {
+                    populateAndDisable(data);
+                } else if (signatureToken) {
+                    fillForm(data);
+                } else {
+                    fillForm(data);
+                    renderHistorico(data.historico);
+                    
+                    if (data.status === 'pendente_gestor') {
+                        if (btnSubmit) btnSubmit.textContent = 'Reenviar ao RH';
+                        const sug = data.sugestaoData ? new Date(data.sugestaoData).toLocaleDateString('pt-BR') : null;
+                        let msg = 'Solicitação reprovada pelo RH. Ajuste os dados e reenviar.';
+                        if (sug) msg += ` Sugestão de nova data: ${sug}.`;
+                        if (data.justificativa) msg += ` Justificativa: ${data.justificativa}`;
+                        showFeedback(msg, false);
+                    } else {
+                        const inputs = form.querySelectorAll('input, select, textarea, button');
+                        inputs.forEach(el => el.disabled = true);
+                        showFeedback('Solicitação em modo de visualização.', false);
+                    }
+                }
                 
                 // If in signature mode, ensure overlay stays hidden after population
                 if (signatureToken) {
@@ -331,6 +361,7 @@ form.addEventListener('submit', async (e) => {
   const setor = document.getElementById('setor').value.trim();
   const inicio = document.getElementById('inicio').value;
   const tipoGozo = tipoGozoEl.value;
+  const funcionarioId = selectFuncionario ? String(selectFuncionario.value || '').trim() : '';
   const decimoEl = document.getElementById('decimo');
   const decimo = decimoEl ? String(decimoEl.value || '').trim() : '';
   
@@ -409,6 +440,7 @@ form.addEventListener('submit', async (e) => {
   try {
     const nomeGestor = document.getElementById('nomeGestor').value.trim();
     const body = { 
+        funcionarioId: funcionarioId || undefined,
         nome, 
         setor, 
         inicio, 

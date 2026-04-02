@@ -1,11 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
+const path = require('path');
+const fs = require('fs');
 const db = require('../services/db');
 const emailService = require('../services/email');
 const pdfService = require('../services/pdfService');
 const upload = require('../middleware/upload');
 const { recrutamentoAuth } = require('../middleware/auth');
+const { normalizeCpf, isValidCpf } = require('../utils/validation');
 
 router.post('/candidaturas', upload.single('curriculo'), async (req, res) => {
     try {
@@ -13,6 +16,14 @@ router.post('/candidaturas', upload.single('curriculo'), async (req, res) => {
         // Validação básica
         if (!payload.nome || !payload.email || !payload.telefone) {
             return res.status(400).json({ ok: false, erro: 'Campos obrigatórios ausentes' });
+        }
+
+        const cpfDigits = normalizeCpf(payload.cpf);
+        if (cpfDigits) {
+            if (!isValidCpf(cpfDigits)) {
+                return res.status(400).json({ ok: false, erro: 'CPF inválido' });
+            }
+            payload.cpf = cpfDigits;
         }
 
         const id = crypto.randomUUID();
@@ -64,22 +75,46 @@ router.get('/rh/candidatos/:id', recrutamentoAuth, async (req, res) => {
     }
 });
 
-router.post('/rh/candidatos/:id/status', recrutamentoAuth, async (req, res) => {
+router.delete('/rh/candidatos/:id', recrutamentoAuth, async (req, res) => {
     try {
-        const { status, observacao } = req.body;
+        const candidato = await db.candidatos.getById(req.params.id);
+        if (!candidato) return res.status(404).json({ ok: false, erro: 'Candidato não encontrado' });
+
+        const fileName = candidato.curriculo ? String(candidato.curriculo) : '';
+        if (fileName) {
+            const filePath = path.join(__dirname, '..', 'uploads', fileName);
+            try {
+                if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+            } catch (e) {
+                console.error('Falha ao remover currículo:', e.message || e);
+            }
+        }
+
+        await db.candidatos.delete(req.params.id);
+        res.json({ ok: true });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, erro: 'Erro ao excluir candidato' });
+    }
+});
+
+async function atualizarStatusCandidato(req, res) {
+    try {
+        const { status, observacao, proximaIntegracao } = req.body;
         const candidato = await db.candidatos.getById(req.params.id);
         
         if (!candidato) return res.status(404).json({ ok: false, erro: 'Candidato não encontrado' });
 
-        candidato.status = status;
+        if (status) candidato.status = status;
         if (observacao) candidato.observacao = observacao;
+        if (proximaIntegracao !== undefined) candidato.proximaIntegracao = proximaIntegracao;
         
         if (!candidato.historico) candidato.historico = [];
         candidato.historico.push({
             data: new Date().toISOString(),
             acao: 'alteracao_status',
-            detalhe: `Status alterado para ${status}`,
-            observacao
+            detalhe: status ? `Status alterado para ${status}` : 'Dados atualizados',
+            observacao: observacao || (proximaIntegracao !== undefined ? `Próxima integração: ${proximaIntegracao || '-'}` : undefined)
         });
         
         await db.candidatos.update(candidato.id, candidato);
@@ -89,7 +124,10 @@ router.post('/rh/candidatos/:id/status', recrutamentoAuth, async (req, res) => {
         console.error(e);
         res.status(500).json({ ok: false, erro: 'Erro ao atualizar status' });
     }
-});
+}
+
+router.post('/rh/candidatos/:id/status', recrutamentoAuth, atualizarStatusCandidato);
+router.put('/rh/candidatos/:id/status', recrutamentoAuth, atualizarStatusCandidato);
 
 router.post('/rh/candidatos/:id/agendar', recrutamentoAuth, async (req, res) => {
     try {

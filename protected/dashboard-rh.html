@@ -140,7 +140,7 @@
             const stats = data.reduce((acc, curr) => {
                 if (['pendente_rh', 'assinado'].includes(curr.status)) acc.pending++;
                 else if (['aguardando_assinatura', 'concluido'].includes(curr.status)) acc.approved++;
-                else if (curr.status === 'reprovado') acc.rejected++;
+                else if (['reprovado', 'pendente_gestor'].includes(curr.status)) acc.rejected++;
                 return acc;
             }, { pending: 0, approved: 0, rejected: 0 });
 
@@ -170,6 +170,10 @@
                     case 'pendente_rh':
                         statusBadge = '<span class="badge badge-pending">Pendente RH</span>';
                         actionBtn = `<a href="/ferias.html?id=${item.id}&mode=rh" class="btn btn-sm btn-primary">Avaliar</a>`;
+                        break;
+                    case 'pendente_gestor':
+                        statusBadge = '<span class="badge badge-rejected">Ajuste do Gestor</span>';
+                        actionBtn = `<a href="/ferias.html?id=${item.id}&mode=rh" class="btn btn-sm btn-outline">Visualizar</a>`;
                         break;
                     case 'aguardando_assinatura':
                         statusBadge = '<span class="badge badge-info">Aguardando Assinatura</span>';

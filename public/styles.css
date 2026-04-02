@@ -258,6 +258,32 @@ label textarea:focus {
   margin-bottom: 8px;
 }
 
+.signature-header button {
+  background: var(--danger);
+  color: var(--brand-text);
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.signature-header button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+#assinaturaTaxa,
+#assinaturaGestor {
+  width: 100%;
+  height: clamp(180px, 28vh, 240px);
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  display: block;
+  touch-action: none;
+}
+
 #limpar {
   background: var(--danger);
   color: var(--brand-text);

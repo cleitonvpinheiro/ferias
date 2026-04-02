@@ -76,7 +76,7 @@ function migrateEpis(cb) {
     const data = readJSON('epis.json');
     if (data.length === 0) return cb();
 
-    const stmt = db.prepare(`INSERT OR REPLACE INTO epis (id, nome, valor, estoque, ca_validade, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+    const stmt = db.prepare(`INSERT OR REPLACE INTO epis (id, nome, valor, estoque, possui_ca, ca_validade, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
 
     db.serialize(() => {
         db.run("BEGIN TRANSACTION");
@@ -86,6 +86,7 @@ function migrateEpis(cb) {
                 item.nome,
                 item.valor,
                 item.estoque,
+                item.possui_ca == null ? 1 : (item.possui_ca ? 1 : 0),
                 item.ca_validade,
                 item.createdAt,
                 item.updatedAt
@@ -358,7 +359,7 @@ function migrateFuncionarios(cb) {
     const data = readJSON('funcionarios.json');
     if (data.length === 0) return cb();
     
-    const stmt = db.prepare(`INSERT OR REPLACE INTO funcionarios (id, nome, cpf, matricula, cargo, setor, banco, agencia, conta, tipo_conta, chave_pix) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    const stmt = db.prepare(`INSERT OR REPLACE INTO funcionarios (id, nome, cpf, matricula, cargo, setor, data_admissao, nascimento, sexo, raca_cor, nacionalidade, tipo_vinculo, banco, agencia, conta, tipo_conta, chave_pix) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
     
     db.serialize(() => {
         db.run("BEGIN TRANSACTION");
@@ -370,6 +371,12 @@ function migrateFuncionarios(cb) {
                 item.matricula,
                 item.cargo,
                 item.setor,
+                item.data_admissao || null,
+                item.nascimento || null,
+                item.sexo || null,
+                item.raca_cor || null,
+                item.nacionalidade || null,
+                item.tipo_vinculo || null,
                 item.banco,
                 item.agencia,
                 item.conta,

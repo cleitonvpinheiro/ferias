@@ -4,12 +4,110 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnSubmit = document.getElementById('btnSubmit');
     const selectFuncionario = document.getElementById('select_funcionario');
     const draftIdInput = document.getElementById('taxa_id_draft');
+    const dadosTaxaManualArea = document.getElementById('dadosTaxaManualArea');
+    const inputNomeTaxa = document.getElementById('nome_taxa');
+    const inputCpf = document.getElementById('cpf');
+    const inputFuncao = document.getElementById('funcao');
+    const inputDepartamento = document.getElementById('departamento');
+    const inputYoucardCpf = document.getElementById('youcard_cpf');
+    let currentUser = null;
+    let allowedSetores = [];
+    let funcionariosCache = [];
+    let paymentUserEdited = false;
+    let suppressPaymentTouch = false;
+
+    const normalizeCpfDigits = (v) => (v || '').toString().replace(/\D/g, '').slice(0, 11);
+
+    const formatCpf = (v) => {
+        const d = normalizeCpfDigits(v);
+        if (!d) return '';
+        let out = d.slice(0, 3);
+        if (d.length > 3) out += '.' + d.slice(3, 6);
+        if (d.length > 6) out += '.' + d.slice(6, 9);
+        if (d.length > 9) out += '-' + d.slice(9, 11);
+        return out;
+    };
+
+    const isValidCpf = (cpf) => {
+        const digits = normalizeCpfDigits(cpf);
+        if (!digits || digits.length !== 11) return false;
+        if (/^(\d)\1{10}$/.test(digits)) return false;
+        const nums = digits.split('').map(n => Number(n));
+        if (nums.some(n => Number.isNaN(n))) return false;
+        let sum = 0;
+        for (let i = 0; i < 9; i++) sum += nums[i] * (10 - i);
+        let dv1 = (sum * 10) % 11;
+        if (dv1 === 10) dv1 = 0;
+        if (dv1 !== nums[9]) return false;
+        sum = 0;
+        for (let i = 0; i < 10; i++) sum += nums[i] * (11 - i);
+        let dv2 = (sum * 10) % 11;
+        if (dv2 === 10) dv2 = 0;
+        return dv2 === nums[10];
+    };
+
+    if (dadosTaxaManualArea) dadosTaxaManualArea.hidden = true;
+    if (inputNomeTaxa) inputNomeTaxa.readOnly = true;
+    if (inputCpf) inputCpf.readOnly = true;
+    if (inputFuncao) inputFuncao.disabled = true;
+    if (inputDepartamento) inputDepartamento.disabled = true;
+    if (inputYoucardCpf) inputYoucardCpf.value = '';
+
+    if (inputCpf) {
+        inputCpf.addEventListener('input', () => {
+            const formatted = formatCpf(inputCpf.value);
+            inputCpf.value = formatted;
+        });
+        inputCpf.value = formatCpf(inputCpf.value);
+    }
+    
+    const loadMe = async () => {
+        if (currentUser) return currentUser;
+        try {
+            const res = await fetch('/api/me', { headers: { 'Accept': 'application/json' } });
+            if (!res.ok) throw new Error('Auth');
+            const data = await res.json();
+            currentUser = data && data.user ? data.user : null;
+            return currentUser;
+        } catch {
+            currentUser = null;
+            return null;
+        }
+    };
+    
+    const setDepartamentosOptions = (setores) => {
+        if (!inputDepartamento) return;
+        const list = Array.from(new Set((setores || []).map(s => String(s || '').trim()).filter(Boolean)))
+            .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+        allowedSetores = list;
+        
+        inputDepartamento.innerHTML = '<option value="">Selecione...</option>' + list.map(s => `<option value="${s}">${s}</option>`).join('');
+        
+        const isGestor = currentUser && currentUser.role === 'gestor';
+        if (isGestor && list.length === 1) {
+            inputDepartamento.value = list[0];
+            inputDepartamento.disabled = true;
+        } else {
+            inputDepartamento.disabled = false;
+        }
+    };
+    
+    const setFuncoesOptions = (funcoes) => {
+        if (!inputFuncao) return;
+        const list = Array.from(new Set((funcoes || []).map(s => String(s || '').trim()).filter(Boolean)))
+            .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+        inputFuncao.innerHTML = '<option value="">Selecione...</option>' + list.map(s => `<option value="${s}">${s}</option>`).join('');
+    };
 
     // --- Check for Signature Token ---
     const urlParams = new URLSearchParams(window.location.search);
     const signatureToken = urlParams.get('token');
     
     if (signatureToken) {
+        if (dadosTaxaManualArea) dadosTaxaManualArea.hidden = false;
+        const gestorCanvas = document.getElementById('assinaturaGestor');
+        const gestorWrapper = gestorCanvas && gestorCanvas.closest ? gestorCanvas.closest('.signature-wrapper') : null;
+        if (gestorWrapper) gestorWrapper.style.display = 'none';
         // Signature Mode - Force hide overlay immediately if possible
         const hideOverlay = () => {
             const overlay = document.getElementById('taxaSignatureOverlay');
@@ -47,7 +145,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 const fill = (id, val) => {
                     const el = document.getElementById(id);
                     if (el) {
-                        el.value = val || '';
+                        if (el.tagName === 'SELECT') {
+                            const v = val || '';
+                            const has = Array.from(el.options || []).some(o => o.value === v);
+                            if (v && !has) {
+                                const opt = document.createElement('option');
+                                opt.value = v;
+                                opt.textContent = v;
+                                el.appendChild(opt);
+                            }
+                        }
+                        el.value = id === 'cpf' ? formatCpf(val || '') : (val || '');
                         el.disabled = true; // Disable inputs
                     }
                 };
@@ -56,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 fill('cpf', data.cpf);
                 fill('funcao', data.funcao);
                 fill('departamento', data.departamento);
-                fill('email_gestor', data.email_gestor);
+                fill('aprovador_nome', data.aprovador_nome || 'Aprovação RH');
                 fill('email_solicitante', data.email_solicitante);
                 
                 // Disable all other inputs
@@ -90,10 +198,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Load Funcionarios ---
     async function loadFuncionarios() {
         try {
-            const res = await fetch('/api/funcionarios');
+            await loadMe();
+            const isGestor = currentUser && currentUser.role === 'gestor';
+            const url = isGestor ? '/api/gestor/equipe' : '/api/funcionarios';
+            const res = await fetch(url);
             const funcionarios = await res.json();
+            funcionariosCache = Array.isArray(funcionarios) ? funcionarios : [];
             
-            selectFuncionario.innerHTML = '<option value="">Selecione um colaborador...</option>';
+            selectFuncionario.innerHTML = '<option value="">Selecione um colaborador...</option><option value="__OUTRO__">Outro (não colaborador)</option>';
             funcionarios.forEach(f => {
                 const opt = document.createElement('option');
                 opt.value = f.id;
@@ -101,12 +213,70 @@ document.addEventListener('DOMContentLoaded', () => {
                 opt.dataset.dados = JSON.stringify(f);
                 selectFuncionario.appendChild(opt);
             });
+            
+            const setores = (funcionarios || [])
+                .map(f => (f && (f.setor || f.departamento)) || '')
+                .filter(Boolean);
+            setDepartamentosOptions(setores);
+            
+            const funcoes = (funcionarios || [])
+                .map(f => (f && (f.cargo || f.funcao)) || '')
+                .filter(Boolean);
+            setFuncoesOptions(funcoes);
         } catch (e) {
             console.error('Erro ao carregar funcionarios', e);
             selectFuncionario.innerHTML = '<option value="">Erro ao carregar lista</option>';
+            if (inputDepartamento) {
+                inputDepartamento.innerHTML = '<option value="">Erro ao carregar</option>';
+                inputDepartamento.disabled = true;
+            }
         }
     }
     loadFuncionarios();
+
+    const getPaymentSnapshot = () => {
+        const v = (id) => (document.getElementById(id)?.value || '').trim();
+        return {
+            forma: (document.getElementById('forma_pagamento')?.value || '').trim(),
+            banco: v('banco'),
+            agencia: v('agencia'),
+            conta: v('conta'),
+            pix: v('pix')
+        };
+    };
+
+    const applyPaymentFromFuncionario = (func) => {
+        if (!func) return;
+        const formaPagamento = document.getElementById('forma_pagamento');
+        suppressPaymentTouch = true;
+        try {
+            if (func.chave_pix) {
+                if (formaPagamento) {
+                    formaPagamento.value = 'pix';
+                    formaPagamento.dispatchEvent(new Event('change'));
+                }
+                const pixEl = document.getElementById('pix');
+                if (pixEl) pixEl.value = String(func.chave_pix || '');
+            } else if (func.banco) {
+                if (formaPagamento) {
+                    formaPagamento.value = 'transferencia';
+                    formaPagamento.dispatchEvent(new Event('change'));
+                }
+                const bancoEl = document.getElementById('banco');
+                const agenciaEl = document.getElementById('agencia');
+                const contaEl = document.getElementById('conta');
+                if (bancoEl) bancoEl.value = String(func.banco || '');
+                if (agenciaEl) agenciaEl.value = String(func.agencia || '');
+                if (contaEl) contaEl.value = String(func.conta || '');
+                if (func.tipo_conta) {
+                    const rad = document.querySelector(`input[name="tipo_conta"][value="${func.tipo_conta}"]`);
+                    if (rad) rad.checked = true;
+                }
+            }
+        } finally {
+            suppressPaymentTouch = false;
+        }
+    };
 
     // --- Handle Selection ---
     selectFuncionario.addEventListener('change', () => {
@@ -114,57 +284,98 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Se resetou para o valor vazio
         if (!opt || !opt.value) {
-            document.getElementById('formTaxas').reset();
-            // Reset dynamic fields
+            form.reset();
             const formaPagamento = document.getElementById('forma_pagamento');
-            if(formaPagamento) {
-                formaPagamento.dispatchEvent(new Event('change'));
+            if (formaPagamento) formaPagamento.dispatchEvent(new Event('change'));
+            if (dadosTaxaManualArea) dadosTaxaManualArea.hidden = true;
+            if (inputNomeTaxa) { inputNomeTaxa.value = ''; inputNomeTaxa.readOnly = true; }
+            if (inputCpf) { inputCpf.value = ''; inputCpf.readOnly = true; }
+            if (inputFuncao) { inputFuncao.value = ''; inputFuncao.disabled = true; }
+            if (inputDepartamento) {
+                const isGestor = currentUser && currentUser.role === 'gestor';
+                if (isGestor && allowedSetores.length === 1) inputDepartamento.value = allowedSetores[0];
+                else inputDepartamento.value = '';
             }
             return;
         }
 
         try {
-            const dados = JSON.parse(opt.dataset.dados);
-            console.log('Dados carregados:', dados);
-
-            // Helper to fill and highlight
             const fill = (id, val) => {
                 const el = document.getElementById(id);
-                if (el) {
-                    el.value = val || '';
-                    // Visual feedback
-                    el.style.backgroundColor = '#e0f2fe'; // light blue
-                    setTimeout(() => el.style.backgroundColor = '', 1000);
+                if (!el) return;
+                if (el.tagName === 'SELECT') {
+                    const v = val || '';
+                    const has = Array.from(el.options || []).some(o => o.value === v);
+                    if (v && !has) {
+                        const opt = document.createElement('option');
+                        opt.value = v;
+                        opt.textContent = v;
+                        el.appendChild(opt);
+                    }
                 }
+                el.value = id === 'cpf' ? formatCpf(val || '') : (val || '');
+                el.style.backgroundColor = '#e0f2fe';
+                setTimeout(() => el.style.backgroundColor = '', 1000);
             };
 
-            // Fill fields
-            if(dados.nome) fill('nome_taxa', dados.nome);
-            if(dados.cpf) fill('cpf', dados.cpf);
-            if(dados.funcao) fill('funcao', dados.funcao);
-            if(dados.departamento) fill('departamento', dados.departamento);
-            
-            // Banking
-            const formaPagamento = document.getElementById('forma_pagamento');
-            
-            // Logic to pre-select banking info if available in dados
-            if (dados.chave_pix) {
-                formaPagamento.value = 'pix';
-                formaPagamento.dispatchEvent(new Event('change'));
-                fill('pix', dados.chave_pix);
-            } else if (dados.banco) {
-                formaPagamento.value = 'transferencia';
-                formaPagamento.dispatchEvent(new Event('change'));
-                fill('banco', dados.banco);
-                fill('agencia', dados.agencia);
-                fill('conta', dados.conta);
-                if (dados.tipo_conta) {
-                    const rad = document.querySelector(`input[name="tipo_conta"][value="${dados.tipo_conta}"]`);
-                    if(rad) rad.checked = true;
+            const clearBanking = () => {
+                const formaPagamento = document.getElementById('forma_pagamento');
+                if (formaPagamento) {
+                    formaPagamento.value = '';
+                    formaPagamento.dispatchEvent(new Event('change'));
                 }
+                fill('banco', '');
+                fill('agencia', '');
+                fill('conta', '');
+                fill('pix', '');
+                fill('youcard_cpf', '');
+            };
+
+            if (opt.value === '__OUTRO__') {
+                if (dadosTaxaManualArea) dadosTaxaManualArea.hidden = false;
+                if (inputNomeTaxa) { inputNomeTaxa.value = ''; inputNomeTaxa.readOnly = false; }
+                if (inputCpf) { inputCpf.value = ''; inputCpf.readOnly = false; }
+                if (inputFuncao) { inputFuncao.value = ''; inputFuncao.disabled = false; }
+                if (inputDepartamento) {
+                    const isGestor = currentUser && currentUser.role === 'gestor';
+                    if (isGestor && allowedSetores.length === 1) {
+                        inputDepartamento.value = allowedSetores[0];
+                        inputDepartamento.disabled = true;
+                    } else {
+                        inputDepartamento.disabled = false;
+                        inputDepartamento.value = '';
+                    }
+                }
+                clearBanking();
+                paymentUserEdited = false;
+                if (inputNomeTaxa) setTimeout(() => inputNomeTaxa.focus(), 0);
+                saveDraft();
+                return;
             }
-            
-            // Trigger auto-save immediately to start a draft
+
+            const dados = JSON.parse(opt.dataset.dados || '{}');
+            console.log('Dados carregados:', dados);
+
+            if (dadosTaxaManualArea) dadosTaxaManualArea.hidden = true;
+            if (inputNomeTaxa) inputNomeTaxa.readOnly = true;
+            if (inputCpf) inputCpf.readOnly = true;
+            if (inputFuncao) inputFuncao.disabled = true;
+
+            fill('nome_taxa', dados.nome || '');
+            fill('cpf', dados.cpf || '');
+            fill('funcao', dados.cargo || dados.funcao || '');
+            fill('departamento', dados.setor || dados.departamento || '');
+            if (inputDepartamento) {
+                const isGestor = currentUser && currentUser.role === 'gestor';
+                inputDepartamento.disabled = isGestor && allowedSetores.length === 1;
+            }
+
+            clearBanking();
+
+            applyPaymentFromFuncionario(dados);
+            paymentUserEdited = false;
+
+            syncAprovador();
             saveDraft();
             
         } catch (e) {
@@ -182,8 +393,60 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    const normalizeName = (v) => {
+        return String(v || '')
+            .trim()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[.]/g, '')
+            .replace(/\s+/g, ' ');
+    };
+
+    const APROVADOR_POR_COLABORADOR = (() => {
+        const m = new Map();
+        const add = (aprovador, colaboradores) => {
+            colaboradores.forEach(nome => m.set(normalizeName(nome), aprovador));
+        };
+        add('Anderson', ['Ricardo', 'Janete', 'Romário', 'Jamille']);
+        add('Adriana', ['Marcelo C', 'Regina', 'Ergeton', 'Priscila']);
+        add('Michelly', ['Andréa', 'Jadson', 'Wesley', 'Giovana']);
+        add('Luciana', ['Gianna']);
+        add('Leonardo', ['Marcelo B']);
+        add('Jaqueline', ['Hebert', 'Taynna', 'Janaina', 'Juninho']);
+        return m;
+    })();
+
+    const resolveAprovadorNome = (colaboradorNome) => {
+        const norm = normalizeName(colaboradorNome);
+        if (!norm) return '';
+        const direct = APROVADOR_POR_COLABORADOR.get(norm);
+        if (direct) return direct;
+        const parts = norm.split(' ').filter(Boolean);
+        const first = parts[0] || '';
+        if (first) {
+            const byFirst = APROVADOR_POR_COLABORADOR.get(first);
+            if (byFirst) return byFirst;
+        }
+        if (parts.length >= 2) {
+            const key = `${first} ${String(parts[1] || '').slice(0, 1)}`.trim();
+            const byInitial = APROVADOR_POR_COLABORADOR.get(key);
+            if (byInitial) return byInitial;
+        }
+        return '';
+    };
+
+    const syncAprovador = () => {
+        const nome = document.getElementById('nome_taxa')?.value || '';
+        const aprovador = resolveAprovadorNome(nome);
+        const input = document.getElementById('aprovador_nome');
+        if (!input) return;
+        input.value = aprovador || 'Aprovação RH';
+    };
+
     const collectPayload = () => {
         const getVal = (id) => document.getElementById(id)?.value || '';
+        const normCpf = (v) => normalizeCpfDigits(v);
         const getChecked = (name) => Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value);
 
         // Dates
@@ -208,14 +471,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return {
             id: draftIdInput.value || undefined, // Send ID if exists
             nome_taxa: getVal('nome_taxa'),
-            cpf: getVal('cpf'),
+            cpf: normCpf(getVal('cpf')),
             funcao: getVal('funcao'),
             forma_pagamento: formaPagamentoVal,
             banco: (formaPagamentoVal === 'transferencia') ? getVal('banco') : '',
             agencia: (formaPagamentoVal === 'transferencia') ? getVal('agencia') : '',
             conta: (formaPagamentoVal === 'transferencia') ? getVal('conta') : '',
             tipo_conta: (formaPagamentoVal === 'transferencia') ? document.querySelector('input[name="tipo_conta"]:checked')?.value : '',
-            pix: (formaPagamentoVal === 'pix') ? getVal('pix') : '',
+            pix: (formaPagamentoVal === 'pix') ? getVal('pix') : (formaPagamentoVal === 'youcard' ? normCpf(getVal('cpf')) : ''),
             departamento: getVal('departamento'),
             motivo: getChecked('motivo'),
             detalhe_motivo: getVal('nome_evento'), // Novo campo
@@ -223,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
             valores: {
                 taxa: {
                     valor: getVal('valor_taxa'),
-                    qtd: getVal('qtd_taxa'),
+                    qtd: '',
                     total: getVal('total_taxa')
                 },
                 vt: {
@@ -234,7 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 total_geral: getVal('total_geral')
             },
             dias_trabalhados: dates,
-            email_gestor: getVal('email_gestor'),
+            aprovador_nome: getVal('aprovador_nome'),
             email_solicitante: getVal('email_solicitante'),
             assinatura_taxa: sigTaxa,
             assinatura_gestor: sigGestor
@@ -297,18 +560,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const formaPagamento = document.getElementById('forma_pagamento');
     const fieldsTransferencia = document.getElementById('fields-transferencia');
     const fieldsPix = document.getElementById('fields-pix');
+    const fieldsYoucard = document.getElementById('fields-youcard');
     
     // Inputs inside the sections
     const inputsTransferencia = ['banco', 'agencia', 'conta'].map(id => document.getElementById(id));
     const inputPix = document.getElementById('pix');
+    const inputYoucardCpfLocal = document.getElementById('youcard_cpf');
+    const syncYoucardCpf = () => {
+        const v = document.getElementById('forma_pagamento')?.value;
+        if (v !== 'youcard') return;
+        const cpfVal = document.getElementById('cpf')?.value || '';
+        if (inputYoucardCpfLocal) inputYoucardCpfLocal.value = cpfVal;
+    };
 
     if (formaPagamento) {
         formaPagamento.addEventListener('change', () => {
+            if (!suppressPaymentTouch) paymentUserEdited = true;
             const val = formaPagamento.value;
             
             // Hide all first
             fieldsTransferencia.style.display = 'none';
             fieldsPix.style.display = 'none';
+            if (fieldsYoucard) fieldsYoucard.style.display = 'none';
             
             // Remove required from all
             inputsTransferencia.forEach(el => { if(el) el.removeAttribute('required'); });
@@ -320,20 +593,52 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (val === 'pix') {
                 fieldsPix.style.display = 'block';
                 if(inputPix) inputPix.setAttribute('required', 'required');
+            } else if (val === 'youcard') {
+                if (fieldsYoucard) fieldsYoucard.style.display = 'block';
+                syncYoucardCpf();
             }
         });
     }
+    if (inputCpf) inputCpf.addEventListener('input', syncYoucardCpf);
+    ['banco', 'agencia', 'conta', 'pix'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('input', () => {
+            if (!suppressPaymentTouch) paymentUserEdited = true;
+        });
+    });
+
+    const tryAutofillPaymentByCpf = () => {
+        if (!inputCpf) return;
+        if (signatureToken) return;
+        if (selectFuncionario.value !== '__OUTRO__') return;
+        if (paymentUserEdited) return;
+        const cpfDigits = normalizeCpfDigits(inputCpf.value);
+        if (!cpfDigits || cpfDigits.length !== 11 || !isValidCpf(cpfDigits)) return;
+
+        const snap = getPaymentSnapshot();
+        const hasSomePayment = Boolean(snap.forma || snap.banco || snap.agencia || snap.conta || snap.pix);
+        if (hasSomePayment) return;
+
+        const found = (funcionariosCache || []).find(f => normalizeCpfDigits(f && f.cpf) === cpfDigits);
+        if (!found) return;
+        applyPaymentFromFuncionario(found);
+    };
+
+    if (inputCpf) {
+        inputCpf.addEventListener('blur', tryAutofillPaymentByCpf);
+        inputCpf.addEventListener('change', tryAutofillPaymentByCpf);
+    }
 
     // --- Calculations ---
-    const inputsCalc = ['valor_taxa', 'qtd_taxa', 'valor_vt', 'qtd_vt'];
+    const inputsCalc = ['valor_taxa', 'valor_vt', 'qtd_vt'];
     inputsCalc.forEach(id => {
         document.getElementById(id).addEventListener('input', calculateTotals);
     });
 
     function calculateTotals() {
         const vTaxa = parseFloat(document.getElementById('valor_taxa').value) || 0;
-        const qTaxa = parseFloat(document.getElementById('qtd_taxa').value) || 0;
-        const tTaxa = vTaxa * qTaxa;
+        const tTaxa = vTaxa;
         document.getElementById('total_taxa').value = tTaxa.toFixed(2);
 
         const vVt = parseFloat(document.getElementById('valor_vt').value) || 0;
@@ -346,7 +651,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Dates UX ---
     const datesContainer = document.getElementById('datesContainer');
-    const btnAddDate = document.getElementById('btnAddDate');
 
     // Auto-fill day of week
     datesContainer.addEventListener('change', (e) => {
@@ -383,25 +687,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    btnAddDate.addEventListener('click', () => {
-        const row = document.createElement('div');
-        row.className = 'date-row';
-        row.innerHTML = `
-            <input type="date" class="input-date-worked">
-            <select class="select-day-week">
-                <option value="">Dia da Semana</option>
-                <option value="segunda">Segunda-feira</option>
-                <option value="terca">Terça-feira</option>
-                <option value="quarta">Quarta-feira</option>
-                <option value="quinta">Quinta-feira</option>
-                <option value="sexta">Sexta-feira</option>
-                <option value="sabado">Sábado</option>
-                <option value="domingo">Domingo</option>
-            </select>
-        `;
-        datesContainer.appendChild(row);
-    });
-
     // --- Signatures ---
     setupSignature('assinaturaTaxa', 'limparTaxa');
     setupSignature('assinaturaGestor', 'limparGestor');
@@ -415,7 +700,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const ratio = Math.max(window.devicePixelRatio || 1, 1);
             canvas.width = canvas.offsetWidth * ratio;
             canvas.height = canvas.offsetHeight * ratio;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.scale(ratio, ratio);
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = '#0f172a';
         }
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
@@ -462,11 +752,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function isCanvasBlank(canvas) {
+        if (!canvas) return true;
+        if (!canvas.width || !canvas.height) return true;
         const context = canvas.getContext('2d');
-        const pixelBuffer = new Uint32Array(
-            context.getImageData(0, 0, canvas.width, canvas.height).data.buffer
-        );
-        return !pixelBuffer.some(color => color !== 0);
+        try {
+            const pixelBuffer = new Uint32Array(
+                context.getImageData(0, 0, canvas.width, canvas.height).data.buffer
+            );
+            return !pixelBuffer.some(color => color !== 0);
+        } catch {
+            return true;
+        }
     }
 
     // --- Motive Selection Watcher ---
@@ -488,6 +784,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     motiveCheckboxes.forEach(cb => cb.addEventListener('change', checkMotives));
+    document.getElementById('nome_taxa')?.addEventListener('input', syncAprovador);
+    syncAprovador();
 
     // --- Submit Logic ---
     const submitForm = async (resetAfter = false) => {
@@ -498,19 +796,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (btnEnviarNovo) btnEnviarNovo.disabled = true;
 
         const payload = collectPayload();
-        
-        // Basic Validation
-        if (!payload.nome_taxa || !payload.motivo.length || !payload.email_gestor || !payload.email_solicitante) {
-            feedback.textContent = 'Preencha os campos obrigatórios (Nome, Motivo, Emails).';
-            feedback.className = 'feedback error';
-            feedback.hidden = false;
-            btnSubmit.disabled = false;
-            btnSubmit.textContent = 'Enviar Solicitação';
-            if (btnEnviarNovo) btnEnviarNovo.disabled = false;
-            return;
-        }
 
         if (signatureToken) {
+            // Signature mode: only require the assinatura_taxa and send token to backend
             if (!payload.assinatura_taxa) {
                 feedback.textContent = 'A assinatura é obrigatória.';
                 feedback.className = 'feedback error';
@@ -529,7 +817,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await res.json();
                 if (res.ok) {
                     alert('Assinado com sucesso!');
-                    window.location.href = '/';
+                    if (data && data.pdf) {
+                        const a = document.createElement('a');
+                        a.href = data.pdf;
+                        a.download = data.filename || 'taxa-assinada.pdf';
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    }
+                    try {
+                        const u = new URL(window.location.href);
+                        u.searchParams.delete('token');
+                        window.history.replaceState({}, document.title, u.pathname + u.search);
+                    } catch (_) {}
+                    feedback.textContent = 'Assinatura concluída. Você já pode fechar esta janela.';
+                    feedback.className = 'feedback success';
+                    feedback.hidden = false;
+                    btnSubmit.disabled = true;
+                    btnSubmit.textContent = 'Assinado';
                 } else {
                     throw new Error(data.error || 'Erro ao assinar');
                 }
@@ -543,15 +848,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Normal Mode: Skip Taxa Signature validation (collected later)
-        /* 
-        if (!payload.assinatura_taxa) {
-             // Removed validation
-        } 
-        */
-
-        if (!payload.assinatura_gestor) {
-            feedback.textContent = 'A assinatura do Gestor é obrigatória.';
+        // Basic Validation (apenas no modo normal)
+        if (!selectFuncionario.value) {
+            feedback.textContent = 'Selecione um colaborador ou a opção "Outro".';
             feedback.className = 'feedback error';
             feedback.hidden = false;
             btnSubmit.disabled = false;
@@ -559,6 +858,35 @@ document.addEventListener('DOMContentLoaded', () => {
             if (btnEnviarNovo) btnEnviarNovo.disabled = false;
             return;
         }
+
+        if (!payload.nome_taxa || !payload.motivo.length || !payload.email_solicitante) {
+            feedback.textContent = 'Preencha os campos obrigatórios (Nome, Motivo, E-mail).';
+            feedback.className = 'feedback error';
+            feedback.hidden = false;
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = 'Enviar Solicitação';
+            if (btnEnviarNovo) btnEnviarNovo.disabled = false;
+            return;
+        }
+
+        if (!payload.cpf || payload.cpf.length !== 11 || !isValidCpf(payload.cpf)) {
+            feedback.textContent = 'Informe um CPF válido.';
+            feedback.className = 'feedback error';
+            feedback.hidden = false;
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = 'Enviar Solicitação';
+            if (btnEnviarNovo) btnEnviarNovo.disabled = false;
+            return;
+        }
+
+        // Normal Mode: Skip Taxa Signature validation (collected later)
+        /* 
+        if (!payload.assinatura_taxa) {
+             // Removed validation
+        } 
+        */
+
+        // Assinatura do gestor não é obrigatória: aprovação será feita no portal conforme responsável
 
         try {
             const res = await fetch('/api/taxas', {
@@ -580,17 +908,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (resetAfter) {
                     // Reset form but keep some fields like Manager Email/Requester Email/Department if desired
                     const savedEmails = {
-                        gestor: document.getElementById('email_gestor').value,
-                        solicitante: document.getElementById('email_solicitante').value,
-                        departamento: document.getElementById('departamento').value
+                        solicitante: document.getElementById('email_solicitante').value
                     };
                     
                     form.reset();
                     
                     // Restore common fields
-                    document.getElementById('email_gestor').value = savedEmails.gestor;
                     document.getElementById('email_solicitante').value = savedEmails.solicitante;
-                    document.getElementById('departamento').value = savedEmails.departamento;
+                    syncAprovador();
                     
                     // Clear signatures
                     const canvasTaxa = document.getElementById('assinaturaTaxa');
@@ -609,13 +934,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         formaPagamento.dispatchEvent(new Event('change'));
                     }
                     
-                    // Reset date rows (default 4)
-                    const datesContainer = document.getElementById('datesContainer');
-                    const btnAddDate = document.getElementById('btnAddDate');
-                    datesContainer.innerHTML = '';
-                    for(let i=0; i<4; i++) {
-                       if(btnAddDate) btnAddDate.click(); 
-                    }
+                    const firstDate = document.querySelector('#datesContainer .input-date-worked');
+                    const firstDay = document.querySelector('#datesContainer .select-day-week');
+                    if (firstDate) firstDate.value = '';
+                    if (firstDay) firstDay.value = '';
                     
                     // Reset Checkbox display
                     checkMotives();
@@ -644,13 +966,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     if(formaPagamento) {
                         formaPagamento.dispatchEvent(new Event('change'));
                     }
-                    // Keep one date row? Default is 4. Reset to 4.
-                    const datesContainer = document.getElementById('datesContainer');
-                    const btnAddDate = document.getElementById('btnAddDate');
-                    datesContainer.innerHTML = ''; 
-                    for(let i=0; i<4; i++) {
-                       if(btnAddDate) btnAddDate.click(); 
-                    }
+                    const firstDate = document.querySelector('#datesContainer .input-date-worked');
+                    const firstDay = document.querySelector('#datesContainer .select-day-week');
+                    if (firstDate) firstDate.value = '';
+                    if (firstDay) firstDay.value = '';
 
                     // Reload funcionarios list
                     if(typeof loadFuncionarios === 'function') loadFuncionarios();

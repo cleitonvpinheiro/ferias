@@ -538,7 +538,7 @@
             }
             const data = await res.json();
             const role = data.user && data.user.role;
-            const allowedRoles = ['td', 'rh', 'rh_geral', 'admin'];
+            const allowedRoles = ['td', 'rh_geral', 'admin'];
             if (!allowedRoles.includes(role)) {
                 alert('Acesso não autorizado a este formulário.');
                 window.location.href = '/';

@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/rh-styles.css">
   <script src="/lang-switcher.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body data-page="rh-formularios">
@@ -144,6 +145,11 @@
                               <option value="pesquisa" data-translate="rh_dash_formularios_type_climate">Pesquisa de Clima</option>
                               <option value="checklist" data-translate="rh_dash_formularios_type_checklist">Checklist</option>
                           </select>
+                      </div>
+
+                      <div class="form-group">
+                          <label>Modelo (Dashboard)</label>
+                          <select id="form-dashboard" class="form-control"></select>
                       </div>
 
                       <div class="form-group">
@@ -770,6 +776,7 @@
 
   <script>
     let currentForms = [];
+    let currentDashboards = [];
     let editingQuestions = [];
 
     const FORM_TYPE_LABELS = {
@@ -790,7 +797,7 @@
 
     function canDeleteForms() {
         const role = String(window.__USER_ROLE || '');
-        return role === 'admin';
+        return role === 'td' || role === 'rh_geral' || role === 'rh' || role === 'admin';
     }
 
     function normalizeText(value) {
@@ -922,6 +929,7 @@
         forms.forEach(f => {
             const tr = document.createElement('tr');
             const idJson = JSON.stringify(String(f.id));
+            const dashJson = JSON.stringify(String(f.dashboardId || f.dashboard_id || f.id));
 
             const tipoLabel = getFormTypeLabel(f.tipo);
             const tipoBadge = getFormTypeBadgeClass(f.tipo);
@@ -941,6 +949,12 @@
                         </button>
                         <button class="btn-icon" onclick='previewFormulario(${idJson})' title="Prévia">
                             <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M1.5 12s4-7.5 10.5-7.5S22.5 12 22.5 12s-4 7.5-10.5 7.5S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3.5"/></svg>
+                        </button>
+                        <button class="btn-icon" onclick='verRespostas(${idJson})' title="Respostas">
+                            <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v12H3z"/><path d="M7 9h10M7 13h6"/></svg>
+                        </button>
+                        <button class="btn-icon" onclick='abrirDashboardRespostas(${dashJson})' title="Dashboard">
+                            <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="M8 16v-5"/><path d="M12 16V8"/><path d="M16 16v-3"/></svg>
                         </button>
                         <button class="btn-icon" onclick='duplicarFormulario(${idJson})' title="Duplicar" ${allowCreate ? '' : 'disabled'}>
                             <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><rect x="2" y="2" width="13" height="13" rx="2"/></svg>
@@ -981,6 +995,199 @@
         editingQuestions = form.questoes ? JSON.parse(JSON.stringify(form.questoes)) : [];
         syncFormHeader();
         abrirPreview();
+    }
+
+    async function verRespostas(id) {
+        try {
+            const form = await getFormularioForExport(id);
+
+            const res = await fetch(`/api/rh/formularios/${id}/respostas`);
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                Swal.fire('Erro', err.error || 'Erro ao carregar respostas', 'error');
+                return;
+            }
+            const data = await res.json();
+            if (!Array.isArray(data) || data.length === 0) {
+                Swal.fire('Respostas', 'Nenhuma resposta encontrada para este formulário.', 'info');
+                return;
+            }
+
+            const html = buildRespostasHtml(form, data);
+            Swal.fire({
+                title: 'Respostas do Formulário',
+                html,
+                width: 900,
+                showCloseButton: true,
+                showConfirmButton: true,
+                confirmButtonText: 'Abrir Dashboard',
+                showCancelButton: true,
+                cancelButtonText: 'Fechar',
+                didOpen: () => {
+                    const btnCsv = document.getElementById('btn-export-csv');
+                    if (btnCsv) {
+                        btnCsv.addEventListener('click', () => exportRespostas(form, data, 'csv'));
+                    }
+                    const btnXlsx = document.getElementById('btn-export-xlsx');
+                    if (btnXlsx) {
+                        btnXlsx.addEventListener('click', () => exportRespostas(form, data, 'xlsx'));
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) abrirDashboardRespostas(String(form.dashboardId || form.dashboard_id || form.id || id));
+            });
+        } catch (e) {
+            console.error(e);
+            Swal.fire('Erro', 'Erro de conexão ao carregar respostas', 'error');
+        }
+    }
+
+    function abrirDashboardRespostas(dashId) {
+        window.open(`/protected/dashboard-formulario-respostas.html?dash=${encodeURIComponent(String(dashId))}`, '_blank');
+    }
+
+    async function getFormularioForExport(id) {
+        const local = currentForms.find(f => f.id === id);
+        if (local && local.questoes) return local;
+        const res = await fetch(`/api/rh/formularios/${id}`);
+        if (!res.ok) throw new Error('Erro ao carregar formulário');
+        return await res.json();
+    }
+
+    function exportRespostas(form, items, format) {
+        const { columns, rows } = buildExportData(form, items);
+        const fileBase = `${String(form.id || 'formulario')}_respostas_${new Date().toISOString().slice(0, 10)}`;
+
+        if (format === 'csv') {
+            const csv = toCsv(columns, rows);
+            downloadTextFile(`${fileBase}.csv`, csv, 'text/csv;charset=utf-8');
+            return;
+        }
+
+        if (format === 'xlsx') {
+            if (!window.XLSX) {
+                Swal.fire('Erro', 'Exportação Excel indisponível (biblioteca não carregou).', 'error');
+                return;
+            }
+            const aoa = [columns, ...rows.map(r => columns.map(c => r[c] ?? ''))];
+            const ws = XLSX.utils.aoa_to_sheet(aoa);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Respostas');
+            XLSX.writeFile(wb, `${fileBase}.xlsx`);
+            return;
+        }
+    }
+
+    function buildExportData(form, items) {
+        const baseColumns = ['Data', 'Funcionario'];
+        const qCols = buildQuestionColumns(form);
+        const columns = [...baseColumns, ...qCols];
+
+        const rows = items.map(it => {
+            const created = String(it.created_at || it.createdAt || '');
+            const funcionario = it.funcionario_id ? String(it.funcionario_id) : '';
+            const row = { Data: created, Funcionario: funcionario };
+
+            const respostasObj = (it && it.respostas && typeof it.respostas === 'object') ? it.respostas : {};
+            (form.questoes || []).forEach((q, idx) => {
+                const key = qCols[idx] || `Q${idx + 1}`;
+                const r = respostasObj[String(idx)] || respostasObj[idx];
+                const ans = r && typeof r === 'object' ? (r.answer ?? '') : (r ?? '');
+                row[key] = String(ans ?? '');
+            });
+            return row;
+        });
+
+        return { columns, rows };
+    }
+
+    function buildQuestionColumns(form) {
+        const raw = (form.questoes || []).map((q, idx) => {
+            const category = String(q.category || '').trim();
+            const question = String(q.question || q.text || '').trim();
+            const base = `${category ? `${category} - ` : ''}${question || `Q${idx + 1}`}`.trim();
+            return base || `Q${idx + 1}`;
+        });
+
+        const used = new Map();
+        return raw.map(name => {
+            const current = used.get(name) || 0;
+            used.set(name, current + 1);
+            if (current === 0) return name;
+            return `${name} (${current + 1})`;
+        });
+    }
+
+    function toCsv(columns, rows) {
+        const escape = (v) => {
+            const s = String(v ?? '');
+            const mustQuote = /[",\r\n]/.test(s);
+            const escaped = s.replace(/"/g, '""');
+            return mustQuote ? `"${escaped}"` : escaped;
+        };
+        const header = columns.map(escape).join(',');
+        const lines = rows.map(r => columns.map(c => escape(r[c])).join(','));
+        return [header, ...lines].join('\r\n');
+    }
+
+    function downloadTextFile(filename, content, mime) {
+        const blob = new Blob([content], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    }
+
+    function buildRespostasHtml(form, items) {
+        const rows = items.map((it, idx) => {
+            const created = escapeHtml(String(it.created_at || it.createdAt || ''));
+            const funcionario = it.funcionario_id ? `Funcionário #${escapeHtml(String(it.funcionario_id))}` : 'Anônimo';
+            const respostas = (it.respostas && typeof it.respostas === 'object')
+                ? Object.values(it.respostas).map(r => {
+                    const cat = escapeHtml(String(r.category || ''));
+                    const q = escapeHtml(String(r.question || ''));
+                    const ans = escapeHtml(String(r.answer || ''));
+                    return `<div style="margin:2px 0;"><strong>${cat ? `[${cat}] ` : ''}${q}:</strong> ${ans}</div>`;
+                  }).join('')
+                : '<em>Sem conteúdo</em>';
+            return `
+                <tr>
+                    <td style="white-space:nowrap; color:var(--muted)">${created}</td>
+                    <td style="white-space:nowrap">${funcionario}</td>
+                    <td>${respostas}</td>
+                </tr>
+            `;
+        }).join('');
+        return `
+            <div style="text-align:left;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
+                    <div style="color:var(--text-secondary); font-size:0.9rem;">
+                        <div><strong>${escapeHtml(String(form.titulo || form.id || 'Formulário'))}</strong></div>
+                        <div>${items.length} resposta(s)</div>
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                        <button id="btn-export-csv" class="btn btn-secondary" type="button">Exportar CSV</button>
+                        <button id="btn-export-xlsx" class="btn btn-primary" type="button">Exportar Excel</button>
+                    </div>
+                </div>
+                <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+                    <thead>
+                        <tr style="border-bottom:1px solid var(--border); color:var(--text-secondary);">
+                            <th style="padding:8px;">Data</th>
+                            <th style="padding:8px;">Origem</th>
+                            <th style="padding:8px;">Respostas</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            </div>
+        `;
     }
 
     async function duplicarFormulario(id) {
@@ -1067,19 +1274,26 @@
         tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Carregando...</td></tr>';
         
         try {
-            const res = await fetch('/api/rh/formularios');
-            const data = await res.json();
+            const [formsRes, dashesRes] = await Promise.all([
+                fetch('/api/rh/formularios'),
+                fetch('/api/rh/formularios/dashboards/list').catch(() => null)
+            ]);
+            const data = await formsRes.json();
+            const dashes = dashesRes ? await dashesRes.json().catch(() => []) : [];
             currentForms = data;
+            currentDashboards = Array.isArray(dashes) ? dashes : [];
             if (data.length === 0) {
                 document.getElementById('empty-state').hidden = false;
                 document.getElementById('tabela-formularios').hidden = true;
                 document.getElementById('forms-summary').textContent = '';
+                setDashboardSelectOptions('__new__', false);
                 return;
             }
 
             document.getElementById('empty-state').hidden = true;
             document.getElementById('tabela-formularios').hidden = false;
             buildTipoFilterOptions(currentForms);
+            setDashboardSelectOptions('__new__', false);
             refreshList();
         } catch (e) {
             console.error(e);
@@ -1088,12 +1302,57 @@
     }
 
     // --- Modal Logic ---
+    function getDashboardsFromForms(forms) {
+        if (Array.isArray(currentDashboards) && currentDashboards.length) {
+            return currentDashboards.map(d => ({
+                id: String(d.id || '').trim(),
+                titulo: d.titulo || d.id,
+                tipo: d.tipo || ''
+            })).filter(d => d.id);
+        }
+        const map = new Map();
+        (forms || []).forEach(f => {
+            const dash = String(f.dashboardId || f.dashboard_id || f.id || '').trim();
+            if (!dash) return;
+            if (!map.has(dash)) {
+                map.set(dash, { id: dash, titulo: f.titulo || dash, tipo: f.tipo || '' });
+            }
+        });
+        return Array.from(map.values());
+    }
+
+    function setDashboardSelectOptions(selectedValue, disabled) {
+        const select = document.getElementById('form-dashboard');
+        if (!select) return;
+
+        const dashboards = getDashboardsFromForms(currentForms);
+        const prev = selectedValue || select.value || '__new__';
+
+        select.innerHTML = '';
+        const optNew = document.createElement('option');
+        optNew.value = '__new__';
+        optNew.textContent = 'Criar novo modelo';
+        select.appendChild(optNew);
+
+        dashboards.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.id;
+            opt.textContent = `${d.titulo || d.id} (${d.id})`;
+            select.appendChild(opt);
+        });
+
+        const has = Array.from(select.options).some(o => o.value === prev);
+        select.value = has ? prev : '__new__';
+        select.disabled = !!disabled;
+    }
+
     function abrirModalCriacao() {
         document.getElementById('modal-title').innerText = 'Novo Formulário';
         document.getElementById('form-id').value = '';
         document.getElementById('form-titulo').value = '';
         document.getElementById('form-tipo').value = 'avaliacao';
         document.getElementById('form-ativo').checked = true;
+        setDashboardSelectOptions('__new__', false);
         editingQuestions = [];
         renderizarQuestões();
         syncFormHeader();
@@ -1111,6 +1370,7 @@
         document.getElementById('form-titulo').value = form.titulo;
         document.getElementById('form-tipo').value = form.tipo;
         document.getElementById('form-ativo').checked = form.ativo;
+        setDashboardSelectOptions(String(form.dashboardId || form.dashboard_id || form.id || ''), true);
         
         editingQuestions = form.questoes ? JSON.parse(JSON.stringify(form.questoes)) : [];
         renderizarQuestões();
@@ -1460,6 +1720,7 @@
         const titulo = document.getElementById('form-titulo').value;
         const tipo = document.getElementById('form-tipo').value;
         const ativo = document.getElementById('form-ativo').checked;
+        const dashboardSel = document.getElementById('form-dashboard')?.value;
 
         if (!titulo) {
             Swal.fire('Atenção', 'O título é obrigatório', 'warning');
@@ -1499,6 +1760,9 @@
                 options: q.options
             }))
         };
+        if (dashboardSel && dashboardSel !== '__new__') {
+            payload.dashboardId = dashboardSel;
+        }
 
         try {
             let res;
@@ -1517,15 +1781,21 @@
             }
 
             if (res.ok) {
+                const saved = await res.json().catch(() => ({}));
+                const savedId = String(saved.id || id || '');
+                const savedDash = String(saved.dashboardId || saved.dashboard_id || savedId || '');
                 Swal.fire({
                     title: 'Sucesso!',
-                    text: 'Formulário salvo com sucesso.',
+                    html: `Formulário salvo com sucesso.<br><small style="color:var(--text-secondary)">ID: <code>${escapeHtml(savedId)}</code></small>`,
                     icon: 'success',
                     timer: 1500,
                     showConfirmButton: false
                 });
                 fecharModal();
                 carregarFormularios();
+                if (!id && savedDash) {
+                    abrirDashboardRespostas(savedDash);
+                }
             } else {
                 const err = await res.json();
                 Swal.fire('Erro', err.error || 'Erro ao salvar', 'error');
@@ -1549,12 +1819,13 @@
 
         if (result.isConfirmed) {
             try {
-                const res = await fetch(`/api/rh/formularios/${id}`, { method: 'DELETE' });
+                const res = await fetch(`/api/rh/formularios/${id}`, { method: 'DELETE', credentials: 'include', headers: { 'Accept': 'application/json' } });
                 if (res.ok) {
                     Swal.fire('Excluído!', 'O formulário foi excluído.', 'success');
                     carregarFormularios();
                 } else {
-                    Swal.fire('Erro', 'Erro ao excluir', 'error');
+                    const err = await res.json().catch(() => ({}));
+                    Swal.fire('Erro', err.error || err.erro || err.message || 'Erro ao excluir', 'error');
                 }
             } catch (e) {
                 Swal.fire('Erro', 'Erro de conexão', 'error');

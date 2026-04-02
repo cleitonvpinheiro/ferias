@@ -23,6 +23,7 @@ const setupAuth = async () => {
             password TEXT NOT NULL,
             role TEXT NOT NULL,
             name TEXT,
+            email TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     `);
@@ -49,8 +50,8 @@ const setupAuth = async () => {
     for (const u of users) {
         try {
             await run(
-                `INSERT INTO users (username, password, role, name) VALUES (?, ?, ?, ?)`,
-                [u.username, hash, u.role, u.name]
+                `INSERT INTO users (username, password, role, name, email) VALUES (?, ?, ?, ?, ?)`,
+                [u.username, hash, u.role, u.name, u.email || null]
             );
             console.log(`Usuário criado: ${u.username} (${u.role})`);
         } catch (err) {
@@ -58,8 +59,8 @@ const setupAuth = async () => {
                 console.log(`Usuário ${u.username} já existe.`);
                 // Update password/role just in case
                 await run(
-                    `UPDATE users SET password = ?, role = ?, name = ? WHERE username = ?`,
-                    [hash, u.role, u.name, u.username]
+                    `UPDATE users SET password = ?, role = ?, name = ?, email = COALESCE(?, email) WHERE username = ?`,
+                    [hash, u.role, u.name, u.email || null, u.username]
                 );
             } else {
                 console.error(`Erro ao criar ${u.username}:`, err.message);

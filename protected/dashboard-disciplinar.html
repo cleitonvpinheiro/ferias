@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Advertências e Suspensões</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="/rh-styles.css">
+  <script src="/lang-switcher.js" defer></script>
+  <style>
+      .toolbar {
+          background: white;
+          padding: 16px;
+          border-radius: 8px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          margin-bottom: 16px;
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+          align-items: flex-end;
+      }
+      .field {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          min-width: 220px;
+      }
+      .field label {
+          font-size: 0.85rem;
+          color: var(--text-secondary);
+      }
+      .field input, .field select, .field textarea {
+          padding: 10px 12px;
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          background: var(--bg-surface);
+          color: var(--text-primary);
+      }
+      .data-table {
+          width: 100%;
+          border-collapse: collapse;
+          background: white;
+          border-radius: 8px;
+          overflow: hidden;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+      .data-table th, .data-table td {
+          padding: 12px 16px;
+          border-bottom: 1px solid #e2e8f0;
+          text-align: left;
+          vertical-align: top;
+      }
+      .data-table th {
+          background-color: #f8fafc;
+          font-weight: 600;
+          color: var(--text-primary);
+      }
+      .badge {
+          display: inline-block;
+          padding: 3px 10px;
+          border-radius: 999px;
+          font-size: 0.75rem;
+          font-weight: 600;
+      }
+      .badge-adv {
+          background: #fff7ed;
+          color: #9a3412;
+          border: 1px solid #fed7aa;
+      }
+      .badge-sus {
+          background: #eff6ff;
+          color: #1d4ed8;
+          border: 1px solid #bfdbfe;
+      }
+      .modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.5);
+          display: none;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          z-index: 50;
+      }
+      .modal {
+          background: white;
+          border-radius: 12px;
+          width: 100%;
+          max-width: 720px;
+          padding: 18px;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      }
+      .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 12px;
+      }
+      .modal-title {
+          margin: 0;
+          font-size: 1.1rem;
+      }
+      .close-modal {
+          border: none;
+          background: transparent;
+          font-size: 1.6rem;
+          cursor: pointer;
+          color: #64748b;
+      }
+      .modal-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+      }
+      @media (max-width: 720px) {
+          .modal-grid { grid-template-columns: 1fr; }
+          .field { min-width: 100%; }
+      }
+  </style>
+</head>
+<body data-page="rh-disciplinar">
+  <div id="navbar-container"></div>
+  <script src="/rh-navbar.js"></script>
+  <script>renderRHNavbar('disciplinar');</script>
+
+  <main class="dashboard-container">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Advertências e Suspensões</h1>
+            <p class="page-subtitle">Registre e consulte ocorrências disciplinares por colaborador.</p>
+        </div>
+        <div style="display:flex; gap: 10px;">
+            <button class="btn btn-primary" onclick="abrirModalNovo()">+ Novo registro</button>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <div class="field">
+            <label>Colaborador</label>
+            <select id="filtroFuncionario" onchange="carregarRegistros()">
+                <option value="">Todos</option>
+            </select>
+        </div>
+        <div class="field" style="min-width: 180px;">
+            <label>Tipo</label>
+            <select id="filtroTipo" onchange="carregarRegistros()">
+                <option value="">Todos</option>
+                <option value="advertencia">Advertência</option>
+                <option value="suspensao">Suspensão</option>
+            </select>
+        </div>
+        <div class="field" style="min-width: 200px;">
+            <label>Buscar</label>
+            <input id="filtroTexto" placeholder="Nome / motivo" oninput="renderTabela()">
+        </div>
+        <div style="margin-left:auto;">
+            <button class="btn btn-outline" onclick="carregarRegistros()">Atualizar</button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 150px;">Data</th>
+                    <th style="width: 140px;">Tipo</th>
+                    <th>Colaborador</th>
+                    <th>Motivo</th>
+                    <th style="width: 160px;">Ações</th>
+                </tr>
+            </thead>
+            <tbody id="tbodyRegistros">
+                <tr><td colspan="5" style="text-align:center; color: var(--text-secondary);">Carregando...</td></tr>
+            </tbody>
+        </table>
+    </div>
+  </main>
+
+  <div class="modal-overlay" id="modalRegistro">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modalTitle">Novo registro</h3>
+            <button class="close-modal" onclick="fecharModal()">&times;</button>
+        </div>
+        <div class="modal-grid">
+            <div class="field" style="grid-column: 1 / -1;">
+                <label>Colaborador</label>
+                <select id="inputFuncionario"></select>
+            </div>
+            <div class="field">
+                <label>Tipo</label>
+                <select id="inputTipo" onchange="toggleDias()">
+                    <option value="advertencia">Advertência</option>
+                    <option value="suspensao">Suspensão</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Data</label>
+                <input type="date" id="inputData">
+            </div>
+            <div class="field" id="fieldDias" style="display:none;">
+                <label>Dias de suspensão</label>
+                <input type="number" min="1" step="1" id="inputDias" placeholder="Ex.: 1">
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+                <label>Motivo</label>
+                <input id="inputMotivo" placeholder="Ex.: Atraso / Conduta / Faltas">
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+                <label>Descrição</label>
+                <textarea id="inputDescricao" rows="4" placeholder="Detalhes da ocorrência..."></textarea>
+            </div>
+        </div>
+        <div style="display:flex; gap: 10px; justify-content:flex-end; margin-top: 14px;">
+            <button class="btn btn-outline" onclick="fecharModal()">Cancelar</button>
+            <button class="btn btn-primary" id="btnSalvar" onclick="salvarRegistro()">Salvar</button>
+        </div>
+    </div>
+  </div>
+
+  <script>
+      let funcionarios = [];
+      let registros = [];
+      let editingId = null;
+
+      function formatDatePtBR(value) {
+          if (!value) return '-';
+          if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+              const [y, m, d] = value.split('-');
+              return `${d}/${m}/${y}`;
+          }
+          const d = new Date(value);
+          if (Number.isNaN(d.getTime())) return '-';
+          return d.toLocaleDateString('pt-BR');
+      }
+
+      function getFuncionarioName(id) {
+          const f = funcionarios.find(x => String(x.id) === String(id));
+          return f ? f.nome : '-';
+      }
+
+      function getBadge(tipo) {
+          if (tipo === 'suspensao') return '<span class="badge badge-sus">Suspensão</span>';
+          return '<span class="badge badge-adv">Advertência</span>';
+      }
+
+      function toggleDias() {
+          const tipo = document.getElementById('inputTipo').value;
+          const field = document.getElementById('fieldDias');
+          field.style.display = tipo === 'suspensao' ? '' : 'none';
+      }
+
+      function abrirModalNovo() {
+          editingId = null;
+          document.getElementById('modalTitle').textContent = 'Novo registro';
+          document.getElementById('inputTipo').value = 'advertencia';
+          document.getElementById('inputData').value = '';
+          document.getElementById('inputDias').value = '';
+          document.getElementById('inputMotivo').value = '';
+          document.getElementById('inputDescricao').value = '';
+          toggleDias();
+          document.getElementById('modalRegistro').style.display = 'flex';
+      }
+
+      function abrirModalEditar(id) {
+          const item = registros.find(r => String(r.id) === String(id));
+          if (!item) return;
+          editingId = id;
+          document.getElementById('modalTitle').textContent = 'Editar registro';
+          document.getElementById('inputFuncionario').value = item.funcionarioId || '';
+          document.getElementById('inputTipo').value = item.tipo || 'advertencia';
+          document.getElementById('inputData').value = (item.dataOcorrencia || '').slice(0, 10);
+          document.getElementById('inputDias').value = item.diasSuspensao || '';
+          document.getElementById('inputMotivo').value = item.motivo || '';
+          document.getElementById('inputDescricao').value = item.descricao || '';
+          toggleDias();
+          document.getElementById('modalRegistro').style.display = 'flex';
+      }
+
+      function fecharModal() {
+          document.getElementById('modalRegistro').style.display = 'none';
+      }
+
+      async function confirmarExcluir(id) {
+          if (!confirm('Deseja excluir este registro?')) return;
+          const res = await fetch(`/api/rh/disciplinar/${id}`, { method: 'DELETE' });
+          if (!res.ok) {
+              alert('Erro ao excluir registro');
+              return;
+          }
+          await carregarRegistros();
+      }
+
+      async function salvarRegistro() {
+          const funcionarioId = document.getElementById('inputFuncionario').value;
+          const tipo = document.getElementById('inputTipo').value;
+          const dataOcorrencia = document.getElementById('inputData').value;
+          const diasSuspensao = document.getElementById('inputDias').value;
+          const motivo = document.getElementById('inputMotivo').value.trim();
+          const descricao = document.getElementById('inputDescricao').value.trim();
+
+          if (!funcionarioId) return alert('Selecione um colaborador');
+          if (!dataOcorrencia) return alert('Informe a data');
+          if (tipo === 'suspensao' && !diasSuspensao) return alert('Informe os dias de suspensão');
+
+          const payload = {
+              funcionarioId,
+              tipo,
+              dataOcorrencia,
+              motivo,
+              descricao,
+              diasSuspensao: tipo === 'suspensao' ? Number(diasSuspensao) : null
+          };
+
+          const btn = document.getElementById('btnSalvar');
+          btn.disabled = true;
+          btn.textContent = 'Salvando...';
+          try {
+              const url = editingId ? `/api/rh/disciplinar/${editingId}` : '/api/rh/disciplinar';
+              const method = editingId ? 'PUT' : 'POST';
+              const res = await fetch(url, {
+                  method,
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload)
+              });
+              if (!res.ok) {
+                  const data = await res.json().catch(() => null);
+                  alert((data && data.erro) ? data.erro : 'Erro ao salvar registro');
+                  return;
+              }
+              fecharModal();
+              await carregarRegistros();
+          } finally {
+              btn.disabled = false;
+              btn.textContent = 'Salvar';
+          }
+      }
+
+      function renderTabela() {
+          const tbody = document.getElementById('tbodyRegistros');
+          const term = document.getElementById('filtroTexto').value.trim().toLowerCase();
+          const filtered = registros.filter(r => {
+              const nome = getFuncionarioName(r.funcionarioId).toLowerCase();
+              const motivo = String(r.motivo || '').toLowerCase();
+              return !term || nome.includes(term) || motivo.includes(term);
+          });
+
+          if (filtered.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-secondary);">Nenhum registro encontrado.</td></tr>';
+              return;
+          }
+
+          tbody.innerHTML = filtered.map(r => {
+              const tipo = String(r.tipo || '');
+              const detalhe = tipo === 'suspensao' && r.diasSuspensao ? ` (${r.diasSuspensao} dia(s))` : '';
+              const motivo = `${r.motivo || '-'}${detalhe}`;
+              return `
+                  <tr>
+                      <td>${formatDatePtBR(r.dataOcorrencia || r.createdAt)}</td>
+                      <td>${getBadge(tipo)}</td>
+                      <td>${getFuncionarioName(r.funcionarioId)}</td>
+                      <td>
+                          <div style="font-weight:600;">${motivo}</div>
+                          ${r.descricao ? `<div style="margin-top:4px; color: var(--text-secondary); font-size: 0.85rem;">${r.descricao}</div>` : ''}
+                      </td>
+                      <td>
+                          <div style="display:flex; gap: 8px; flex-wrap: wrap;">
+                              <button class="btn btn-outline" onclick="abrirModalEditar('${r.id}')">Editar</button>
+                              <button class="btn btn-danger" onclick="confirmarExcluir('${r.id}')">Excluir</button>
+                          </div>
+                      </td>
+                  </tr>
+              `;
+          }).join('');
+      }
+
+      async function carregarFuncionarios() {
+          const res = await fetch('/api/funcionarios');
+          if (!res.ok) throw new Error('Erro ao carregar funcionários');
+          funcionarios = await res.json();
+
+          const filtro = document.getElementById('filtroFuncionario');
+          const input = document.getElementById('inputFuncionario');
+
+          const options = funcionarios
+              .slice()
+              .sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || '')))
+              .map(f => `<option value="${f.id}">${f.nome}</option>`)
+              .join('');
+
+          filtro.innerHTML = `<option value="">Todos</option>${options}`;
+          input.innerHTML = `<option value="">Selecione...</option>${options}`;
+      }
+
+      async function carregarRegistros() {
+          const funcionarioId = document.getElementById('filtroFuncionario').value;
+          const tipo = document.getElementById('filtroTipo').value;
+
+          const params = new URLSearchParams();
+          if (funcionarioId) params.set('funcionarioId', funcionarioId);
+          if (tipo) params.set('tipo', tipo);
+
+          const url = params.toString() ? `/api/rh/disciplinar?${params.toString()}` : '/api/rh/disciplinar';
+          const res = await fetch(url);
+          if (!res.ok) {
+              const data = await res.json().catch(() => null);
+              alert((data && data.erro) ? data.erro : 'Erro ao carregar registros');
+              return;
+          }
+          registros = await res.json();
+          renderTabela();
+      }
+
+      (async function init() {
+          try {
+              await carregarFuncionarios();
+              await carregarRegistros();
+          } catch (e) {
+              alert('Erro ao carregar dados');
+          }
+      })();
+  </script>
+</body>
+</html>

@@ -3,6 +3,7 @@ const router = express.Router();
 const crypto = require('crypto');
 const db = require('../services/db');
 const pdfService = require('../services/pdfService');
+const emailService = require('../services/email');
 const { recrutamentoAuth } = require('../middleware/auth');
 
 // Public: Submit Application
@@ -77,7 +78,7 @@ router.get('/rh/recrutamento-interno/:id/pdf', recrutamentoAuth, async (req, res
 // RH: Update Status
 router.post('/rh/recrutamento-interno/:id/status', recrutamentoAuth, async (req, res) => {
     try {
-        const { status, observacao } = req.body;
+        const { status, observacao, proposta } = req.body;
         const item = await db.recrutamentoInterno.getById(req.params.id);
         
         if (!item) return res.status(404).json({ ok: false, erro: 'Registro não encontrado' });
@@ -90,6 +91,11 @@ router.post('/rh/recrutamento-interno/:id/status', recrutamentoAuth, async (req,
         };
 
         await db.recrutamentoInterno.update(req.params.id, updated);
+        
+        if (String(status).toLowerCase() === 'aprovado') {
+            const propostaPayload = typeof proposta === 'object' ? proposta : {};
+            await emailService.enviarCartaPropostaCandidato(updated, propostaPayload);
+        }
         res.json({ ok: true });
     } catch (e) {
         console.error(e);

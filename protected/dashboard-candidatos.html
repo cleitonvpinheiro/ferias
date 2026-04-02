@@ -106,6 +106,13 @@
             return d.toLocaleDateString('pt-BR');
         }
 
+        function formatDateYMD(value) {
+            if (typeof value !== 'string') return formatDatePtBR(value);
+            const m = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (!m) return formatDatePtBR(value);
+            return `${m[3]}/${m[2]}/${m[1]}`;
+        }
+
         function formatDateTimePtBR(value) {
             const d = new Date(value);
             if (Number.isNaN(d.getTime())) return '-';
@@ -198,6 +205,9 @@
         }
 
         function createCardHTML(c) {
+            const integracaoRow = (c.status === 'contratado' && c.proximaIntegracao)
+                ? `<div class="card-detail-row"><span>🗓️</span> Integração: ${formatDateYMD(c.proximaIntegracao)}</div>`
+                : '';
             return `
                 <div class="candidate-card" onclick="abrirDetalhes('${c.id}')">
                     <div class="card-header">
@@ -208,6 +218,7 @@
                         ${c.cargo1 ? `<div class="card-detail-row"><span>💼</span> ${c.cargo1}</div>` : ''}
                         <div class="card-detail-row"><span>💰</span> ${c.salarioPretendido || 'N/A'}</div>
                         <div class="card-detail-row"><span>📍</span> ${c.cidade}</div>
+                        ${integracaoRow}
                     </div>
                 </div>
             `;
@@ -261,6 +272,18 @@
                 </div>
 
                 <div class="modal-content-wrapper">
+                    ${c.status === 'contratado' ? `
+                    <div class="detail-card" style="margin-bottom: 16px;">
+                        <div class="detail-label" style="margin-bottom: 8px;">Próxima integração</div>
+                        <div style="display:flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <input type="date" id="proximaIntegracaoInput" value="${(c.proximaIntegracao || '').slice(0,10)}" style="padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-surface); color: var(--text-primary);">
+                            <button class="btn btn-secondary" onclick="salvarProximaIntegracao('${c.id}')">Salvar</button>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                                Atual: <strong>${c.proximaIntegracao ? formatDateYMD(c.proximaIntegracao) : '-'}</strong>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
                     <div class="modal-grid">
                         <div>
                             <h3 class="section-title">Dados Pessoais</h3>
@@ -329,6 +352,28 @@
             `;
             
             content.innerHTML = html;
+        }
+
+        async function salvarProximaIntegracao(id) {
+            const input = document.getElementById('proximaIntegracaoInput');
+            const value = input ? input.value : '';
+            try {
+                const res = await fetch(`/api/rh/candidatos/${id}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ proximaIntegracao: value || null })
+                });
+                if (!res.ok) {
+                    alert('Erro ao salvar próxima integração');
+                    return;
+                }
+                const updatedRes = await fetch(`/api/rh/candidatos/${id}`);
+                const updatedC = await updatedRes.json();
+                renderModalContent(updatedC);
+                carregarCandidatos();
+            } catch (e) {
+                alert('Erro de conexão');
+            }
         }
 
         async function mudarStatus(id, novoStatus) {

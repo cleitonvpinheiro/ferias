@@ -4,10 +4,20 @@ const form = document.getElementById('formVagas');
 const feedback = document.getElementById('feedback');
 const motivoRadios = document.querySelectorAll('input[name="motivo"]');
 const substituicaoArea = document.getElementById('substituicaoArea');
+const setorSelect = document.getElementById('setor');
+const cargoSelect = document.getElementById('cargo');
+const substituicaoSelect = document.getElementById('substituicao_nome');
+const emailGestorInput = document.getElementById('email_gestor');
+const dataDesligamentoArea = document.getElementById('dataDesligamentoArea');
+const dataDesligamentoInput = document.getElementById('data_desligamento');
+const seraDesligadoRadios = document.querySelectorAll('input[name="sera_desligado"]');
+const seraDesligadoArea = document.getElementById('seraDesligadoArea');
 
 let isDrawing = false;
 let isSigned = false;
 let ctx;
+let funcionariosCache = [];
+let currentRole = '';
 
 // Configurar data de abertura para hoje
 document.getElementById('data_abertura').valueAsDate = new Date();
@@ -68,24 +78,216 @@ function showFeedback(msg, isError = false) {
   feedback.hidden = false;
 }
 
+async function getMe() {
+  const r = await fetch('/api/me');
+  if (!r.ok) throw new Error('not-authenticated');
+  const data = await r.json();
+  return data && data.user ? data.user : data;
+}
+
+async function loadFuncionariosByRole(role) {
+  const r0 = String(role || '').trim().toLowerCase();
+  const endpoint = ['gestor', 'supervisor', 'gerente'].includes(r0) ? '/api/gestor/equipe' : '/api/funcionarios';
+  const r = await fetch(endpoint);
+  if (!r.ok) {
+    const j = await r.json().catch(() => null);
+    const msg = (j && (j.erro || j.message)) ? (j.erro || j.message) : 'Erro ao carregar funcionários';
+    throw new Error(msg);
+  }
+  const data = await r.json();
+  return Array.isArray(data) ? data : (Array.isArray(data.equipe) ? data.equipe : []);
+}
+
+function uniqueSorted(values) {
+  return [...new Set(values.map(v => String(v).trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
+}
+
+function setOptions(selectEl, options, { placeholder = 'Selecione...', value = '' } = {}) {
+  if (!selectEl) return;
+  selectEl.innerHTML = '';
+  const opt0 = document.createElement('option');
+  opt0.value = value;
+  opt0.textContent = placeholder;
+  selectEl.appendChild(opt0);
+
+  options.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o;
+    opt.textContent = o;
+    selectEl.appendChild(opt);
+  });
+}
+
+function formatCpf(v) {
+  const cpf = String(v || '').replace(/\D/g, '');
+  if (cpf.length !== 11) return '';
+  return cpf.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
+}
+
+function setSubstituicaoOptions(funcionarios) {
+  if (!substituicaoSelect) return;
+  substituicaoSelect.innerHTML = '';
+  const opt0 = document.createElement('option');
+  opt0.value = '';
+  opt0.textContent = 'Selecione...';
+  substituicaoSelect.appendChild(opt0);
+
+  const items = Array.isArray(funcionarios) ? funcionarios.slice() : [];
+  items
+    .filter(f => f && f.nome)
+    .sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR', { sensitivity: 'base' }))
+    .forEach(f => {
+      const opt = document.createElement('option');
+      const id = f.id ? String(f.id) : String(f.nome);
+      const cpfFmt = formatCpf(f.cpf);
+      opt.value = id;
+      opt.textContent = cpfFmt ? `${f.nome} (${cpfFmt})` : String(f.nome);
+      opt.dataset.nome = String(f.nome);
+      if (f.cpf) opt.dataset.cpf = String(f.cpf).replace(/\D/g, '');
+      if (f.matricula) opt.dataset.matricula = String(f.matricula).replace(/\D/g, '');
+      substituicaoSelect.appendChild(opt);
+    });
+}
+
+function filterEquipeForSubstituicao() {
+  const setor = String(setorSelect && setorSelect.value || '').trim();
+  const cargo = String(cargoSelect && cargoSelect.value || '').trim();
+
+  const bySetor = setor
+    ? funcionariosCache.filter(f => String(f && f.setor || '').trim() === setor)
+    : [];
+
+  if (!cargo) return bySetor;
+
+  return bySetor.filter(f => String(f && f.cargo || '').trim() === cargo);
+}
+
+function refreshCargoAndSubstituicaoBySetor() {
+  const setor = String(setorSelect.value || '').trim();
+  const filtered = setor
+    ? funcionariosCache.filter(f => String(f.setor || '').trim() === setor)
+    : [];
+
+  const cargos = uniqueSorted(filtered.map(f => f.cargo));
+  const prevCargo = cargoSelect ? String(cargoSelect.value || '').trim() : '';
+  setOptions(cargoSelect, cargos);
+  if (cargoSelect && prevCargo && cargos.includes(prevCargo)) {
+    cargoSelect.value = prevCargo;
+  }
+
+  setSubstituicaoOptions(filterEquipeForSubstituicao());
+}
+
+function refreshSetores() {
+  const setores = uniqueSorted(funcionariosCache.map(f => f.setor));
+  setOptions(setorSelect, setores);
+  refreshCargoAndSubstituicaoBySetor();
+}
+
+function toggleSubstituicaoArea() {
+  const motivo = document.querySelector('input[name="motivo"]:checked')?.value || '';
+  const isSub = motivo === 'substituicao';
+  substituicaoArea.style.display = isSub ? '' : 'none';
+  if (!isSub) {
+    if (substituicaoSelect) substituicaoSelect.value = '';
+    if (dataDesligamentoInput) dataDesligamentoInput.value = '';
+    if (substituicaoSelect) substituicaoSelect.required = false;
+    if (dataDesligamentoInput) dataDesligamentoInput.required = false;
+    seraDesligadoRadios.forEach(r => {
+      r.disabled = false;
+    });
+    if (seraDesligadoArea) seraDesligadoArea.style.display = 'none';
+  } else {
+    if (substituicaoSelect) substituicaoSelect.required = true;
+    if (dataDesligamentoInput) dataDesligamentoInput.required = true;
+    const sim = document.querySelector('input[name="sera_desligado"][value="sim"]');
+    if (sim) sim.checked = true;
+    seraDesligadoRadios.forEach(r => {
+      r.disabled = true;
+    });
+    if (seraDesligadoArea) seraDesligadoArea.style.display = 'none';
+  }
+  toggleDataDesligamento();
+}
+
+function toggleDataDesligamento() {
+  const motivo = document.querySelector('input[name="motivo"]:checked')?.value || '';
+  const isSub = motivo === 'substituicao';
+  const show = isSub;
+  if (dataDesligamentoArea) dataDesligamentoArea.style.display = show ? '' : 'none';
+  if (!show && dataDesligamentoInput) dataDesligamentoInput.value = '';
+}
+
+async function init() {
+  try {
+    const me = await getMe();
+    currentRole = me && me.role ? String(me.role).trim().toLowerCase() : '';
+
+    const username = me && me.username ? String(me.username) : '';
+    const email = me && me.email ? String(me.email) : (username ? `${username}@familiamadalosso.com.br` : '');
+    if (emailGestorInput) {
+      emailGestorInput.value = email;
+      emailGestorInput.readOnly = true;
+    }
+
+    funcionariosCache = await loadFuncionariosByRole(currentRole);
+    refreshSetores();
+
+    if (setorSelect) {
+      setorSelect.addEventListener('change', () => {
+        refreshCargoAndSubstituicaoBySetor();
+      });
+    }
+    if (cargoSelect) {
+      cargoSelect.addEventListener('change', () => {
+        setSubstituicaoOptions(filterEquipeForSubstituicao());
+      });
+    }
+  } catch (_) {
+    window.location.href = '/login.html';
+  }
+}
+
 motivoRadios.forEach(r => {
     r.addEventListener('change', () => {
-        // Lógica visual se necessário (ex: ocultar campos de substituição)
-        // Por enquanto mantemos tudo visível conforme form padrão
+        toggleSubstituicaoArea();
     });
 });
 
+seraDesligadoRadios.forEach(r => {
+  r.addEventListener('change', () => {
+    toggleDataDesligamento();
+  });
+});
+
+toggleSubstituicaoArea();
+init();
+
 form.addEventListener('submit', async e => {
   e.preventDefault();
+
+  const motivo = document.querySelector('input[name="motivo"]:checked')?.value || '';
+  const substituicaoOpt = substituicaoSelect && substituicaoSelect.selectedOptions ? substituicaoSelect.selectedOptions[0] : null;
+  const substituicao_id = substituicaoSelect ? String(substituicaoSelect.value || '').trim() : '';
+  const substituicao_nome = substituicaoOpt && substituicaoOpt.dataset && substituicaoOpt.dataset.nome
+    ? String(substituicaoOpt.dataset.nome)
+    : '';
+  const substituicao_cpf = substituicaoOpt && substituicaoOpt.dataset && substituicaoOpt.dataset.cpf
+    ? String(substituicaoOpt.dataset.cpf).replace(/\D/g, '')
+    : '';
   
   const formData = {
       cargo: document.getElementById('cargo').value,
       numero_vagas: document.getElementById('numero_vagas').value,
       setor: document.getElementById('setor').value,
       data_abertura: document.getElementById('data_abertura').value,
-      motivo: document.querySelector('input[name="motivo"]:checked').value,
-      substituicao_nome: document.getElementById('substituicao_nome').value,
-      sera_desligado: document.querySelector('input[name="sera_desligado"]:checked').value,
+      motivo,
+      substituicao_id,
+      substituicao_nome,
+      substituicao_cpf,
+      sera_desligado: motivo === 'substituicao' ? 'sim' : (document.querySelector('input[name="sera_desligado"]:checked')?.value || 'nao'),
+      data_desligamento: document.getElementById('data_desligamento') ? document.getElementById('data_desligamento').value : '',
       reportara_a: document.getElementById('reportara_a').value,
       escala_horario: document.getElementById('escala_horario').value,
       tipo_contratacao: document.querySelector('input[name="tipo_contratacao"]:checked').value,
@@ -105,6 +307,15 @@ form.addEventListener('submit', async e => {
       showFeedback('Preencha todos os campos obrigatórios (*)', true);
       return;
   }
+
+  if (motivo === 'substituicao' && !String(formData.substituicao_id || '').trim()) {
+    showFeedback('Selecione o colaborador que será desligado.', true);
+    return;
+  }
+  if (motivo === 'substituicao' && !String(formData.data_desligamento || '').trim()) {
+    showFeedback('Informe a data prevista de desligamento.', true);
+    return;
+  }
   
   if (!isSigned) {
       showFeedback('Por favor, assine no campo indicado.', true);
@@ -120,10 +331,14 @@ form.addEventListener('submit', async e => {
     const j = await r.json();
     
     if (j.ok) {
-        showFeedback('Solicitação de vaga enviada com sucesso!');
+        const msg = currentRole === 'supervisor'
+          ? 'Solicitação enviada para aprovação do gerente.'
+          : 'Solicitação de vaga enviada com sucesso!';
+        showFeedback(msg);
         form.reset();
         limparBtn.click();
         document.getElementById('data_abertura').valueAsDate = new Date();
+        toggleSubstituicaoArea();
     } else {
         showFeedback(j.erro || 'Erro ao enviar solicitação', true);
     }

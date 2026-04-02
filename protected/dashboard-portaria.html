@@ -383,6 +383,13 @@
             display: none;
         }
 
+        #modal-estoque,
+        #modal-assinatura,
+        #modal-confirmacao,
+        #modal-desconto {
+            z-index: 3100;
+        }
+
         .kiosk-footer {
             margin-top: 20px;
             display: flex;
@@ -640,14 +647,80 @@
             to { transform: translateX(0); opacity: 1; }
         }
 
+        .portaria-top-actions{
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            right: 92px;
+            z-index: 10;
+        }
+        .portaria-actions-row{
+            display:flex;
+            gap:10px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .sig-tabs{
+            display:flex;
+            gap:8px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        .sig-tab{
+            border: 1px solid #cbd5e1;
+            background: #fff;
+            color: #0f172a;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .sig-tab.active{
+            background: #0f172a;
+            border-color: #0f172a;
+            color: #fff;
+        }
+        .sig-area{
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        .sig-canvas{
+            width: 100%;
+            height: 220px;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            background: #fff;
+            touch-action: none;
+        }
+        .sig-preview{
+            width: 100%;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #0b1220;
+        }
+        .sig-preview video{
+            width: 100%;
+            height: auto;
+            display:block;
+        }
+        .sig-preview img{
+            width: 100%;
+            height: auto;
+            display:block;
+        }
+
     </style>
 </head>
 <body data-page="rh-portaria">
 
     <!-- Keypad Overlay (Simulação Biometria) -->
-    <div id="keypad-overlay">
-        <div style="position: absolute; top: 20px; right: 20px;">
-            <div style="display:flex; gap:10px;">
+<!--     <div id="keypad-overlay">
+        <div class="portaria-top-actions">
+            <div class="portaria-actions-row">
                 <button class="btn-cancel" onclick="abrirModalSolicitacoes()">📋 <span data-translate="rh_portaria_requests">Solicitações</span></button>
                 <button class="btn-cancel" onclick="abrirPainelSolicitacoes()">🖥️ <span data-translate="rh_portaria_panel">Painel</span></button>
                 <button class="btn-cancel" onclick="abrirModalEstoque()">📦 <span data-translate="rh_portaria_stock">Gestão de Estoque</span></button>
@@ -677,7 +750,7 @@
         </div>
     </div>
 
-    <!-- Modal Estoque -->
+    
     <div id="modal-estoque" class="modal-overlay" style="display: none;">
         <div class="modal" style="width: 800px; max-width: 95%;">
             <div class="modal-header">
@@ -686,11 +759,11 @@
             </div>
             <div class="modal-body">
                 <div id="lista-estoque" style="max-height: 400px; overflow-y: auto;">
-                    <!-- Items injected here -->
+                   
                 </div>
             </div>
         </div>
-    </div>
+    </div> -->
 
     <div id="modal-solicitacoes" class="modal-overlay" style="display: none;">
         <div class="modal" style="width: 900px; max-width: 96%;">
@@ -708,8 +781,68 @@
                 <div class="requests-toolbar">
                     <input id="requests-search" type="text" placeholder="Buscar por nome, CPF, matrícula ou EPI..." data-translate="rh_portaria_requests_search" onkeyup="renderSolicitacoesFiltradas()">
                     <button class="btn-confirm btn-small" onclick="carregarSolicitacoes()" data-translate="rh_dash_refresh">Atualizar</button>
+                    <button class="btn-cancel btn-small" onclick="abrirModalEstoque()">📦 Gestão de Estoque</button>
+                    <button class="btn-cancel btn-small" onclick="abrirTelaDevolucao()">↩️ Devolução</button>
                 </div>
                 <div id="lista-solicitacoes" style="max-height: 520px; overflow-y: auto;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-assinatura" class="modal-overlay" style="display: none;">
+        <div class="modal" style="width: 720px; max-width: 96%;">
+            <div class="modal-header">
+                <div>
+                    <h2 style="margin:0;">Confirmar entrega</h2>
+                    <div style="color:#64748b; font-size:0.95rem; margin-top:4px;">Assinatura ou foto (câmera) é obrigatória.</div>
+                </div>
+                <button class="close-modal" onclick="fecharModalAssinatura()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="sig-tabs">
+                    <button class="sig-tab active" id="tab-assinatura" onclick="selecionarModoAssinatura('assinatura')">Assinatura</button>
+                    <button class="sig-tab" id="tab-foto" onclick="selecionarModoAssinatura('foto')">Câmera</button>
+                </div>
+                <div class="sig-area" id="sig-area-assinatura">
+                    <canvas class="sig-canvas" id="sig-canvas"></canvas>
+                    <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
+                        <button class="btn-cancel" onclick="limparAssinatura()">Limpar</button>
+                    </div>
+                </div>
+                <div class="sig-area" id="sig-area-foto" style="display:none;">
+                    <div class="sig-preview">
+                        <video id="sig-video" playsinline autoplay muted></video>
+                        <img id="sig-foto" alt="Foto capturada" style="display:none;">
+                    </div>
+                    <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
+                        <button class="btn-cancel" onclick="iniciarCamera()">Iniciar câmera</button>
+                        <button class="btn-confirm" onclick="capturarFoto()">Capturar</button>
+                        <button class="btn-cancel" onclick="limparFoto()">Limpar</button>
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; margin-top: 14px;">
+                    <button class="btn-cancel" onclick="fecharModalAssinatura()">Cancelar</button>
+                    <button class="btn-confirm" id="btn-confirmar-entrega" onclick="confirmarEntregaAssinada()">Confirmar entrega</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-resultado-devolucao" class="modal-overlay" style="display: none;">
+        <div class="modal" style="width: 680px; max-width: 96%;">
+            <div class="modal-header">
+                <div>
+                    <h2 style="margin:0;">Finalizar devolução</h2>
+                    <div id="resultado-devolucao-sub" style="color:#64748b; font-size:0.95rem; margin-top:4px;">Selecione o resultado por item</div>
+                </div>
+                <button class="close-modal" onclick="fecharModalResultadoDevolucao()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="resultado-devolucao-itens" style="max-height: 320px; overflow-y: auto; display: grid; gap: 10px;"></div>
+                <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; margin-top: 14px;">
+                    <button class="btn-cancel" onclick="fecharModalResultadoDevolucao()">Cancelar</button>
+                    <button class="btn-confirm" onclick="confirmarResultadoDevolucao()">Confirmar</button>
+                </div>
             </div>
         </div>
     </div>
@@ -724,7 +857,10 @@
                     <p id="emp-details">Aguarde a identificação</p>
                 </div>
             </div>
-            <div class="clock-display" id="clock">00:00</div>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <button class="btn-cancel" onclick="abrirModalEstoque()">📦 Gestão de Estoque</button>
+                <div class="clock-display" id="clock">00:00</div>
+            </div>
         </div>
 
         <div class="kiosk-content">
@@ -798,6 +934,16 @@
                     <div style="margin-top: 10px;">
                         <button class="btn-cancel" onclick="startCamera()" style="padding: 5px 10px; border-radius: 4px; border: none; cursor: pointer;" data-translate="rh_portaria_camera_on">Ativar Câmera</button>
                     </div>
+                </div>
+
+                <div id="nao-devolucao-wrap" style="margin-top: 12px; display: none;">
+                    <label style="display:flex; align-items:center; gap:8px;">
+                        <input type="checkbox" id="chk-nao-devolucao">
+                        <span>Não houve devolução dos itens selecionados</span>
+                    </label>
+                    <p style="color:#64748b; font-size:0.9em; margin:6px 0 0;">
+                        Caso marcado, será gerado termo de desconto para os itens marcados em “Devolver”.
+                    </p>
                 </div>
 
                 <button class="btn-large btn-confirm" style="width: 100%; margin-top: 20px;" onclick="finalizarComBiometria()">CONFIRMAR OPERAÇÃO</button>
@@ -900,6 +1046,11 @@
         let solicitacoesLastPendingIds = null;
         let solicitacoesPollInFlight = false;
         let solicitacoesAuthWarned = false;
+        let assinaturaSolicitacaoId = null;
+        let assinaturaModo = 'assinatura';
+        let assinaturaDesenhou = false;
+        let assinaturaStream = null;
+        let assinaturaFotoDataUrl = null;
 
         function filtrarEpis() {
             const term = document.getElementById('search-epi').value.toLowerCase();
@@ -1128,6 +1279,7 @@
             filtered.forEach(s => {
                 const f = s.funcionario || {};
                 const itens = Array.isArray(s.itens) ? s.itens : [];
+                const tipo = String(s.tipo || 'retirada').toLowerCase();
                 const metaParts = [
                     f.cpf ? `CPF: ${escapeHtml(f.cpf)}` : '',
                     f.matricula ? `Matrícula: ${escapeHtml(f.matricula)}` : '',
@@ -1148,11 +1300,18 @@
                         </div>
                     </div>
                     <div class="request-items">
+                        ${tipo === 'devolucao'
+                            ? `<span class="request-item-pill" style="background:#fff1f2; border-color:#fecdd3; color:#be123c;">DEVOLUÇÃO</span>`
+                            : `<span class="request-item-pill" style="background:#ecfdf5; border-color:#bbf7d0; color:#047857;">RETIRADA</span>`
+                        }
                         ${itens.map(i => `<span class="request-item-pill">${escapeHtml(i.nome || i.id)} <span style="opacity:0.8">x${escapeHtml(i.quantidade || 1)}</span></span>`).join('')}
                     </div>
                     <div class="request-actions">
                         <button class="btn-cancel btn-small" onclick="marcarSolicitacao('${String(s.id || '')}','cancelada')">Cancelar</button>
-                        <button class="btn-confirm btn-small" onclick="marcarSolicitacao('${String(s.id || '')}','atendida')">Marcar atendida</button>
+                        ${tipo === 'devolucao'
+                            ? `<button class="btn-confirm btn-small" onclick="confirmarDevolucaoSolicitacao('${String(s.id || '')}')">Finalizar devolução</button>`
+                            : `<button class="btn-confirm btn-small" onclick="marcarSolicitacao('${String(s.id || '')}','atendida','${escapeHtml(String((f.cpf || f.matricula || '') || ''))}')">Marcar atendida</button>`
+                        }
                     </div>
                 `;
                 lista.appendChild(card);
@@ -1163,8 +1322,19 @@
             window.open('/protected/dashboard-portaria.html?monitor=1', '_blank', 'noopener');
         }
 
-        async function marcarSolicitacao(id, status) {
+        async function marcarSolicitacao(id, status, doc) {
             if (!id) return;
+            const before = solicitacoesCache.find(x => String(x.id) === String(id));
+            if (String(status) === 'atendida') {
+                if (before && String(before.tipo || 'retirada').toLowerCase() === 'devolucao') {
+                    confirmarDevolucaoSolicitacao(String(id));
+                    return;
+                }
+                if (before && before.hasEvidence === false) {
+                    abrirModalAssinatura(String(id));
+                    return;
+                }
+            }
             try {
                 const res = await fetch(`/api/portaria/solicitacoes/${encodeURIComponent(id)}/status`, {
                     method: 'POST',
@@ -1179,8 +1349,375 @@
                 solicitacoesCache = solicitacoesCache.filter(s => String(s.id) !== String(id));
                 renderSolicitacoesFiltradas();
                 showToast('Solicitação atualizada.', 'success');
+                if (String(status) === 'atendida') {
+                    const tipo = before ? String(before.tipo || 'retirada').toLowerCase() : 'retirada';
+                    if (tipo === 'retirada') {
+                        const docDigits = String(doc || '').replace(/\D/g, '');
+                        if (docDigits) {
+                            window.open(`/solicitacao-epi.html?mode=devolucao&doc=${encodeURIComponent(docDigits)}`, '_blank', 'noopener');
+                        } else {
+                            window.open(`/solicitacao-epi.html?mode=devolucao`, '_blank', 'noopener');
+                        }
+                    }
+                }
             } catch (e) {
                 showToast('Erro de conexão', 'error');
+            }
+        }
+
+        let devolucaoResultadoSolicitacaoId = null;
+
+        function abrirModalResultadoDevolucao(id) {
+            devolucaoResultadoSolicitacaoId = String(id || '');
+            const s = solicitacoesCache.find(x => String(x.id) === String(devolucaoResultadoSolicitacaoId));
+            const f = s && s.funcionario ? s.funcionario : {};
+            const sub = document.getElementById('resultado-devolucao-sub');
+            if (sub) {
+                const nome = f && f.nome ? String(f.nome) : '';
+                sub.textContent = nome ? `Colaborador: ${nome}` : 'Selecione o resultado por item';
+            }
+            const listWrap = document.getElementById('resultado-devolucao-itens');
+            if (listWrap) {
+                const itens = Array.isArray(s?.itens) ? s.itens : [];
+                listWrap.innerHTML = itens.map((it, idx) => {
+                    const iid = String(it.id || it.nome || `item_${idx}`);
+                    const q = Number(it.quantidade || 1);
+                    const name = String(it.nome || it.id || `EPI ${idx+1}`);
+                    const radioName = `rd-res-${iid}`;
+                    return `
+                        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                            <div>
+                                <div style="font-weight:600; color:#0f172a;">${escapeHtml(name)}</div>
+                                <div style="color:#64748b; font-size:0.9rem;">Quantidade: ${q}</div>
+                            </div>
+                            <div style="display:flex; gap:12px; align-items:center;">
+                                <label style="display:flex; align-items:center; gap:6px;">
+                                    <input type="radio" name="${radioName}" value="devolvido" checked> Devolvido
+                                </label>
+                                <label style="display:flex; align-items:center; gap:6px;">
+                                    <input type="radio" name="${radioName}" value="extraviado"> Extraviado
+                                </label>
+                                <input type="hidden" value="${escapeHtml(String(iid))}" data-epi-id>
+                                <input type="hidden" value="${q}" data-epi-qty>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            const modal = document.getElementById('modal-resultado-devolucao');
+            if (modal) modal.style.display = 'flex';
+        }
+
+        function fecharModalResultadoDevolucao() {
+            const modal = document.getElementById('modal-resultado-devolucao');
+            if (modal) modal.style.display = 'none';
+            devolucaoResultadoSolicitacaoId = null;
+        }
+
+        async function confirmarResultadoDevolucao() {
+            const id = String(devolucaoResultadoSolicitacaoId || '');
+            if (!id) return;
+            const container = document.getElementById('resultado-devolucao-itens');
+            const rows = Array.from(container ? container.children : []);
+            const devolver = [];
+            const extraviar = [];
+            rows.forEach(row => {
+                const idEl = row.querySelector('input[data-epi-id]');
+                const qtyEl = row.querySelector('input[data-epi-qty]');
+                const chosen = row.querySelector('input[type=radio]:checked');
+                const eid = idEl ? idEl.value : '';
+                const q = qtyEl ? parseInt(qtyEl.value) : 1;
+                const kind = chosen ? chosen.value : 'devolvido';
+                if (!eid || !q || q <= 0) return;
+                const target = (kind === 'extraviado') ? extraviar : devolver;
+                for (let i = 0; i < q; i++) target.push(eid);
+            });
+            const resultado = extraviar.length > 0 && devolver.length > 0 ? 'misto' : (extraviar.length > 0 ? 'extraviado' : 'devolvido');
+            try {
+                const res = await fetch(`/api/portaria/solicitacoes/${encodeURIComponent(id)}/confirmar-devolucao`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        resultado,
+                        parcelas: 1,
+                        itens_devolvidos: devolver,
+                        itens_extraviados: extraviar
+                    })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data || !data.ok) {
+                    showToast((data && data.erro) ? data.erro : 'Erro ao finalizar devolução', 'error');
+                    return;
+                }
+
+                if (data && (data.resultado === 'extraviado' || data.resultado === 'misto') && data.termo) {
+                    const w = window.open(data.termo, '_blank', 'noopener');
+                    if (!w) {
+                        const a = document.createElement('a');
+                        a.href = data.termo;
+                        a.target = '_blank';
+                        a.rel = 'noopener';
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    }
+                }
+
+                solicitacoesCache = solicitacoesCache.filter(s => String(s.id) !== String(id));
+                renderSolicitacoesFiltradas();
+                fecharModalResultadoDevolucao();
+
+                if (data && data.resultado === 'extraviado') {
+                    showToast('Extravio registrado e termo gerado.', 'success');
+                } else if (data && data.resultado === 'misto') {
+                    showToast('Devolução confirmada e extravio registrado.', 'success');
+                } else {
+                    showToast('Devolução confirmada.', 'success');
+                }
+            } catch (e) {
+                showToast('Erro de conexão', 'error');
+            }
+        }
+
+        async function confirmarDevolucaoSolicitacao(id) {
+            if (!id) return;
+            const s = solicitacoesCache.find(x => String(x.id) === String(id));
+            if (s && s.hasEvidence === false) {
+                showToast('Solicitação sem assinatura/foto. Não é possível confirmar devolução.', 'error');
+                return;
+            }
+            abrirModalResultadoDevolucao(String(id));
+        }
+
+        function selecionarModoAssinatura(modo) {
+            assinaturaModo = modo === 'foto' ? 'foto' : 'assinatura';
+            const tabAss = document.getElementById('tab-assinatura');
+            const tabFoto = document.getElementById('tab-foto');
+            const areaAss = document.getElementById('sig-area-assinatura');
+            const areaFoto = document.getElementById('sig-area-foto');
+            if (tabAss) tabAss.classList.toggle('active', assinaturaModo === 'assinatura');
+            if (tabFoto) tabFoto.classList.toggle('active', assinaturaModo === 'foto');
+            if (areaAss) areaAss.style.display = assinaturaModo === 'assinatura' ? 'grid' : 'none';
+            if (areaFoto) areaFoto.style.display = assinaturaModo === 'foto' ? 'grid' : 'none';
+        }
+
+        function abrirModalAssinatura(id) {
+            assinaturaSolicitacaoId = String(id || '');
+            assinaturaDesenhou = false;
+            assinaturaFotoDataUrl = null;
+            selecionarModoAssinatura('assinatura');
+            document.getElementById('modal-assinatura').style.display = 'flex';
+            prepararCanvasAssinatura();
+            limparAssinatura();
+            pararCamera();
+            limparFoto();
+        }
+
+        function fecharModalAssinatura() {
+            document.getElementById('modal-assinatura').style.display = 'none';
+            assinaturaSolicitacaoId = null;
+            pararCamera();
+        }
+
+        function prepararCanvasAssinatura() {
+            const canvas = document.getElementById('sig-canvas');
+            if (!canvas) return;
+            const ratio = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = Math.max(1, Math.floor(rect.width * ratio));
+            canvas.height = Math.max(1, Math.floor(rect.height * ratio));
+            const ctx = canvas.getContext('2d');
+            ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = '#0f172a';
+
+            const state = { drawing: false, last: null };
+
+            const getPoint = (e) => {
+                const r = canvas.getBoundingClientRect();
+                const x = (e.clientX - r.left);
+                const y = (e.clientY - r.top);
+                return { x, y };
+            };
+
+            const start = (e) => {
+                state.drawing = true;
+                state.last = getPoint(e);
+                assinaturaDesenhou = true;
+                try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+            };
+
+            const move = (e) => {
+                if (!state.drawing) return;
+                const p = getPoint(e);
+                const prev = state.last;
+                if (!prev) {
+                    state.last = p;
+                    return;
+                }
+                ctx.beginPath();
+                ctx.moveTo(prev.x, prev.y);
+                ctx.lineTo(p.x, p.y);
+                ctx.stroke();
+                state.last = p;
+            };
+
+            const end = (e) => {
+                state.drawing = false;
+                state.last = null;
+                try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+            };
+
+            canvas.onpointerdown = start;
+            canvas.onpointermove = move;
+            canvas.onpointerup = end;
+            canvas.onpointercancel = end;
+        }
+
+        function limparAssinatura() {
+            const canvas = document.getElementById('sig-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            assinaturaDesenhou = false;
+        }
+
+        async function iniciarCamera() {
+            try {
+                const video = document.getElementById('sig-video');
+                const img = document.getElementById('sig-foto');
+                if (img) img.style.display = 'none';
+                if (!video) return;
+                pararCamera();
+                assinaturaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+                video.srcObject = assinaturaStream;
+                await video.play();
+            } catch (e) {
+                showToast('Não foi possível acessar a câmera.', 'error');
+            }
+        }
+
+        function pararCamera() {
+            try {
+                const video = document.getElementById('sig-video');
+                if (video) video.srcObject = null;
+                if (assinaturaStream) {
+                    assinaturaStream.getTracks().forEach(t => t.stop());
+                }
+            } catch (_) {}
+            assinaturaStream = null;
+        }
+
+        function capturarFoto() {
+            const video = document.getElementById('sig-video');
+            const img = document.getElementById('sig-foto');
+            if (!video || !img) return;
+            const w = video.videoWidth || 0;
+            const h = video.videoHeight || 0;
+            if (!w || !h) {
+                showToast('Câmera não está pronta.', 'error');
+                return;
+            }
+            const c = document.createElement('canvas');
+            const maxW = 900;
+            const scale = Math.min(1, maxW / w);
+            c.width = Math.floor(w * scale);
+            c.height = Math.floor(h * scale);
+            const ctx = c.getContext('2d');
+            ctx.drawImage(video, 0, 0, c.width, c.height);
+            assinaturaFotoDataUrl = c.toDataURL('image/jpeg', 0.85);
+            img.src = assinaturaFotoDataUrl;
+            img.style.display = 'block';
+        }
+
+        function limparFoto() {
+            assinaturaFotoDataUrl = null;
+            const img = document.getElementById('sig-foto');
+            if (img) {
+                img.removeAttribute('src');
+                img.style.display = 'none';
+            }
+        }
+
+        function exportarAssinaturaCompacta(canvas) {
+            if (!canvas) return null;
+            const srcW = canvas.width || 0;
+            const srcH = canvas.height || 0;
+            if (!srcW || !srcH) return null;
+
+            const maxW = 900;
+            const maxH = 260;
+            const scale = Math.min(1, maxW / srcW, maxH / srcH);
+            const outW = Math.max(1, Math.floor(srcW * scale));
+            const outH = Math.max(1, Math.floor(srcH * scale));
+
+            const out = document.createElement('canvas');
+            out.width = outW;
+            out.height = outH;
+            const ctx = out.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, outW, outH);
+            ctx.drawImage(canvas, 0, 0, outW, outH);
+            return out.toDataURL('image/jpeg', 0.82);
+        }
+
+        async function confirmarEntregaAssinada() {
+            const id = assinaturaSolicitacaoId;
+            if (!id) return;
+            const before = solicitacoesCache.find(x => String(x.id) === String(id));
+            const btn = document.getElementById('btn-confirmar-entrega');
+            if (btn) btn.disabled = true;
+
+            try {
+                let assinatura = null;
+                let assinatura_tipo = null;
+                let evidencia_foto = null;
+
+                if (assinaturaModo === 'assinatura') {
+                    if (!assinaturaDesenhou) {
+                        showToast('Assine no campo ou use a câmera.', 'error');
+                        return;
+                    }
+                    const canvas = document.getElementById('sig-canvas');
+                    assinatura = exportarAssinaturaCompacta(canvas);
+                    assinatura_tipo = 'canvas_jpeg';
+                } else {
+                    if (!assinaturaFotoDataUrl) {
+                        showToast('Capture uma foto ou use assinatura.', 'error');
+                        return;
+                    }
+                    evidencia_foto = assinaturaFotoDataUrl;
+                }
+
+                const res = await fetch(`/api/portaria/solicitacoes/${encodeURIComponent(id)}/status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'atendida', assinatura, assinatura_tipo, evidencia_foto })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data || !data.ok) {
+                    showToast((data && data.erro) ? data.erro : 'Erro ao atualizar solicitação', 'error');
+                    return;
+                }
+                solicitacoesCache = solicitacoesCache.filter(s => String(s.id) !== String(id));
+                renderSolicitacoesFiltradas();
+                showToast('Solicitação concluída.', 'success');
+                if (before && String(before.tipo || 'retirada').toLowerCase() === 'retirada') {
+                    const f = before.funcionario || {};
+                    const docDigits = String((f.cpf || f.matricula || '') || '').replace(/\D/g, '');
+                    if (docDigits) {
+                        window.open(`/solicitacao-epi.html?mode=devolucao&doc=${encodeURIComponent(docDigits)}`, '_blank', 'noopener');
+                    } else {
+                        window.open(`/solicitacao-epi.html?mode=devolucao`, '_blank', 'noopener');
+                    }
+                }
+                fecharModalAssinatura();
+            } catch (e) {
+                showToast('Erro de conexão', 'error');
+            } finally {
+                if (btn) btn.disabled = false;
             }
         }
 
@@ -1315,19 +1852,23 @@
             abrirModalSolicitacoes(currentFuncionario.id);
             
             // Setup Search Input for Barcode/Keypad usage
-            const searchInput = document.getElementById('search-epi');
+            const focusDevolucao = !!window.__PORTARIA_FORCE_DEVOLUCAO_FOCUS__;
+            window.__PORTARIA_FORCE_DEVOLUCAO_FOCUS__ = false;
+            const searchInput = focusDevolucao ? document.getElementById('search-possession') : document.getElementById('search-epi');
             searchInput.value = '';
             setTimeout(() => searchInput.focus(), 100); // Ensure focus after render
             
             searchInput.onkeydown = (e) => {
                 if (e.key === 'Enter') {
-                    const visibleCards = Array.from(document.querySelectorAll('#list-available .epi-card'))
+                    const containerSelector = focusDevolucao ? '#list-possession' : '#list-available';
+                    const visibleCards = Array.from(document.querySelectorAll(containerSelector + ' .epi-card'))
                         .filter(c => c.style.display !== 'none');
                     
                     if (visibleCards.length === 1) {
                         visibleCards[0].click(); // Select the item
                         searchInput.value = ''; // Clear
-                        filtrarEpis(); // Reset list
+                        if (focusDevolucao) filtrarEmPosse();
+                        else filtrarEpis(); // Reset list
                         showToast('Item selecionado!', 'success');
                     } else if (visibleCards.length > 1) {
                         // Check for exact ID match
@@ -1335,7 +1876,8 @@
                         if (exactIdMatch) {
                             exactIdMatch.click();
                             searchInput.value = '';
-                            filtrarEpis();
+                            if (focusDevolucao) filtrarEmPosse();
+                            else filtrarEpis();
                             showToast('Item selecionado!', 'success');
                         }
                     }
@@ -1485,6 +2027,26 @@
             abrirModalConfirmacao();
         }
 
+        function abrirTelaDevolucao() {
+            window.__PORTARIA_FORCE_DEVOLUCAO_FOCUS__ = true;
+            try { fecharModalSolicitacoes(); } catch (_) {}
+            document.body.classList.remove('requests-monitor-mode');
+
+            if (!currentFuncionario) {
+                document.getElementById('keypad-overlay').style.display = 'flex';
+                document.getElementById('main-interface').style.display = 'none';
+                showToast('Digite o CPF ou matrícula para iniciar a devolução.', 'success');
+                return;
+            }
+
+            document.getElementById('keypad-overlay').style.display = 'none';
+            document.getElementById('main-interface').style.display = 'flex';
+            setTimeout(() => {
+                const input = document.getElementById('search-possession');
+                if (input) input.focus();
+            }, 80);
+        }
+
         // --- Biometria / Assinatura ---
         let currentTab = 'assinatura';
         let cameraStream = null;
@@ -1588,6 +2150,12 @@
             document.getElementById('modal-confirmacao').style.display = 'flex';
             // Delay init slightly to ensure modal is visible for layout
             setTimeout(initSignaturePad, 100);
+            const wrap = document.getElementById('nao-devolucao-wrap');
+            if (wrap) {
+                wrap.style.display = selectedForReturn.size > 0 ? 'block' : 'none';
+                const chk = document.getElementById('chk-nao-devolucao');
+                if (chk) chk.checked = false;
+            }
         }
 
         function fecharModalConfirmacao() {
@@ -1608,10 +2176,14 @@
                 evidencia = captureCamera();
             }
 
+            const naoDevolvido = !!(document.getElementById('chk-nao-devolucao') && document.getElementById('chk-nao-devolucao').checked);
+            const itensDevolver = Array.from(selectedForReturn);
+            const itensRetirar = Array.from(selectedForPickup);
+
             const payload = {
                 funcionario_id: currentFuncionario.id,
-                itens_retirados: Array.from(selectedForPickup),
-                itens_devolvidos: Array.from(selectedForReturn),
+                itens_retirados: itensRetirar,
+                itens_devolvidos: naoDevolvido ? [] : itensDevolver,
                 evidencia: evidencia,
                 tipo_evidencia: tipo_evidencia
             };
@@ -1624,9 +2196,55 @@
                 });
                 const data = await res.json();
                 if (data.ok) {
-                    showToast('Movimentação registrada com sucesso!', 'success');
-                    fecharModalConfirmacao();
-                    logout();
+                    if (naoDevolvido && itensDevolver.length > 0) {
+                        try {
+                            const respDesc = await fetch('/api/portaria/termo-desconto', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    funcionario_id: currentFuncionario.id,
+                                    itens_nao_devolvidos: itensDevolver,
+                                    parcelas: 1
+                                })
+                            });
+                            const descData = await respDesc.json();
+                            if (descData && descData.ok && descData.termo) {
+                                const w = window.open(descData.termo, '_blank', 'noopener');
+                                if (!w) {
+                                    const a = document.createElement('a');
+                                    a.href = descData.termo;
+                                    a.target = '_blank';
+                                    a.rel = 'noopener';
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    a.remove();
+                                }
+                            }
+                            showToast('Movimentação registrada e termo de desconto gerado.', 'success');
+                            // Atualizar dados do funcionário e aplicar bloqueio se necessário
+                            const authRes = await fetch(`/api/portaria/funcionario/${currentFuncionario.cpf.replace(/\D/g,'')}`);
+                            if (authRes.status === 403) {
+                                showToast('BLOQUEIO ATIVADO: Funcionário com pendência no RH. Sessão encerrada.', 'error');
+                                fecharModalConfirmacao();
+                                logout();
+                                return;
+                            } else {
+                                const authData = await authRes.json();
+                                if (authData.ok) {
+                                    itemsInPossessionIds = authData.itensEmPosse;
+                                    renderLists();
+                                }
+                            }
+                        } catch (eDesc) {
+                            console.error(eDesc);
+                            showToast('Movimentação registrada, mas houve erro ao gerar termo.', 'error');
+                        }
+                        fecharModalConfirmacao();
+                    } else {
+                        showToast('Movimentação registrada com sucesso!', 'success');
+                        fecharModalConfirmacao();
+                        logout();
+                    }
                 } else {
                     showToast('Erro ao salvar: ' + data.erro, 'error');
                 }
@@ -1662,17 +2280,15 @@
         async function gerarPDFDesconto() {
             if (!currentDiscountItem || !currentFuncionario) return;
 
-            const itemToReturnId = currentDiscountItem.id; // Capture ID before it gets cleared
-
+            const parcelas = parseInt(document.getElementById('desc-parcelas').value);
             const payload = {
-                nome_funcionario: currentFuncionario.nome,
-                cpf_funcionario: currentFuncionario.cpf,
-                itens: [currentDiscountItem],
-                parcelas: parseInt(document.getElementById('desc-parcelas').value)
+                funcionario_id: currentFuncionario.id,
+                itens_nao_devolvidos: [currentDiscountItem.id],
+                parcelas
             };
 
             try {
-                const res = await fetch('/api/portaria/desconto', {
+                const res = await fetch('/api/portaria/termo-desconto', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -1680,22 +2296,20 @@
                 const data = await res.json();
                 if (data.ok) {
                     fecharModalDesconto();
-                    
-                    // Call movement API to "return" it so it leaves the open list.
-                    await fetch('/api/portaria/movimentacao', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            funcionario_id: currentFuncionario.id,
-                            itens_retirados: [],
-                            itens_devolvidos: [itemToReturnId]
-                        })
-                    });
-                    
-                    showToast('Termo gerado e encaminhado ao RH! O funcionário deve comparecer ao DP para assinar.', 'success');
-                    
-                    // Refresh dashboard or logout (since blocked now)
-                    // Checking if employee is now blocked
+                    if (data.termo) {
+                        const w = window.open(data.termo, '_blank', 'noopener');
+                        if (!w) {
+                            const a = document.createElement('a');
+                            a.href = data.termo;
+                            a.target = '_blank';
+                            a.rel = 'noopener';
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                        }
+                    }
+                    showToast('Termo gerado. O funcionário deverá comparecer ao RH para assinatura.', 'success');
+                    // Atualizar dados do funcionário em posse
                     const authRes = await fetch(`/api/portaria/funcionario/${currentFuncionario.cpf.replace(/\D/g,'')}`);
                     if (authRes.status === 403) {
                         showToast('BLOQUEIO ATIVADO: Funcionário com pendência no RH. Sessão encerrada.', 'error');

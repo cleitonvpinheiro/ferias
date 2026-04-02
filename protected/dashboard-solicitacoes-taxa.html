@@ -93,15 +93,28 @@
 
   <script>
     let globalData = [];
+    let currentUser = null;
+    const isGestorUser = () => ['gestor', 'supervisor', 'gerente'].includes(String(currentUser && currentUser.role || '').trim().toLowerCase());
 
     async function carregarSolicitacoes() {
         try {
-            const res = await fetch('/api/rh/solicitacoes-taxa');
-            if (res.status === 401 || res.status === 403) {
-                window.location.href = '/login.html';
-                return;
+            if (!currentUser) {
+                try {
+                    const meRes = await fetch('/api/me', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                    if (meRes.ok) {
+                        const meData = await meRes.json().catch(() => null);
+                        currentUser = meData && meData.user ? meData.user : meData;
+                    }
+                } catch (_) {}
             }
-            const data = await res.json();
+            const endpoint = isGestorUser() ? '/api/gestor/solicitacoes-taxa' : '/api/rh/solicitacoes-taxa';
+            const res = await fetch(endpoint);
+            const parsed = await res.json().catch(() => null);
+            if (!res.ok) {
+                const msg = parsed && (parsed.erro || parsed.message) ? (parsed.erro || parsed.message) : 'Acesso negado';
+                throw new Error(msg);
+            }
+            const data = Array.isArray(parsed) ? parsed : [];
             globalData = data;
             renderizarTabela(data);
             atualizarStats(data);
@@ -192,7 +205,9 @@
         if (!confirm(`Deseja realmente marcar como ${novoStatus}?`)) return;
 
         try {
-            const res = await fetch(`/api/rh/solicitacoes-taxa/${id}`, {
+            const isGestor = isGestorUser();
+            const url = isGestor ? `/api/gestor/solicitacoes-taxa/${id}` : `/api/rh/solicitacoes-taxa/${id}`;
+            const res = await fetch(url, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: novoStatus })

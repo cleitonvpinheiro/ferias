@@ -9,6 +9,15 @@ const xlsx = require('xlsx');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
+function parseBoolish(v, fallback = null) {
+    if (v === undefined || v === null || v === '') return fallback;
+    if (typeof v === 'boolean') return v;
+    const s = String(v).trim().toLowerCase();
+    if (['1', 'true', 'sim', 's', 'yes', 'y'].includes(s)) return true;
+    if (['0', 'false', 'nao', 'não', 'n', 'no'].includes(s)) return false;
+    return fallback;
+}
+
 router.post('/rh/epis/import', sesmtAuth, upload.single('file'), async (req, res) => {
     try {
         if (!req.file) {
@@ -27,14 +36,18 @@ router.post('/rh/epis/import', sesmtAuth, upload.single('file'), async (req, res
             const valor = row['Valor'] || row['valor'] || row['Preco'] || row['preco'] || 0;
             const estoque = row['Estoque'] || row['estoque'] || row['Qtd'] || row['qtd'] || 0;
             const ca_validade = row['Validade'] || row['validade'] || row['CA'] || row['ca'] || null;
+            const possuiCaRaw = row['Possui CA'] || row['possui_ca'] || row['Possui_CA'] || row['possuiCA'];
 
             if (nome) {
+                const parsedPossuiCa = parseBoolish(possuiCaRaw, null);
+                const possui_ca = parsedPossuiCa == null ? (ca_validade ? 1 : 0) : (parsedPossuiCa ? 1 : 0);
                 const novoEpi = {
                     id: crypto.randomUUID(),
                     nome: String(nome),
                     valor: parseFloat(valor) || 0,
                     estoque: parseInt(estoque || 0, 10),
-                    ca_validade: ca_validade ? new Date(ca_validade).toISOString() : null,
+                    possui_ca,
+                    ca_validade: possui_ca ? (ca_validade ? new Date(ca_validade).toISOString() : null) : null,
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
                 };
@@ -90,15 +103,19 @@ router.get('/rh/epis/movimentacoes', sesmtAuth, async (req, res) => {
 
 router.post('/rh/epis', sesmtAuth, async (req, res) => {
     try {
-        const { nome, valor, estoque, ca_validade } = req.body;
+        const { nome, valor, estoque, ca_validade, possui_ca: possuiCaRaw } = req.body;
         if (!nome || !valor) return res.status(400).json({ ok: false, erro: 'Dados incompletos' });
+
+        const parsedPossuiCa = parseBoolish(possuiCaRaw, true);
+        const possui_ca = parsedPossuiCa ? 1 : 0;
 
         const novoEpi = {
             id: crypto.randomUUID(),
             nome,
             valor: parseFloat(valor),
             estoque: parseInt(estoque || 0, 10),
-            ca_validade: ca_validade || null,
+            possui_ca,
+            ca_validade: possui_ca ? (ca_validade || null) : null,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
@@ -125,17 +142,25 @@ router.delete('/rh/epis/:id', sesmtAuth, async (req, res) => {
 // Atualizar estoque e CA
 router.put('/rh/epis/:id', sesmtAuth, async (req, res) => {
     try {
-        const { nome, valor, estoque, ca_validade } = req.body;
+        const { nome, valor, estoque, ca_validade, possui_ca: possuiCaRaw } = req.body;
         
         const existing = await db.epis.getById(req.params.id);
         if (!existing) return res.status(404).json({ ok: false, erro: 'EPI não encontrado' });
+
+        const parsedPossuiCa = parseBoolish(possuiCaRaw, null);
+        const nextPossuiCa = parsedPossuiCa == null ? (existing.possui_ca == null ? 1 : Number(existing.possui_ca) ? 1 : 0) : (parsedPossuiCa ? 1 : 0);
+        const nextCaValidade =
+            parsedPossuiCa === false
+                ? null
+                : (ca_validade !== undefined ? ca_validade : existing.ca_validade);
 
         const updated = {
             ...existing,
             ...(nome !== undefined ? { nome } : {}),
             ...(valor !== undefined ? { valor: parseFloat(valor) } : {}),
             ...(estoque !== undefined ? { estoque: parseInt(estoque, 10) } : {}),
-            ...(ca_validade !== undefined ? { ca_validade } : {}),
+            ...(parsedPossuiCa != null ? { possui_ca: nextPossuiCa } : {}),
+            ...(nextCaValidade !== undefined ? { ca_validade: nextPossuiCa ? nextCaValidade : null } : {}),
             updatedAt: new Date().toISOString()
         };
         
