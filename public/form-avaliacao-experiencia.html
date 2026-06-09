@@ -343,9 +343,12 @@
         /* Submit Button */
         .form-actions {
             margin-top: 40px;
-            text-align: right;
             border-top: 1px solid var(--border-color);
             padding-top: 30px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            flex-wrap: wrap;
         }
 
         .submit-btn {
@@ -364,10 +367,23 @@
             gap: 10px;
         }
 
+        .submit-btn.secondary-btn {
+            background-color: transparent;
+            color: var(--accent-color);
+            border: 1px solid var(--accent-color);
+            box-shadow: none;
+        }
+
         .submit-btn:hover {
             background-color: var(--accent-hover);
             transform: translateY(-1px);
             box-shadow: var(--shadow-lg);
+        }
+
+        .submit-btn.secondary-btn:hover {
+            background-color: var(--accent-soft);
+            color: var(--accent-color);
+            box-shadow: none;
         }
 
         .submit-btn:active {
@@ -407,6 +423,12 @@
             font-weight: 600;
             margin-bottom: 15px;
             color: #1f2937;
+        }
+
+        .signature-note {
+            margin: -4px 0 15px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
         }
 
         .signature-row {
@@ -486,6 +508,8 @@
         <input type="hidden" name="id" id="formId">
         <input type="hidden" name="tipo" value="experiencia">
         <input type="hidden" name="etapa" id="etapaAtual" value="45">
+        <input type="hidden" name="cicloId" id="cicloIdField">
+        <input type="hidden" name="participanteId" id="participanteIdField">
 
         <div class="header-info">
             <div class="form-group">
@@ -588,6 +612,7 @@
 
         <div class="signature-container" id="signatureSection" style="display:none;">
             <div class="signature-title">📝 Assinaturas</div>
+            <div class="signature-note">A avaliacao pode ser salva sem assinatura. As assinaturas podem ser registradas depois, quando o colaborador estiver presente.</div>
             <div class="signature-row">
                 <div class="signature-box">
                     <label>Assinatura do Gestor:</label>
@@ -596,8 +621,7 @@
                     <div class="signature-actions">
                         <button type="button" onclick="clearSignature('gestor')">Limpar</button>
                     </div>
-                    <input type="text" id="signature-gestor-nome" class="signature-name" placeholder="Nome do gestor"
-                        required>
+                    <input type="text" id="signature-gestor-nome" class="signature-name" placeholder="Nome do gestor">
                     <input type="hidden" id="signature-gestor-data">
                 </div>
 
@@ -609,13 +633,16 @@
                         <button type="button" onclick="clearSignature('colaborador')">Limpar</button>
                     </div>
                     <input type="text" id="signature-colaborador-nome" class="signature-name"
-                        placeholder="Nome do colaborador" required>
+                        placeholder="Nome do colaborador">
                     <input type="hidden" id="signature-colaborador-data">
                 </div>
             </div>
         </div>
 
         <div class="form-actions">
+            <button type="button" class="submit-btn secondary-btn" id="saveSignatureBtn" style="display:none;">
+                <span>Salvar Assinaturas</span>
+            </button>
             <button type="submit" class="submit-btn" id="submitBtn">
                 <span data-translate="avaliacao_experiencia_submit">💾 Salvar Avaliação (45 Dias)</span>
             </button>
@@ -754,12 +781,125 @@
             tbody.innerHTML = html;
         }
 
+        function applyExperienceStageState(form, data) {
+            const etapaField = document.getElementById('etapaAtual');
+            const submitBtn = document.getElementById('submitBtn');
+            const saveSignatureBtn = document.getElementById('saveSignatureBtn');
+            const sigSection = document.getElementById('signatureSection');
+            const status45Box = document.getElementById('status45Box');
+            const status90Box = document.getElementById('status90Box');
+            const status6mBox = document.getElementById('status6mBox');
+            const statusGrid = document.getElementById('statusGrid');
+            const th45 = document.getElementById('th45');
+            const th90 = document.getElementById('th90');
+            const th6m = document.getElementById('th6m');
+            const thCrit = document.getElementById('thCrit');
+
+            let etapa = '45';
+            if (data.answers45) etapa = '90';
+            if (data.answers90) etapa = '6m';
+            if (data.answers6m) etapa = 'finalizada';
+
+            if (etapaField) etapaField.value = etapa;
+            renderTable();
+
+            if (data.status45) {
+                const r = form.querySelector(`input[name="status45"][value="${data.status45}"]`);
+                if (r) r.checked = true;
+            }
+            if (data.status90) {
+                const r = form.querySelector(`input[name="status90"][value="${data.status90}"]`);
+                if (r) r.checked = true;
+            }
+            if (data.status6months) {
+                const r = form.querySelector(`input[name="status6months"][value="${data.status6months}"]`);
+                if (r) r.checked = true;
+            }
+
+            if (data.answers45) {
+                Object.keys(data.answers45).forEach(key => {
+                    const el = form.querySelector(`select[name="${key}"]`);
+                    if (el) { el.value = data.answers45[key]; el.disabled = true; }
+                });
+                form.querySelectorAll('input[name="status45"]').forEach(el => el.disabled = true);
+            } else {
+                form.querySelectorAll('select[name$="_45"]').forEach(el => el.disabled = false);
+                form.querySelectorAll('input[name="status45"]').forEach(el => el.disabled = false);
+            }
+
+            const allow90 = !!data.answers45 && !data.answers90;
+            form.querySelectorAll('select[name$="_90"]').forEach(el => el.disabled = !allow90);
+            form.querySelectorAll('input[name="status90"]').forEach(el => el.disabled = !allow90);
+
+            if (data.answers90) {
+                Object.keys(data.answers90).forEach(key => {
+                    const el = form.querySelector(`select[name="${key}"]`);
+                    if (el) { el.value = data.answers90[key]; el.disabled = true; }
+                });
+                form.querySelectorAll('input[name="status90"]').forEach(el => el.disabled = true);
+            }
+
+            if (data.answers6m) {
+                Object.keys(data.answers6m).forEach(key => {
+                    const el = form.querySelector(`select[name="${key}"]`);
+                    if (el) { el.value = data.answers6m[key]; el.disabled = true; }
+                });
+                form.querySelectorAll('input[name="status6months"]').forEach(el => el.disabled = true);
+            }
+
+            if (status45Box) {
+                status45Box.style.display = etapa === '6m' ? 'none' : 'block';
+                status45Box.classList.toggle('active', etapa === '45');
+                status45Box.style.opacity = etapa === '45' ? '1' : '0.7';
+                status45Box.style.pointerEvents = etapa === '45' ? 'auto' : 'none';
+            }
+            if (status90Box) {
+                status90Box.style.display = etapa === '6m' ? 'none' : 'block';
+                status90Box.classList.toggle('active', etapa === '90');
+                status90Box.style.opacity = etapa === '90' ? '1' : '0.7';
+                status90Box.style.pointerEvents = etapa === '90' ? 'auto' : 'none';
+                status90Box.style.background = etapa === '90' ? 'var(--card-bg)' : 'var(--bg-color)';
+            }
+            if (status6mBox) {
+                status6mBox.style.display = etapa === '6m' ? 'block' : 'none';
+                status6mBox.classList.toggle('active', etapa === '6m');
+            }
+            if (statusGrid) statusGrid.style.gridTemplateColumns = etapa === '6m' ? '1fr' : '';
+            if (th45) th45.style.display = etapa === '6m' ? 'none' : 'table-cell';
+            if (th90) th90.style.display = etapa === '6m' ? 'none' : 'table-cell';
+            if (th6m) th6m.style.display = etapa === '6m' ? 'table-cell' : 'none';
+            if (thCrit) thCrit.style.width = etapa === '6m' ? '70%' : '50%';
+
+            if (sigSection) sigSection.style.display = 'block';
+            if (submitBtn) {
+                submitBtn.style.display = etapa === 'finalizada' ? 'none' : '';
+                if (etapa === '45') submitBtn.innerHTML = '<span>💾 Salvar Avaliação (45 Dias)</span>';
+                if (etapa === '90') submitBtn.innerHTML = '<span>💾 Salvar Avaliação (90 Dias)</span>';
+                if (etapa === '6m') submitBtn.innerHTML = '<span>💾 Salvar Avaliação (6 Meses)</span>';
+            }
+            if (saveSignatureBtn) {
+                const hasSavedEvaluation = !!document.getElementById('formId')?.value;
+                const canSaveLater = hasSavedEvaluation && (etapa === '45' || etapa === '90');
+                saveSignatureBtn.style.display = canSaveLater ? '' : 'none';
+                if (etapa === '45') saveSignatureBtn.innerHTML = '<span>Salvar Assinaturas (45 Dias)</span>';
+                if (etapa === '90') saveSignatureBtn.innerHTML = '<span>Salvar Assinaturas (90 Dias)</span>';
+            }
+        }
+
         // Load employees
+        const firstNonEmpty = (...vals) => {
+            for (const v of vals) {
+                if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
+            }
+            return '';
+        };
+
         async function loadFuncionarios() {
             try {
                 const res = await fetch('/api/funcionarios');
                 const funcionarios = await res.json();
                 const select = document.getElementById('funcionarioSelect');
+                let suppressExistingCheckOnce = false;
 
                 funcionarios.sort((a, b) => a.nome.localeCompare(b.nome));
                 funcionarios.forEach(f => {
@@ -794,8 +934,13 @@
                         const colabNome = document.getElementById('signature-colaborador-nome');
                         if (colabNome) colabNome.value = selected.value;
 
-                        // Check for existing evaluation (código original, não alterar)
+                        // Evita loop ao abrir uma pendência/avaliação já existente na carga inicial.
                         try {
+                            const currentId = String(urlParams.get('id') || '').trim();
+                            const isLinkedPendencia = !!(urlParams.get('participanteId') || urlParams.get('cicloId'));
+                            const skipPrompt = suppressExistingCheckOnce || !!currentId;
+                            suppressExistingCheckOnce = false;
+
                             const params = new URLSearchParams({
                                 funcionario: selected.value,
                                 tipo: 'experiencia'
@@ -803,8 +948,18 @@
                             const checkRes = await fetch(`/api/avaliacao/buscar/recente?${params}`);
                             if (checkRes.ok) {
                                 const existingData = await checkRes.json();
-                                if (confirm(`Encontrada uma avaliação de experiência anterior para ${selected.value}. Deseja carregá-la?`)) {
-                                    window.location.href = `?id=${existingData.id}`;
+                                if (!existingData || !existingData.id) return;
+                                if (currentId && String(existingData.id) === currentId) return;
+
+                                const nextParams = new URLSearchParams(window.location.search || '');
+                                nextParams.set('id', existingData.id);
+
+                                if (skipPrompt) {
+                                    if (isLinkedPendencia && !currentId) {
+                                        window.location.href = `?${nextParams.toString()}`;
+                                    }
+                                } else if (confirm(`Encontrada uma avaliação de experiência anterior para ${selected.value}. Deseja carregá-la?`)) {
+                                    window.location.href = `?${nextParams.toString()}`;
                                 }
                             }
                         } catch (err) {
@@ -816,6 +971,7 @@
                 const preFuncionario = urlParams.get('funcionario');
                 if (preFuncionario) {
                     select.value = preFuncionario;
+                    suppressExistingCheckOnce = true;
                     select.dispatchEvent(new Event('change', { bubbles: true }));
                 }
             } catch (e) {
@@ -847,93 +1003,14 @@
                     if (data.treinamentos) form.treinamentos.value = data.treinamentos;
                     if (data.comentarios) form.comentarios.value = data.comentarios;
 
-                    if (data.status45) {
-                        const r = form.querySelector(`input[name="status45"][value="${data.status45}"]`);
-                        if (r) r.checked = true;
-                    }
-                    if (data.status90) {
-                        const r = form.querySelector(`input[name="status90"][value="${data.status90}"]`);
-                        if (r) r.checked = true;
-                    }
+                    const cicloId = firstNonEmpty(data.cicloId, data.ciclo_id, urlParams.get('cicloId'));
+                    const participanteId = firstNonEmpty(data.participanteId, data.participante_id, urlParams.get('participanteId'));
+                    const cicloField = document.getElementById('cicloIdField');
+                    const partField = document.getElementById('participanteIdField');
+                    if (cicloField) cicloField.value = cicloId;
+                    if (partField) partField.value = participanteId;
 
-                    // Determine stage
-                    let etapa = '45';
-                    if (data.answers45) {
-                        etapa = '90';
-                        // Lock 45
-                        Object.keys(data.answers45).forEach(key => {
-                            const el = form.querySelector(`select[name="${key}"]`);
-                            if (el) { el.value = data.answers45[key]; el.disabled = true; }
-                        });
-                        form.querySelectorAll('input[name="status45"]').forEach(el => el.disabled = true);
-                        document.getElementById('status45Box').classList.remove('active');
-                        document.getElementById('status45Box').style.opacity = '0.7';
-
-                        // Enable 90
-                        form.querySelectorAll('select[name$="_90"]').forEach(el => el.disabled = false);
-                        const box90 = document.getElementById('status90Box');
-                        box90.style.opacity = '1'; box90.style.pointerEvents = 'auto';
-                        box90.style.background = 'var(--card-bg)'; box90.classList.add('active');
-
-                        document.getElementById('submitBtn').innerHTML = '<span>💾 Salvar Avaliação (90 Dias)</span>';
-
-                        // ✅ Liberar seção de assinaturas para qualquer etapa de experiência
-                        const sigSection = document.getElementById('signatureSection');
-                        if (sigSection) sigSection.style.display = 'block';
-                    } else {
-                        // Se não tem answers45, estamos na etapa 45
-                        const sigSection = document.getElementById('signatureSection');
-                        if (sigSection) sigSection.style.display = 'block';
-                    }
-                    if (data.answers90) {
-                        etapa = '6m';
-                        // Lock 90
-                        Object.keys(data.answers90).forEach(key => {
-                            const el = form.querySelector(`select[name="${key}"]`);
-                            if (el) { el.value = data.answers90[key]; el.disabled = true; }
-                        });
-                        form.querySelectorAll('input[name="status90"]').forEach(el => el.disabled = true);
-                        document.getElementById('status90Box').classList.remove('active');
-                        document.getElementById('status90Box').style.opacity = '0.7';
-
-                        // Check if we should actually show 6m
-                        const urlParams = new URLSearchParams(window.location.search);
-                        if (urlParams.get('etapa') === '6m' || data.status6months) {
-                            // Switch UI to 6m mode
-                            document.getElementById('statusGrid').style.gridTemplateColumns = '1fr';
-                            document.getElementById('status45Box').style.display = 'none';
-                            document.getElementById('status90Box').style.display = 'none';
-                            const box6m = document.getElementById('status6mBox');
-                            box6m.style.display = 'block'; box6m.classList.add('active');
-
-                            document.getElementById('th45').style.display = 'none';
-                            document.getElementById('th90').style.display = 'none';
-                            document.getElementById('th6m').style.display = 'table-cell';
-                            document.getElementById('thCrit').style.width = '70%';
-
-                            document.getElementById('submitBtn').innerHTML = '<span>💾 Salvar Avaliação (6 Meses)</span>';
-                        } else {
-                            // If not explicitly 6m, and 90 is done, the exp process is finished for this form
-                            etapa = 'finalizada';
-                            document.getElementById('submitBtn').style.display = 'none';
-                        }
-                    }
-
-                    if (data.answers6m) {
-                        etapa = 'finalizada';
-                        // Lock 6m
-                        Object.keys(data.answers6m).forEach(key => {
-                            const el = form.querySelector(`select[name="${key}"]`);
-                            if (el) { el.value = data.answers6m[key]; el.disabled = true; }
-                        });
-                        if (form.status6months) {
-                            form.querySelectorAll('input[name="status6months"]').forEach(el => el.disabled = true);
-                        }
-                        document.getElementById('submitBtn').style.display = 'none';
-                    }
-
-                    document.getElementById('etapaAtual').value = etapa;
-                    renderTable();
+                    applyExperienceStageState(form, data);
 
                     // Carrega as assinaturas após definir a etapa
                     if (data.id) {
@@ -978,6 +1055,11 @@
                 comentarios: data.comentarios,
             };
 
+            const cicloId = firstNonEmpty(data.cicloId, urlParams.get('cicloId'));
+            const participanteId = firstNonEmpty(data.participanteId, urlParams.get('participanteId'));
+            if (cicloId) payload.cicloId = cicloId;
+            if (participanteId) payload.participanteId = participanteId;
+
             if (etapa === '45') {
                 payload.answers45 = answers45;
                 payload.status45 = data.status45;
@@ -1002,17 +1084,29 @@
                 const result = await res.json();
                 if (result.ok) {
                     const avalId = id || result.id;
-                    // Se estiver em etapa de assinatura (45 ou 90), tenta salvar assinaturas
+                    let successMessage = 'Salvo com sucesso!';
+
+                    // Se estiver em etapa de assinatura (45 ou 90), salva apenas se houver assinatura preenchida
                     if (etapa === '45' || etapa === '90') {
-                        const sigSaved = await saveSignatures(avalId, etapa);
-                        if (!sigSaved) {
-                            console.warn('Avaliação salva, mas houve erro ou assinaturas pendentes.');
+                        const signatureResult = await saveSignatures(avalId, etapa);
+                        if (!signatureResult.ok) {
+                            alert('Avaliação salva, mas houve erro ao salvar assinaturas.');
+                            return;
+                        }
+                        if (signatureResult.saved) {
+                            successMessage = 'Avaliação e assinaturas salvas com sucesso!';
+                        } else {
+                            successMessage = 'Avaliação salva com sucesso! As assinaturas podem ser registradas depois.';
                         }
                     }
 
-                    alert('Salvo com sucesso!');
+                    alert(successMessage);
                     if (!id) {
-                        window.location.href = `/form-avaliacao-experiencia.html?id=${result.id}`;
+                        const nextParams = new URLSearchParams(window.location.search || '');
+                        nextParams.set('id', result.id);
+                        if (payload.cicloId) nextParams.set('cicloId', payload.cicloId);
+                        if (payload.participanteId) nextParams.set('participanteId', payload.participanteId);
+                        window.location.href = `/form-avaliacao-experiencia.html?${nextParams.toString()}`;
                     } else {
                         location.reload();
                     }
@@ -1028,6 +1122,10 @@
         const urlParams = new URLSearchParams(window.location.search);
         const id = urlParams.get('id');
         const normRole = (v) => String(v || '').trim().toLowerCase();
+        const cicloField = document.getElementById('cicloIdField');
+        const partField = document.getElementById('participanteIdField');
+        if (cicloField) cicloField.value = firstNonEmpty(urlParams.get('cicloId'));
+        if (partField) partField.value = firstNonEmpty(urlParams.get('participanteId'));
 
         renderTable();
         loadFuncionarios();
@@ -1055,6 +1153,33 @@
             if (gestorNomeAssinatura) gestorNomeAssinatura.value = this.value;
         });
 
+        document.getElementById('saveSignatureBtn')?.addEventListener('click', async () => {
+            const avaliacaoId = document.getElementById('formId')?.value;
+            const etapa = document.getElementById('etapaAtual')?.value;
+
+            if (!avaliacaoId) {
+                alert('Salve a avaliação primeiro para registrar as assinaturas depois.');
+                return;
+            }
+
+            if (etapa !== '45' && etapa !== '90') {
+                alert('O salvamento separado de assinaturas está disponível apenas para 45 e 90 dias.');
+                return;
+            }
+
+            const signatureResult = await saveSignatures(avaliacaoId, etapa);
+            if (!signatureResult.ok) {
+                alert('Erro ao salvar assinaturas.');
+                return;
+            }
+            if (!signatureResult.saved) {
+                alert('Nenhuma assinatura foi informada para salvar.');
+                return;
+            }
+
+            alert('Assinaturas salvas com sucesso!');
+        });
+
         if (id) loadEvaluation(id);
 
         // Inicializar assinaturas
@@ -1080,15 +1205,34 @@
             }
         }
 
+        function getSignatureDefaults() {
+            return {
+                gestorNomePadrao: document.querySelector('input[name="avaliador"]')?.value?.trim() || '',
+                colaboradorNomePadrao: document.getElementById('funcionarioSelect')?.value?.trim() || ''
+            };
+        }
+
         async function saveSignatures(avaliacaoId, periodo = '90') {
-            const gestorNome = document.getElementById('signature-gestor-nome')?.value;
-            const colaboradorNome = document.getElementById('signature-colaborador-nome')?.value;
+            const { gestorNomePadrao, colaboradorNomePadrao } = getSignatureDefaults();
+            const gestorNomeInput = document.getElementById('signature-gestor-nome');
+            const colaboradorNomeInput = document.getElementById('signature-colaborador-nome');
+            const gestorNome = (gestorNomeInput?.value || gestorNomePadrao || '').trim();
+            const colaboradorNome = (colaboradorNomeInput?.value || colaboradorNomePadrao || '').trim();
 
             const gestorSignatureEmpty = gestorSignature ? gestorSignature.isEmpty() : true;
             const colaboradorSignatureEmpty = colaboradorSignature ? colaboradorSignature.isEmpty() : true;
 
             if (gestorSignatureEmpty && colaboradorSignatureEmpty) {
-                return false; // Nada para salvar
+                return { ok: true, saved: false }; // Nada para salvar agora
+            }
+
+            if (!gestorSignatureEmpty && !gestorNome) {
+                alert('Informe o nome do gestor para salvar a assinatura.');
+                return { ok: false, saved: false };
+            }
+            if (!colaboradorSignatureEmpty && !colaboradorNome) {
+                alert('Informe o nome do colaborador para salvar a assinatura.');
+                return { ok: false, saved: false };
             }
 
             const gestorData = new Date().toLocaleDateString('pt-BR');
@@ -1122,10 +1266,13 @@
                     throw new Error('Erro ao salvar assinaturas');
                 }
 
-                return true;
+                if (gestorNomeInput && gestorNome) gestorNomeInput.value = gestorNome;
+                if (colaboradorNomeInput && colaboradorNome) colaboradorNomeInput.value = colaboradorNome;
+
+                return { ok: true, saved: true };
             } catch (error) {
                 console.error('Erro ao salvar assinaturas:', error);
-                return false;
+                return { ok: false, saved: false };
             }
         }
 

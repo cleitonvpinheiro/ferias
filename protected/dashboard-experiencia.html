@@ -315,6 +315,41 @@
             return `<span class="${info.className}">${info.label}</span>`;
         }
 
+        function signatureBadge(stageItem, signaturesByPeriod, periodo) {
+            const periodKey = String(periodo);
+            const assinatura = signaturesByPeriod?.get(periodKey) || null;
+            const hasGestor = !!assinatura?.gestor;
+            const hasColaborador = !!assinatura?.colaborador;
+            const hasAny = hasGestor || hasColaborador;
+            const periodFilled = stageItem?.status === 'concluido';
+
+            if (!periodFilled) {
+                return {
+                    html: '<span style="color:#999">-</span>',
+                    emailLabel: 'Nao iniciado'
+                };
+            }
+
+            if (hasGestor && hasColaborador) {
+                return {
+                    html: '<span class="status-badge status-approved">OK</span>',
+                    emailLabel: 'OK'
+                };
+            }
+
+            if (hasAny) {
+                return {
+                    html: '<span class="status-badge status-pending">Parcial</span>',
+                    emailLabel: 'Parcial'
+                };
+            }
+
+            return {
+                html: '<span class="status-badge status-pending">Pendente</span>',
+                emailLabel: 'Pendente'
+            };
+        }
+
         function populateSelect(id, values) {
             const sel = document.getElementById(id);
             if (!sel || sel.options.length > 1) return;
@@ -335,15 +370,17 @@
                 if (card45Over) card45Over.style.display = isRH ? '' : 'none';
                 if (card90Over) card90Over.style.display = isRH ? '' : 'none';
 
-                const [resPendencias, resFunc, resAssinaturas] = await Promise.all([
+                const [resPendencias, resFunc, resAssinaturas, resAvaliacoes] = await Promise.all([
                     fetch('/api/avaliacao/pendencias?contexto=experiencia'),
                     fetch('/api/funcionarios'),
-                    fetch('/api/avaliacoes/assinaturas')
+                    fetch('/api/avaliacoes/assinaturas'),
+                    fetch('/api/avaliacoes?tipo=experiencia')
                 ]);
 
                 const pendencias = await resPendencias.json().catch(() => []);
                 const allFuncionarios = await resFunc.json().catch(() => []);
                 const todasAssinaturas = await resAssinaturas.json().catch(() => ({}));
+                const avaliacoesExperiencia = await resAvaliacoes.json().catch(() => []);
 
                 console.log('PRIMEIRA PENDENCIA:', JSON.stringify(pendencias[0], null, 2));
 
@@ -359,6 +396,46 @@
 
                 // ── Mapa de funcionários ──────────────────────────────────────────
                 const funcById = new Map(allFuncionarios.map(f => [String(f.id), f]));
+                const norm = (v) => String(v || '').trim().toLowerCase();
+                const funcByNome = new Map(allFuncionarios.map(f => [norm(f && f.nome), f]));
+
+                const createStageFromEval = ({ item, evalItem, stage }) => {
+                    if (!evalItem || !item) return null;
+                    const is45 = stage === '45';
+                    const is90 = stage === '90';
+                    const is6m = stage === '6m';
+                    const hasStageData = is45
+                        ? !!(evalItem.answers45 || evalItem.status45)
+                        : is90
+                            ? !!(evalItem.answers90 || evalItem.status90)
+                            : !!(evalItem.answers6m || evalItem.status6months);
+                    if (!hasStageData) return null;
+
+                    return {
+                        id: `exp-${stage}-${evalItem.id}`,
+                        cicloId: null,
+                        cicloTitulo: is45
+                            ? `Experiência 45 dias — ${item.avaliadoNome || ''}`
+                            : is90
+                                ? `Experiência 90 dias — ${item.avaliadoNome || ''}`
+                                : `Experiência 6 meses — ${item.avaliadoNome || ''}`,
+                        cicloDataInicio: null,
+                        cicloDataFim: null,
+                        diasParaFim: null,
+                        tipoFormulario: 'experiencia',
+                        avaliadoId: item.avaliadoId,
+                        avaliadoNome: item.avaliadoNome,
+                        avaliadoSetor: item.avaliadoSetor,
+                        avaliadoCargo: item.avaliadoCargo,
+                        avaliadorNome: evalItem.avaliador || '',
+                        avaliadorUsername: evalItem.avaliador || '',
+                        relacao: 'gestor',
+                        peso: 1,
+                        status: 'concluido',
+                        avaliacaoId: evalItem.id,
+                        link: `/form-avaliacao-experiencia.html?id=${encodeURIComponent(evalItem.id)}`
+                    };
+                };
 
                 // ── Agrupa pendências por avaliado ────────────────────────────────
                 const byAvaliado = new Map();
@@ -384,6 +461,35 @@
                     if (titulo.includes('45')) item.p45 = p;
                     else if (titulo.includes('90')) item.p90 = p;
                     else if (titulo.includes('1º desempenho') || titulo.includes('1o desempenho')) item.p1des = p;
+                });
+
+                (Array.isArray(avaliacoesExperiencia) ? avaliacoesExperiencia : []).forEach(evalItem => {
+                    if (!evalItem || norm(evalItem.tipo) !== 'experiencia') return;
+                    const nomeKey = norm(evalItem.funcionario);
+                    if (!nomeKey) return;
+
+                    let item = Array.from(byAvaliado.values()).find(v => norm(v && v.avaliadoNome) === nomeKey) || null;
+                    if (!item) {
+                        const func = funcByNome.get(nomeKey) || null;
+                        const key = String(func && func.id || nomeKey).trim();
+                        item = {
+                            avaliadoId: key,
+                            avaliadoNome: evalItem.funcionario || (func && func.nome) || '',
+                            avaliadoSetor: evalItem.setor || (func && func.setor) || '',
+                            avaliadoCargo: evalItem.cargo || (func && func.cargo) || '',
+                            p45: null,
+                            p90: null,
+                            p1des: null
+                        };
+                        byAvaliado.set(key, item);
+                    }
+
+                    if (!item.p45 && (evalItem.answers45 || evalItem.status45)) {
+                        item.p45 = createStageFromEval({ item, evalItem, stage: '45' });
+                    }
+                    if (!item.p90 && (evalItem.answers90 || evalItem.status90)) {
+                        item.p90 = createStageFromEval({ item, evalItem, stage: '90' });
+                    }
                 });
 
                 // ── Leitura dos filtros ativos ────────────────────────────────────
@@ -463,7 +569,13 @@
 
                     // ── Valores para filtros ──────────────────────────────────────
                     const setorVal = (func && func.setor) ? String(func.setor).trim() : (item.avaliadoSetor || '');
-                    const avaliadorVal = (item.p45 || item.p90 || item.p1des)?.avaliadorNome || '';
+                    const avaliadorVal = item.p90?.status === 'concluido'
+                        ? (item.p90?.avaliadorNome || '')
+                        : item.p45?.status === 'concluido'
+                            ? (item.p45?.avaliadorNome || '')
+                            : item.p1des?.status === 'concluido'
+                                ? (item.p1des?.avaliadorNome || '')
+                                : '';
 
                     if (setorVal) setores.add(setorVal);
                     if (avaliadorVal) avaliadores.add(avaliadorVal);
@@ -488,8 +600,8 @@
                     const sigs45 = item.p45?.avaliacaoId ? assinaturasMap.get(item.p45.avaliacaoId) : null;
                     const sigs90 = item.p90?.avaliacaoId ? assinaturasMap.get(item.p90.avaliacaoId) : null;
 
-                    const temAssinatura45 = !!(sigs45?.get('45')?.gestor && sigs45?.get('45')?.colaborador);
-                    const temAssinatura90 = !!(sigs90?.get('90')?.gestor && sigs90?.get('90')?.colaborador);
+                    const assinatura45 = signatureBadge(item.p45, sigs45, '45');
+                    const assinatura90 = signatureBadge(item.p90, sigs90, '90');
 
                     // ── Prazos ────────────────────────────────────────────────────
                     const info45 = getPrazoInfo(item.p45);
@@ -518,8 +630,8 @@
                         `(${item.avaliadoCargo || '-'} / ${setorVal || '-'}).\n\n` +
                         `Situação:\n${partesAlerta.join(' | ') || 'Sem alerta registrado.'}\n\n` +
                         `Estabilidade: ${estabilidadeLabel}\n\n` +
-                        `Assinatura 45 dias: ${temAssinatura45 ? 'OK' : 'Pendente'}\n` +
-                        `Assinatura 90 dias: ${temAssinatura90 ? 'OK' : 'Pendente'}\n\n` +
+                        `Assinatura 45 dias: ${assinatura45.emailLabel}\n` +
+                        `Assinatura 90 dias: ${assinatura90.emailLabel}\n\n` +
                         `Este e-mail foi gerado a partir do painel de experiência.\n`
                     );
 
@@ -538,8 +650,8 @@
                     <td>${infoBadge(info45)}</td>
                     <td>${infoBadge(info90)}</td>
                     <td>${estabilidadeLabel}</td>
-                    <td><span class="status-badge ${temAssinatura45 ? 'status-approved' : 'status-pending'}">${temAssinatura45 ? '✅' : '⚠️'}</span></td>
-                    <td><span class="status-badge ${temAssinatura90 ? 'status-approved' : 'status-pending'}">${temAssinatura90 ? '✅' : '⚠️'}</span></td>
+                    <td>${assinatura45.html}</td>
+                    <td>${assinatura90.html}</td>
                     <td>
                         <a href="${link}" class="btn-action">✏️ Abrir/Editar</a>
                         <a href="mailto:?subject=${assuntoEmail}&body=${corpoEmail}" class="btn-action">✉️ E-mail</a>

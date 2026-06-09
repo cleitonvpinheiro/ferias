@@ -411,6 +411,7 @@ CREATE TABLE IF NOT EXISTS users (
     name TEXT,
     email TEXT,
     blocked_paths TEXT, -- JSON Array of paths to block
+    ativo INTEGER DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

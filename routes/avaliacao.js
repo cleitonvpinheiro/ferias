@@ -701,8 +701,11 @@ module.exports = (_db, auth) => {
             ? (() => { const d = new Date(ciclo.data_fim); d.setHours(23, 59, 59, 999); return d; })()
             : null;
 
-        // ✅ Bloqueia ciclos que ainda não começaram
-        if (dataInicioCiclo && hojeMs < dataInicioCiclo.getTime()) return null;
+        const contexto = norm(req && req.query && req.query.contexto);
+        const isExperienciaCtx = contexto === 'experiencia' && norm(ciclo && ciclo.tipo_formulario) === 'experiencia';
+
+        // Em experiência, o próximo estágio pode ficar visível mesmo antes do início.
+        if (!isExperienciaCtx && dataInicioCiclo && hojeMs < dataInicioCiclo.getTime()) return null;
 
         // ✅ Bloqueia ciclos encerrados (sem folga extra de 1 dia)
         if (dataFimCiclo && hojeMs > dataFimCiclo.getTime()) return null;
@@ -749,11 +752,62 @@ module.exports = (_db, auth) => {
             avaliadoNome: p.avaliado_nome,
             avaliadoSetor: p.avaliado_setor,
             avaliadoCargo: p.avaliado_cargo,
+            avaliadorUsername: p.avaliador_username || null,
+            avaliadorNome: p.avaliador_nome || p.avaliador_username || null,
             relacao: p.relacao,
             peso: p.peso,
             status: p.status,
+            avaliacaoId: p.avaliacao_id || null,
             link: `${form.base}?${params.toString()}`
         };
+    }
+
+    async function completeExperienceStageParticipants({ avaliacaoId, participanteId, payload, ciclo } = {}) {
+        const participanteIdNorm = String(participanteId || '').trim();
+        const tipo = norm(payload && payload.tipo);
+        if (tipo !== 'experiencia' || !avaliacaoId) return;
+
+        let etapa = '';
+        if (payload && (payload.answers45 || payload.status45)) etapa = '45';
+        else if (payload && (payload.answers90 || payload.status90)) etapa = '90';
+        else if (payload && (payload.answers6m || payload.status6months)) etapa = '6m';
+        else {
+            const titulo = norm(ciclo && ciclo.titulo);
+            if (titulo.includes('45')) etapa = '45';
+            else if (titulo.includes('90')) etapa = '90';
+            else if (titulo.includes('6m') || titulo.includes('6 meses')) etapa = '6m';
+        }
+        if (!etapa) return;
+
+        let part = null;
+        if (participanteIdNorm) {
+            part = await db.avaliacaoParticipantes.getById(participanteIdNorm);
+        }
+
+        let participantes = [];
+        if (part && part.avaliado_id) {
+            participantes = await db.avaliacaoParticipantes.getByFuncionario(part.avaliado_id);
+        } else {
+            const funcionarioNome = norm(payload && payload.funcionario);
+            if (!funcionarioNome) return;
+            participantes = await db.sql.all(
+                'SELECT * FROM avaliacao_participantes WHERE LOWER(avaliado_nome) = LOWER(?)',
+                [payload.funcionario]
+            );
+        }
+
+        const candidatos = Array.isArray(participantes) ? participantes : [];
+        for (const cand of candidatos) {
+            if (!cand || !cand.ciclo_id) continue;
+            const cicloCand = await db.avaliacaoCiclos.getById(cand.ciclo_id);
+            const tituloCand = norm(cicloCand && cicloCand.titulo);
+            if (norm(cicloCand && cicloCand.tipo_formulario) !== 'experiencia') continue;
+            if (etapa === '45' && !tituloCand.includes('45')) continue;
+            if (etapa === '90' && !tituloCand.includes('90')) continue;
+            if (etapa === '6m' && !(tituloCand.includes('6m') || tituloCand.includes('6 meses'))) continue;
+            if (norm(cand.status) === 'concluido' && String(cand.avaliacao_id || '').trim()) continue;
+            await db.avaliacaoParticipantes.complete({ id: cand.id, avaliacaoId });
+        }
     }
 
     // ─── Rotas ────────────────────────────────────────────────────────────────────
@@ -1552,7 +1606,14 @@ module.exports = (_db, auth) => {
             console.log('novaAvaliacao keys:', JSON.stringify(Object.fromEntries(Object.entries(novaAvaliacao).map(([k, v]) => [k, v === undefined ? 'UNDEFINED' : typeof v]))));
             await db.avaliacoes.create(novaAvaliacao);
 
-            if (participanteId) {
+            if (norm(payload.tipo) === 'experiencia') {
+                await completeExperienceStageParticipants({
+                    avaliacaoId: novaAvaliacao.id,
+                    participanteId,
+                    payload,
+                    ciclo
+                });
+            } else if (participanteId) {
                 const part = await db.avaliacaoParticipantes.getById(participanteId);
                 if (part && (await canAccessParticipanteByScope(req, part)))
                     await db.avaliacaoParticipantes.complete({ id: participanteId, avaliacaoId: novaAvaliacao.id });
@@ -1617,6 +1678,37 @@ module.exports = (_db, auth) => {
 
             const updated = { ...existing, ...req.body, updatedAt: new Date().toISOString() };
             await db.avaliacoes.update(id, updated);
+
+            const participanteId = String(
+                req.body && (req.body.participanteId || req.body.participante_id)
+                    || existing.participanteId
+                    || existing.participante_id
+                    || ''
+            ).trim();
+
+            if (norm(updated.tipo) === 'experiencia') {
+                const ciclo = participanteId && (await db.avaliacaoParticipantes.getById(participanteId))
+                    ? await db.avaliacaoCiclos.getById((await db.avaliacaoParticipantes.getById(participanteId)).ciclo_id)
+                    : null;
+                await completeExperienceStageParticipants({
+                    avaliacaoId: id,
+                    participanteId,
+                    payload: updated,
+                    ciclo
+                });
+            } else if (participanteId) {
+                const part = await db.avaliacaoParticipantes.getById(participanteId);
+                if (!part) return res.status(400).json({ ok: false, erro: 'Pendência inválida' });
+                if (!(await canAccessParticipanteByScope(req, part)))
+                    return res.status(403).json({ ok: false, erro: 'Acesso proibido' });
+
+                const ciclo = part && part.ciclo_id ? await db.avaliacaoCiclos.getById(part.ciclo_id) : null;
+                if (ciclo && norm(ciclo.status) !== 'ativo')
+                    return res.status(400).json({ ok: false, erro: 'Ciclo encerrado' });
+
+                await db.avaliacaoParticipantes.complete({ id: participanteId, avaliacaoId: id });
+            }
+
             res.json({ ok: true, id, message: 'Avaliação atualizada com sucesso!' });
         } catch (e) {
             console.error(e);

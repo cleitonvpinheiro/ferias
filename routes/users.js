@@ -54,7 +54,7 @@ router.get('/users', userManageAuth, async (req, res) => {
 // POST /users - Create new user
 router.post('/users', [userManageAuth, auditLog('CREATE', 'user')], async (req, res) => {
     try {
-        const { username, password, role, name, email, blocked_paths } = req.body;
+        const { username, password, role, name, email, blocked_paths, ativo } = req.body;
         
         if (!username || !password || !role) {
             return res.status(400).json({ ok: false, erro: 'Campos obrigatórios ausentes' });
@@ -83,7 +83,8 @@ router.post('/users', [userManageAuth, auditLog('CREATE', 'user')], async (req, 
             role,
             name: name || username,
             email: email || null,
-            blocked_paths: blocked_paths || null
+            blocked_paths: blocked_paths || null,
+            ativo: Object.prototype.hasOwnProperty.call(req.body || {}, 'ativo') ? !!ativo : true
         });
 
         res.json({ ok: true });
@@ -97,7 +98,7 @@ router.post('/users', [userManageAuth, auditLog('CREATE', 'user')], async (req, 
 router.put('/users/:username', [userManageAuth, auditLog('UPDATE', 'user')], async (req, res) => {
     try {
         const { username } = req.params;
-        const { password, role, name, email, blocked_paths } = req.body;
+        const { password, role, name, email, blocked_paths, ativo } = req.body;
         
         if (username === 'admin' && role && role !== 'admin') {
             return res.status(403).json({ ok: false, erro: 'Não é possível alterar o perfil do admin principal' });
@@ -124,6 +125,7 @@ router.put('/users/:username', [userManageAuth, auditLog('UPDATE', 'user')], asy
         if (name) updates.name = name;
         if (Object.prototype.hasOwnProperty.call(req.body || {}, 'email')) updates.email = email;
         if (Object.prototype.hasOwnProperty.call(req.body || {}, 'blocked_paths')) updates.blocked_paths = blocked_paths;
+        if (Object.prototype.hasOwnProperty.call(req.body || {}, 'ativo')) updates.ativo = !!ativo;
         
         await db.users.update(username, updates);
         
@@ -131,6 +133,27 @@ router.put('/users/:username', [userManageAuth, auditLog('UPDATE', 'user')], asy
     } catch (e) {
         console.error('Erro ao atualizar usuário:', e);
         res.status(500).json({ ok: false, erro: 'Erro ao atualizar usuário' });
+    }
+});
+
+router.put('/users/:username/ativo', [userManageAuth, auditLog('UPDATE', 'user_status')], async (req, res) => {
+    try {
+        const { username } = req.params;
+        const ativo = !!(req.body && req.body.ativo);
+        if (String(username).trim().toLowerCase() === 'admin' && !ativo) {
+            return res.status(403).json({ ok: false, erro: 'Não é possível inativar o admin principal' });
+        }
+
+        const existing = await db.users.getByUsername(username);
+        if (!existing) {
+            return res.status(404).json({ ok: false, erro: 'Usuário não encontrado' });
+        }
+
+        await db.users.setAtivo(username, ativo);
+        return res.json({ ok: true, username, ativo });
+    } catch (e) {
+        console.error('Erro ao atualizar status do usuário:', e);
+        return res.status(500).json({ ok: false, erro: 'Erro ao atualizar status do usuário' });
     }
 });
 
@@ -205,16 +228,28 @@ router.post('/users/import-ldap', userManageAuth, async (req, res) => {
         let updatedCount = 0;
         const errors = [];
 
-        for (const u of users) {
-            const username = String(u.uid || u.sAMAccountName || u.cn || '').trim().toLowerCase();
+        const randomPassword = crypto.randomBytes(32).toString('hex');
+        const passwordHash = await bcrypt.hash(randomPassword, 10);
+
+        const safeUsers = Array.isArray(users) ? users : [];
+        const firstVal = (v) => Array.isArray(v) ? v[0] : v;
+        for (const u of safeUsers) {
+            if (!u || typeof u !== 'object') continue;
+            const rawUser =
+                firstVal(u.sAMAccountName) ||
+                firstVal(u.samaccountname) ||
+                firstVal(u.userPrincipalName) ||
+                firstVal(u.userprincipalname) ||
+                firstVal(u.uid) ||
+                firstVal(u.cn) ||
+                '';
+            const username = String(rawUser || '').trim().toLowerCase().split('@')[0];
             if (!username) continue;
 
             try {
                 const exists = await db.users.getByUsername(username);
-                const ldapName = u.displayName || u.cn || username;
-                const ldapEmail = u.mail || u.email || null;
-                const randomPassword = crypto.randomBytes(32).toString('hex');
-                const passwordHash = await bcrypt.hash(randomPassword, 10);
+                const ldapName = firstVal(u.displayName) || firstVal(u.displayname) || firstVal(u.cn) || username;
+                const ldapEmail = firstVal(u.mail) || firstVal(u.email) || null;
 
                 if (!exists) {
                     await db.users.create({
@@ -248,7 +283,7 @@ router.post('/users/import-ldap', userManageAuth, async (req, res) => {
             totalFound: Array.isArray(users) ? users.length : -1
         });
         // #endregion
-        res.json({ ok: true, imported: importedCount, updated: updatedCount, totalFound: users.length, errors });
+        res.json({ ok: true, imported: importedCount, updated: updatedCount, totalFound: safeUsers.length, errors });
     } catch (e) {
         // #region debug-point D:import-error
         __dbgUsers('D', 'import route error', {

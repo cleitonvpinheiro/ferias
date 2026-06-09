@@ -163,6 +163,14 @@ module.exports = (db) => {
                     ? String(decoded.username).trim().toLowerCase() : '';
                 if (username) {
                     const dbUser = await db.users.getByUsername(username);
+                    if (dbUser && Number(dbUser.ativo) === 0) {
+                        res.clearCookie('token');
+                        res.clearCookie('refreshToken');
+                        res.clearCookie('sessionId');
+                        if (isApiRequest) return res.status(403).json({ ok: false, erro: 'Usuário inativo' });
+                        if (req.accepts('html')) return res.redirect('/login.html?error=forbidden');
+                        return res.status(403).json({ ok: false, erro: 'Usuário inativo' });
+                    }
                     if (dbUser && typeof dbUser.role === 'string' && dbUser.role.trim())
                         decoded.role = dbUser.role.trim().toLowerCase();
                     if (dbUser && typeof dbUser.email === 'string' && dbUser.email.trim())

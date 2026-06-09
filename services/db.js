@@ -118,6 +118,35 @@ const ensureGestorSetoresSchema = async () => {
     }
 };
 
+const ensureUsersSchema = async () => {
+    await run(`
+        CREATE TABLE IF NOT EXISTS users (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            username VARCHAR(255) NOT NULL UNIQUE,
+            password TEXT NOT NULL,
+            role VARCHAR(100) NOT NULL,
+            name VARCHAR(255),
+            email TEXT,
+            blocked_paths LONGTEXT,
+            ativo TINYINT(1) NOT NULL DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    const ativoCol = await get(`
+        SELECT COLUMN_NAME
+        FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'users'
+          AND column_name = 'ativo'
+        LIMIT 1
+    `);
+
+    if (!ativoCol) {
+        await run('ALTER TABLE users ADD COLUMN ativo TINYINT(1) NOT NULL DEFAULT 1');
+    }
+};
+
 const { encrypt, decrypt } = require('../utils/crypto');
 
 /** Converte Date ou string ISO para formato MySQL datetime: 'YYYY-MM-DD HH:MM:SS' */
@@ -593,8 +622,8 @@ const usersRepo = {
     create: async (data) => {
         const blockedVal = Array.isArray(data.blocked_paths) ? JSON.stringify(data.blocked_paths) : data.blocked_paths;
         const result = await run(
-            `INSERT IGNORE INTO users (username, password, role, email, name, blocked_paths, created_at)
-             VALUES (?,?,?,?,?,?,?)`,
+            `INSERT IGNORE INTO users (username, password, role, email, name, blocked_paths, ativo, created_at)
+             VALUES (?,?,?,?,?,?,?,?)`,
             [
                 data.username,
                 data.password || data.password_hash,
@@ -602,6 +631,7 @@ const usersRepo = {
                 encrypt(data.email) || null,
                 data.name || null,
                 blockedVal || null,
+                Object.prototype.hasOwnProperty.call(data, 'ativo') ? (data.ativo ? 1 : 0) : 1,
                 toMySQLDatetime(data.created_at || new Date())
             ]
         );
@@ -616,6 +646,7 @@ const usersRepo = {
         if (Object.prototype.hasOwnProperty.call(data, 'email')) { fields.push('email = ?'); params.push(encrypt(data.email) || null); }
         if (data.name) { fields.push('name = ?'); params.push(data.name); }
         if (data.password || data.password_hash) { fields.push('password = ?'); params.push(data.password || data.password_hash); }
+        if (Object.prototype.hasOwnProperty.call(data, 'ativo')) { fields.push('ativo = ?'); params.push(data.ativo ? 1 : 0); }
         if (Object.prototype.hasOwnProperty.call(data, 'blocked_paths')) {
             const val = Array.isArray(data.blocked_paths) ? JSON.stringify(data.blocked_paths) : data.blocked_paths;
             fields.push('blocked_paths = ?');
@@ -635,6 +666,11 @@ const usersRepo = {
 
     delete: async (username) => {
         const result = await run('DELETE FROM users WHERE username = ?', [username]);
+        return result.affectedRows > 0;
+    },
+
+    setAtivo: async (username, ativo) => {
+        const result = await run('UPDATE users SET ativo = ? WHERE LOWER(username) = LOWER(?)', [ativo ? 1 : 0, username]);
         return result.affectedRows > 0;
     },
 };
@@ -678,10 +714,43 @@ const rolePermissionsRepo = {
 };
 
 // ── avaliacoes ────────────────────────────────────────────────────────────────
+const normalizeAvaliacaoRow = (row) => {
+    if (!row) return null;
+    let dados = {};
+    if (row.dados) {
+        try {
+            dados = typeof row.dados === 'string' ? JSON.parse(row.dados) : row.dados;
+        } catch (_) {
+            dados = {};
+        }
+    }
+
+    return {
+        ...dados,
+        ...row,
+        id: row.id || dados.id || null,
+        tipo: row.tipo || dados.tipo || null,
+        funcionario: row.funcionario || dados.funcionario || dados.avaliado_nome || null,
+        avaliador: row.avaliador || dados.avaliador || null,
+        dados,
+        createdAt: row.created_at || dados.createdAt || dados.created_at || null,
+        created_at: row.created_at || dados.created_at || null
+    };
+};
+
 const avaliacoesRepo = {
-    getAll: async () => await all('SELECT * FROM avaliacoes'),
-    getById: async (id) => await get('SELECT * FROM avaliacoes WHERE id = ?', [id]),
-    getAllPendentes: async () => await all("SELECT * FROM avaliacoes WHERE status = 'pendente'"),
+    getAll: async () => {
+        const rows = await all('SELECT * FROM avaliacoes');
+        return rows.map(normalizeAvaliacaoRow);
+    },
+    getById: async (id) => {
+        const row = await get('SELECT * FROM avaliacoes WHERE id = ?', [id]);
+        return normalizeAvaliacaoRow(row);
+    },
+    getAllPendentes: async () => {
+        const rows = await all('SELECT * FROM avaliacoes');
+        return rows.map(normalizeAvaliacaoRow).filter(r => String(r && r.status || '').trim().toLowerCase() === 'pendente');
+    },
     create: async (data) => {
         const dados = JSON.stringify(Object.fromEntries(Object.entries(data).map(([k, v]) => [k, v === undefined ? null : v])));
         const r = await run(
@@ -690,7 +759,20 @@ const avaliacoesRepo = {
         );
         return { ...data, created: r.affectedRows > 0 };
     },
-    update: async (id, data) => { await run(`UPDATE avaliacoes SET status=?, respostas=?, updated_at=NOW() WHERE id=?`, [data.status, JSON.stringify(data.respostas || null), id]); return data; },
+    update: async (id, data) => {
+        const dados = JSON.stringify(Object.fromEntries(Object.entries(data || {}).map(([k, v]) => [k, v === undefined ? null : v])));
+        await run(
+            'UPDATE avaliacoes SET tipo=?, funcionario=?, avaliador=?, dados=? WHERE id=?',
+            [
+                data.tipo || null,
+                data.funcionario || data.avaliado_nome || null,
+                data.avaliador || null,
+                dados,
+                id
+            ]
+        );
+        return data;
+    },
     delete: async (id) => { const r = await run('DELETE FROM avaliacoes WHERE id=?', [id]); return r.affectedRows > 0; },
 };
 
@@ -1378,6 +1460,7 @@ const avaliacaoAssinaturasRepo = {
 async function init() {
     await ping();
     await ensureGestorSetoresSchema();
+    await ensureUsersSchema();
     console.log('✅ MySQL: conexão validada.');
 
     return {

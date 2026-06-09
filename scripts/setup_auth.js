@@ -25,6 +25,7 @@ const setupAuth = async () => {
             name TEXT,
             email TEXT,
             blocked_paths TEXT,
+            ativo INTEGER DEFAULT 1,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     `);

@@ -510,6 +510,7 @@
                         <th data-translate="rh_dash_th_nome">Nome</th>
                         <th>E-mail</th>
                         <th data-translate="rh_dash_usuarios_th_role">Perfil</th>
+                        <th>Status</th>
                         <th data-translate="rh_dash_usuarios_th_created">Criado em</th>
                         <th data-translate="rh_dash_th_acao">Ações</th>
                     </tr>
@@ -1074,7 +1075,7 @@
         tbody.innerHTML = '';
         
         if (!Array.isArray(users)) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhum usuário encontrado</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Nenhum usuário encontrado</td></tr>';
             return;
         }
         
@@ -1082,6 +1083,7 @@
             const tr = document.createElement('tr');
             const roleName = ROLES_MAP[u.role] || u.role;
             const date = new Date(u.created_at).toLocaleDateString('pt-BR');
+            const ativo = !(Number(u.ativo) === 0 || String(u.ativo) === '0' || u.ativo === false);
 
             const tdUser = document.createElement('td');
             const strong = document.createElement('strong');
@@ -1100,6 +1102,12 @@
             badge.textContent = roleName || '';
             tdRole.appendChild(badge);
 
+            const tdStatus = document.createElement('td');
+            const badgeStatus = document.createElement('span');
+            badgeStatus.className = ativo ? 'badge badge-success' : 'badge badge-warning';
+            badgeStatus.textContent = ativo ? 'Ativo' : 'Inativo';
+            tdStatus.appendChild(badgeStatus);
+
             const tdDate = document.createElement('td');
             tdDate.textContent = date;
 
@@ -1110,6 +1118,22 @@
             btnEdit.textContent = '✏️';
             btnEdit.addEventListener('click', () => editUser(u.username, u.role, u.name, u.email, u.blocked_paths));
             tdActions.appendChild(btnEdit);
+
+            if (u.username !== 'admin') {
+                const btnToggle = document.createElement('button');
+                btnToggle.type = 'button';
+                btnToggle.className = 'btn btn-sm btn-outline';
+                btnToggle.textContent = ativo ? 'Inativar' : 'Ativar';
+                if (!ativo) {
+                    btnToggle.style.color = 'var(--success)';
+                    btnToggle.style.borderColor = 'var(--success)';
+                } else {
+                    btnToggle.style.color = 'var(--warning)';
+                    btnToggle.style.borderColor = 'var(--warning)';
+                }
+                btnToggle.addEventListener('click', () => toggleUserStatus(u.username, !ativo));
+                tdActions.appendChild(btnToggle);
+            }
 
             if (u.username !== 'admin') {
                 const btnDel = document.createElement('button');
@@ -1126,10 +1150,36 @@
             tr.appendChild(tdName);
             tr.appendChild(tdEmail);
             tr.appendChild(tdRole);
+            tr.appendChild(tdStatus);
             tr.appendChild(tdDate);
             tr.appendChild(tdActions);
             tbody.appendChild(tr);
         });
+    }
+
+    async function toggleUserStatus(username, ativo) {
+        const action = ativo ? 'ativar' : 'inativar';
+        if (!confirm(`Deseja ${action} o usuário ${username}?`)) return;
+
+        try {
+            const res = await fetch(`/api/users/${encodeURIComponent(username)}/ativo`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ ativo: !!ativo })
+            });
+            const data = await res.json();
+            if (!res.ok || !data.ok) {
+                alert('Erro: ' + ((data && data.erro) || `Falha ao ${action} usuário`));
+                return;
+            }
+            loadUsers(__currentPage, __currentSearch);
+        } catch (e) {
+            console.error(e);
+            alert(`Erro ao ${action} usuário`);
+        }
     }
 
     function showCreateForm() {
@@ -1362,21 +1412,45 @@
         btn.disabled = true;
 
         try {
-            const res = await fetch('/api/users/import-ldap', { 
+            const controller = new AbortController();
+            const timeoutMs = 120_000;
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+            let res;
+            try {
+                res = await fetch('/api/users/import-ldap', { 
                 method: 'POST',
-                headers: { 'Accept': 'application/json' }
-            });
-            const data = await res.json();
+                    headers: { 'Accept': 'application/json' },
+                    cache: 'no-store',
+                    credentials: 'same-origin',
+                    signal: controller.signal
+                });
+            } finally {
+                clearTimeout(timeoutId);
+            }
+
+            const raw = await res.text();
+            let data;
+            try {
+                data = raw ? JSON.parse(raw) : {};
+            } catch (_) {
+                const snippet = raw ? raw.slice(0, 500) : '';
+                throw new Error(`Resposta inválida do servidor (HTTP ${res.status}). ${snippet}`);
+            }
             
             if (data.ok) {
                 alert(`Importação concluída!\n\nNovos usuários: ${data.imported}\nUsuários atualizados: ${data.updated || 0}\nTotal encontrados: ${data.totalFound}`);
                 loadUsers();
             } else {
-                alert('Erro na importação: ' + data.erro);
+                const msg = (data && (data.erro || data.error || data.message)) || `Falha (HTTP ${res.status})`;
+                alert('Erro na importação: ' + msg);
             }
         } catch (e) {
             console.error(e);
-            alert('Erro de conexão ao importar LDAP');
+            const msg = e && e.name === 'AbortError'
+                ? 'Tempo esgotado ao importar LDAP. Tente novamente ou aumente o timeout do servidor/proxy.'
+                : (e && e.message ? e.message : 'Erro de conexão ao importar LDAP');
+            alert(msg);
         } finally {
             btn.innerText = originalText;
             btn.disabled = false;

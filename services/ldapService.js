@@ -186,12 +186,28 @@ function searchUsers(query = '*') {
         if (!getEnv('LDAP_URL')) return resolve([]);
 
         const client = createClient();
+        let settled = false;
+        const settleResolve = (val) => {
+            if (settled) return;
+            settled = true;
+            resolve(val);
+        };
+        const settleReject = (err) => {
+            if (settled) return;
+            settled = true;
+            reject(err);
+        };
+        client.on('error', (err) => {
+            __dbgLdap('C', 'client error event', { message: err && err.message, code: err && err.code });
+            try { client.unbind(); } catch (_) {}
+            settleReject(err);
+        });
         const bindDN = getEnv('LDAP_ADMIN_DN');
         const bindPass = getEnv('LDAP_ADMIN_PASSWORD');
 
         if (!bindDN || !bindPass) {
             console.warn('LDAP Admin credentials not set. Cannot search users.');
-            return resolve([]);
+            return settleResolve([]);
         }
 
         client.bind(bindDN, bindPass, (err) => {
@@ -200,7 +216,7 @@ function searchUsers(query = '*') {
                 __dbgLdap('C', 'admin bind failed', { message: err && err.message, code: err && err.code });
                 // #endregion
                 client.unbind();
-                return reject(err);
+                return settleReject(err);
             }
             // #region debug-point C:bind-ok
             __dbgLdap('C', 'admin bind ok', { bindDN });
@@ -213,11 +229,11 @@ function searchUsers(query = '*') {
                 || '(&(objectCategory=person)(objectClass=user))';
             const searchFilter = matchAll
                 ? importBaseFilter
-                : `(&${importBaseFilter}(|(uid=*${qEsc}*)(cn=*${qEsc}*)(sAMAccountName=*${qEsc}*)(displayName=*${qEsc}*)(mail=*${qEsc}*)))`;
+                : `(&${importBaseFilter}(|(uid=*${qEsc}*)(cn=*${qEsc}*)(sAMAccountName=*${qEsc}*)(userPrincipalName=*${qEsc}*)(displayName=*${qEsc}*)(mail=*${qEsc}*)))`;
             const searchOptions = {
                 filter: searchFilter,
                 scope: 'sub',
-                attributes: ['uid', 'cn', 'displayName', 'mail', 'sAMAccountName']
+                attributes: ['uid', 'cn', 'displayName', 'mail', 'sAMAccountName', 'userPrincipalName']
             };
 
             const searchBase = getEnv('LDAP_SEARCH_BASE') || "dc=example,dc=com";
@@ -231,13 +247,41 @@ function searchUsers(query = '*') {
                     __dbgLdap('D', 'client.search callback error', { message: err && err.message, code: err && err.code });
                     // #endregion
                     client.unbind();
-                    return reject(err);
+                    return settleReject(err);
                 }
 
                 const users = [];
 
+                const entryToObject = (entry) => {
+                    if (!entry) return null;
+                    if (entry.object && typeof entry.object === 'object') return entry.object;
+                    const pojo = entry.pojo && typeof entry.pojo === 'object' ? entry.pojo : null;
+                    const fromAttrs = (attrs, objectName) => {
+                        if (!Array.isArray(attrs)) return null;
+                        const out = {};
+                        if (objectName) out.dn = String(objectName);
+                        for (const a of attrs) {
+                            if (!a) continue;
+                            const type = a.type != null ? String(a.type) : '';
+                            if (!type) continue;
+                            const rawVals = Array.isArray(a.values) ? a.values : (Array.isArray(a.vals) ? a.vals : (a.value != null ? [a.value] : (a.vals != null ? [a.vals] : [])));
+                            const vals = Array.isArray(rawVals) ? rawVals : [];
+                            if (vals.length === 0) continue;
+                            out[type] = vals.length === 1 ? vals[0] : vals;
+                        }
+                        return Object.keys(out).length > 0 ? out : null;
+                    };
+                    if (pojo && Array.isArray(pojo.attributes)) return fromAttrs(pojo.attributes, pojo.objectName);
+                    if (Array.isArray(entry.attributes)) return fromAttrs(entry.attributes, entry.dn);
+                    if (typeof entry.toObject === 'function') {
+                        const o = entry.toObject();
+                        if (o && typeof o === 'object') return o;
+                    }
+                    return null;
+                };
+
                 res.on('searchEntry', (entry) => {
-                    users.push(entry.object);
+                    users.push(entryToObject(entry));
                 });
 
                 res.on('error', (searchErr) => {
@@ -245,7 +289,7 @@ function searchUsers(query = '*') {
                     __dbgLdap('E', 'search stream error', { message: searchErr && searchErr.message, code: searchErr && searchErr.code });
                     // #endregion
                     client.unbind();
-                    reject(searchErr);
+                    settleReject(searchErr);
                 });
 
                 res.on('end', () => {
@@ -253,7 +297,7 @@ function searchUsers(query = '*') {
                     __dbgLdap('E', 'search stream end', { count: users.length });
                     // #endregion
                     client.unbind();
-                    resolve(users);
+                    settleResolve(users);
                 });
             });
         });

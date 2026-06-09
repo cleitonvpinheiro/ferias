@@ -306,6 +306,9 @@ module.exports = (db, auth) => { // <--- AQUI! 'db' e 'auth' são injetados
         try {
             const user = await db.users.getByUsername(username);
             if (user) {
+                if (Number(user.ativo) === 0) {
+                    return res.status(403).json({ ok: false, erro: 'Usuário inativo. Procure o administrador do sistema.' });
+                }
                 const match = await bcrypt.compare(password, user.password);
                 if (match) {
                     let redirect = '/protected/dashboard-gestor.html';
