@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avaliação de Desempenho 2026 | Atendimento</title>
+    <link rel="icon" href="/assets/logo.png" type="image/png">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="avaliacao-styles.css">
+    <script src="/lang-switcher.js" defer></script>
+
+</head>
+
+<body data-page="avaliacao-atendimento">
+    <div class="container">
+        <div style="margin-bottom: 20px;">
+            <a href="../protected/dashboard-gestor.html"
+                style="color: var(--muted); text-decoration: none; font-size: 0.9rem;"
+                data-translate="public_back_menu">&larr; Voltar ao Painel</a>
+        </div>
+        <div class="header">
+            <img src="/assets/logo.png" alt="Logo" class="logo">
+            <h1 data-translate="avaliacao_atendimento_title">Avaliação de Desempenho 2026 | Atendimento</h1>
+            <p data-translate="avaliacao_atendimento_subtitle">Formulário de avaliação para equipe de atendimento
+                (Recepção, SAC, Call Center)</p>
+        </div>
+
+        <div class="form-section">
+            <p style="margin: 0 0 12px 0; color: var(--text); line-height: 1.6;"
+                data-translate="avaliacao_intro_policy">
+                Os resultados desta avaliação serão utilizados como base para os planos de desenvolvimento individual
+                (PDI), decisões de movimentação interna, promoções ou evolução salarial, conforme a Política de Cargos e
+                Salários.
+            </p>
+
+            <p style="margin: 0 0 10px 0; font-weight: 800; color: var(--text);"
+                data-translate="avaliacao_intro_comp_atendimento">COMPETÊNCIAS ATENDIMENTO</p>
+            <ul style="margin: 0 0 12px 18px; color: var(--text); line-height: 1.7;">
+                <li>Cortesia e Empatia</li>
+                <li>Comunicação e Escuta Ativa</li>
+                <li>Resolução de Problemas</li>
+                <li>Agilidade e Eficiência</li>
+                <li>Conhecimento dos Processos</li>
+                <li>Trabalho em Equipe</li>
+                <li>Assiduidade e Pontualidade</li>
+                <li>Organização do Ambiente</li>
+            </ul>
+
+            <p style="margin: 0; font-weight: 700; color: var(--text);"><span data-translate="avaliacao_prazo_label">🗓️
+                    Prazo para responder:</span> <span id="prazoInicio">XX/XX</span> <span
+                    data-translate="avaliacao_prazo_to">a</span> <span id="prazoFim">XX/XX</span>!</p>
+            <div id="prazoEditor"
+                style="display:none; margin-top: 12px; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
+                <div class="form-group" style="margin: 0; min-width: 220px;">
+                    <label style="margin-bottom: 6px;" data-translate="avaliacao_prazo_start">Data inicial</label>
+                    <input type="date" id="prazoInicioInput">
+                </div>
+                <div class="form-group" style="margin: 0; min-width: 220px;">
+                    <label style="margin-bottom: 6px;" data-translate="avaliacao_prazo_end">Data final</label>
+                    <input type="date" id="prazoFimInput">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <button type="button" id="prazoSalvarBtn" class="submit-btn"
+                        style="padding: 0.75rem 1.25rem; font-size: 1rem; border-radius: 12px;"
+                        data-translate="avaliacao_prazo_save">Salvar prazo</button>
+                </div>
+            </div>
+        </div>
+
+        <form id="evaluationForm">
+            <input type="hidden" name="tipo" value="atendimento">
+
+            <div class="form-section">
+                <h2>Dados da Avaliação</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Funcionário(a) Avaliado(a):</label>
+                        <select name="funcionario" id="funcionarioSelect" required
+                            style="width:100%; padding:0.75rem; border-radius:0.5rem; border:1px solid var(--border); background-color: var(--card); color: var(--text); font-family: inherit; font-size: 1rem;">
+                            <option value="">Selecione um funcionário...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Matrícula do Colaborador:</label>
+                        <input type="text" name="matricula" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Data:</label>
+                        <input type="date" name="data" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Cargo:</label>
+                        <input type="text" name="funcao" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Setor:</label>
+                        <input type="text" name="setor" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Gestor avaliador:</label>
+                    <input type="text" name="avaliador" required>
+                </div>
+            </div>
+
+            <div id="questionsContainer">
+                <!-- Questions will be injected here via JS -->
+            </div>
+
+            <div class="form-section">
+                <h2>Avaliação Final e Compromisso</h2>
+
+                <div class="form-group">
+                    <label style="font-size: 1.1rem; margin-bottom: 1rem; display: block;">Assinale o Indicador de
+                        Status Profissional:</label>
+                    <div class="status-grid">
+                        <label class="status-card status-desmotivado">
+                            <input type="radio" name="statusProfissional" value="desmotivado" class="hidden-radio"
+                                required>
+                            <div class="status-content">
+                                <span class="status-icon">😫</span>
+                                <span class="status-text">DESMOTIVADO</span>
+                            </div>
+                        </label>
+                        <label class="status-card status-pouco">
+                            <input type="radio" name="statusProfissional" value="pouco_motivado" class="hidden-radio">
+                            <div class="status-content">
+                                <span class="status-icon">😟</span>
+                                <span class="status-text">POUCO MOTIVADO</span>
+                            </div>
+                        </label>
+                        <label class="status-card status-neutro">
+                            <input type="radio" name="statusProfissional" value="neutro" class="hidden-radio">
+                            <div class="status-content">
+                                <span class="status-icon">😐</span>
+                                <span class="status-text">NEUTRO</span>
+                            </div>
+                        </label>
+                        <label class="status-card status-motivado">
+                            <input type="radio" name="statusProfissional" value="motivado" class="hidden-radio">
+                            <div class="status-content">
+                                <span class="status-icon">🙂</span>
+                                <span class="status-text">MOTIVADO</span>
+                            </div>
+                        </label>
+                        <label class="status-card status-muito">
+                            <input type="radio" name="statusProfissional" value="muito_motivado" class="hidden-radio">
+                            <div class="status-content">
+                                <span class="status-icon">😁</span>
+                                <span class="status-text">MUITO MOTIVADO</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Por que? Comente:</label>
+                    <textarea name="statusComentario" rows="3"
+                        style="width:100%; padding:0.75rem; border-radius:0.5rem; border:1px solid var(--border); background: var(--card); color: var(--text); font-family:inherit;"></textarea>
+                </div>
+
+                <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border);">
+
+                <div class="form-group">
+                    <label>9. Considerando o desempenho e relacionamento do colaborador, cite de 2 a 3 pontos fortes e
+                        2 a 3 pontos de desenvolvimento, indicando também ações práticas para o seu desenvolvimento no
+                        próximo período.</label>
+                    <textarea name="pontosFortesEDesenvolvimento" rows="5"
+                        style="width:100%; padding:0.75rem; border-radius:0.5rem; border:1px solid var(--border); background: var(--card); color: var(--text); font-family:inherit;"
+                        required></textarea>
+                </div>
+
+                <div class="score-display"
+                    style="display:flex; justify-content:space-between; align-items:center; background:var(--brand-bg); color:var(--brand-text); padding:1.5rem; border-radius:0.5rem; margin-bottom:1.25rem; flex-wrap:wrap; gap:1rem;">
+                    <div style="text-align:right;">
+                        <div style="font-size:0.9rem; opacity:0.9;">TOTAL DE PONTUAÇÃO:</div>
+                        <div id="displayTotalScore" style="font-size:2rem; font-weight:800; line-height:1;">0.0</div>
+                    </div>
+                </div>
+
+                <div class="commitment-box"
+                    style="background:var(--bg); padding:1.5rem; border-radius:0.5rem; border:1px solid var(--border); margin-bottom:2rem; text-align:center;">
+                    <p style="font-weight:600; color:var(--text); margin-bottom:1rem; line-height:1.5;">
+                        EU, ESTOU CIENTE PELA PONTUAÇÃO E SINALIZAÇÕES ACIMA E ME COMPROMETO(A) A DESENVOLVER E MELHORAR
+                        TODOS OS PONTOS ACIMA.
+                    </p>
+                    <label style="display:inline-flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                        <input type="checkbox" name="cienciaCompromisso" required style="width:auto;">
+                        <span style="font-size:0.95rem;">Li e concordo</span>
+                    </label>
+                </div>
+
+                <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border);">
+
+                <p style="text-align:center; font-size:0.85rem; color:var(--muted);">CONFIRMAM QUE A AVALIAÇÃO ACIMA FOI
+                    DISCUTIDA E ACEITA</p>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="submit-btn" data-translate="avaliacao_submit">Enviar Avaliação</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const questions = [
+            { category: "CORTESIA E EMPATIA", text: "O colaborador demonstra educação, cordialidade e interesse genuíno em ajudar o cliente, mantendo o padrão de hospitalidade da empresa?" },
+            { category: "COMUNICAÇÃO E ESCUTA ATIVA", text: "O colaborador se comunica de forma clara, clara e assertiva, ouvindo atentamente as demandas dos clientes antes de responder?" },
+            { category: "RESOLUÇÃO DE PROBLEMAS", text: "O colaborador demonstra proatividade e autonomia para resolver dúvidas ou reclamações, buscando soluções que satisfaçam o cliente e a empresa?" },
+            { category: "AGILIDADE E EFICIÊNCIA", text: "O colaborador realiza o atendimento de forma ágil, respeitando os tempos de espera e garantindo a qualidade na execução das tarefas?" },
+            { category: "CONHECIMENTO DOS PROCESSOS", text: "O colaborador demonstra domínio sobre os produtos, serviços e normas da empresa, passando segurança nas informações prestadas?" },
+            { category: "TRABALHO EM EQUIPE", text: "O colaborador colabora com os colegas de outros setores para garantir que a jornada do cliente seja fluida e sem interrupções?" },
+            { category: "ASSIDUIDADE E PONTUALIDADE", text: "O colaborador cumpre rigorosamente seus horários e escalas, evitando sobrecarga na equipe e atrasos no atendimento?" },
+            { category: "ORGANIZAÇÃO DO AMBIENTE", text: "O colaborador mantém seu posto de trabalho organizado e limpo, zelando pela imagem profissional e funcionalidade do setor?" }
+        ];
+
+        const container = document.getElementById('questionsContainer');
+        const urlParams = new URLSearchParams(window.location.search || '');
+        const preFuncionario = String(urlParams.get('funcionario') || '');
+        const preAvaliador = String(urlParams.get('avaliador') || '');
+        const preFuncao = String(urlParams.get('funcao') || '');
+        const preSetor = String(urlParams.get('setor') || '');
+        const preCicloId = String(urlParams.get('cicloId') || '');
+        const preParticipanteId = String(urlParams.get('participanteId') || '');
+        const discursiveQuestions = [
+            { category: 'DISCURSIVA', name: 'pontosFortesEDesenvolvimento', question: '9. Considerando o desempenho e relacionamento do colaborador, cite de 2 a 3 pontos fortes e 2 a 3 pontos de desenvolvimento, indicando também ações práticas para o seu desenvolvimento no próximo período.', maxScore: 3 }
+        ];
+
+        const PRAZO_TIPO = 'atendimento';
+        const normRole = (v) => String(v || '').trim().toLowerCase();
+        const fmtDiaMes = (iso) => {
+            const s = String(iso || '').trim();
+            const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (!m) return 'XX/XX';
+            return `${m[3]}/${m[2]}`;
+        };
+        const setPrazoUI = ({ data_inicio, data_fim }) => {
+            const iniEl = document.getElementById('prazoInicio');
+            const fimEl = document.getElementById('prazoFim');
+            if (iniEl) iniEl.textContent = fmtDiaMes(data_inicio);
+            if (fimEl) fimEl.textContent = fmtDiaMes(data_fim);
+            const iniIn = document.getElementById('prazoInicioInput');
+            const fimIn = document.getElementById('prazoFimInput');
+            if (iniIn) iniIn.value = data_inicio || '';
+            if (fimIn) fimIn.value = data_fim || '';
+        };
+        const getPrazo = async () => {
+            const res = await fetch(`/api/avaliacao/prazo?tipo=${encodeURIComponent(PRAZO_TIPO)}`, { cache: 'no-store' });
+            const out = await res.json().catch(() => ({}));
+            if (!res.ok || !out.ok) return { data_inicio: null, data_fim: null };
+            return { data_inicio: out.data_inicio || null, data_fim: out.data_fim || null };
+        };
+        const canEditPrazo = async () => {
+            try {
+                const res = await fetch('/api/me', { cache: 'no-store' });
+                const out = await res.json().catch(() => ({}));
+                const role = normRole(out && out.user && out.user.role);
+                return role === 'rh' || role === 'rh_geral';
+            } catch (_) {
+                return false;
+            }
+        };
+        (async () => {
+            const prazo = await getPrazo();
+            setPrazoUI(prazo);
+            const canEdit = await canEditPrazo();
+            const editor = document.getElementById('prazoEditor');
+            if (editor) editor.style.display = canEdit ? 'flex' : 'none';
+            const btn = document.getElementById('prazoSalvarBtn');
+            if (btn && canEdit) {
+                btn.onclick = async () => {
+                    const ini = String(document.getElementById('prazoInicioInput')?.value || '').trim();
+                    const fim = String(document.getElementById('prazoFimInput')?.value || '').trim();
+                    const resp = await fetch('/api/avaliacao/prazo', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                        body: JSON.stringify({ tipo: PRAZO_TIPO, data_inicio: ini || null, data_fim: fim || null })
+                    });
+                    const saved = await resp.json().catch(() => ({}));
+                    if (!resp.ok || !saved.ok) return alert(saved.erro || 'Erro ao salvar prazo');
+                    setPrazoUI(saved);
+                    alert('Prazo atualizado!');
+                };
+            }
+        })();
+
+        (async () => {
+            const campoAvaliador = document.querySelector('input[name="avaliador"]');
+            if (!campoAvaliador) return;
+            try {
+                const res = await fetch('/api/me', { cache: 'no-store' });
+                const out = await res.json().catch(() => ({}));
+                const user = out && out.user ? out.user : null;
+                const role = normRole(user && user.role);
+                const nome = String(user && (user.name || user.username) || '').trim();
+                const isGestor = ['gestor', 'supervisor', 'gerente'].includes(role);
+                if (isGestor && nome) campoAvaliador.value = nome;
+                else if (!campoAvaliador.value && preAvaliador) campoAvaliador.value = preAvaliador;
+                else if (!campoAvaliador.value && nome) campoAvaliador.value = nome;
+                if (isGestor) campoAvaliador.readOnly = true;
+            } catch (_) {
+                if (preAvaliador && !campoAvaliador.value) campoAvaliador.value = preAvaliador;
+            }
+        })();
+        if (preFuncao) {
+            const campoFuncao = document.querySelector('input[name="funcao"]');
+            if (campoFuncao && !campoFuncao.value) campoFuncao.value = preFuncao;
+        }
+        if (preSetor) {
+            const campoSetor = document.querySelector('input[name="setor"]');
+            if (campoSetor && !campoSetor.value) campoSetor.value = preSetor;
+        }
+
+        function normalizeFuncionarioKey(v) {
+            return String(v || '')
+                .trim()
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '');
+        }
+
+        function inferTipoAvaliacaoFromFuncionario({ cargo, setor }) {
+            // usa "norm" que já existe no backend, não "normalizeFuncionarioKey"
+            const hay = `${normalizeFuncionarioKey(cargo)} ${normalizeFuncionarioKey(setor)}`.trim();
+
+            if (/(gerent|supervis|coorden|lider|encarreg)/.test(hay)) return 'lideranca';
+            if (/(atendimento|atendente|recepcao|recepcion|call.?center|sac|helpdesk|teleatendimento|balcao|caixa|balconista)/.test(hay)) return 'atendimento';
+            if (/(adm|administr|\brh\b|\bdp\b|financ|contab|compras|\bti\b|fiscal|jurid|almox|aprendiz|eventos|comercial|qualidade|\bpcp\b|processos)/.test(hay)) return 'adm';
+
+            return 'operacional';
+        }
+        // Carregar lista de funcionários
+        fetch('/api/funcionarios')
+            .then(r => r.json())
+            .then(funcionarios => {
+                const select = document.getElementById('funcionarioSelect');
+                const list = (Array.isArray(funcionarios) ? funcionarios : [])
+                    .filter(f => inferTipoAvaliacaoFromFuncionario({ cargo: f && f.cargo, setor: f && f.setor }) === 'atendimento');
+                list.sort((a, b) => a.nome.localeCompare(b.nome));
+
+                list.forEach(f => {
+                    const option = document.createElement('option');
+                    option.value = f.nome;
+                    option.textContent = f.nome;
+                    option.dataset.cargo = f.cargo || '';
+                    option.dataset.setor = f.setor || '';
+                    option.dataset.matricula = f.matricula || '';
+                    option.dataset.id = f.id || '';
+                    select.appendChild(option);
+                });
+
+                select.addEventListener('change', (e) => {
+                    const selected = e.target.selectedOptions[0];
+                    if (selected && selected.value) {
+                        const campoFuncao = document.querySelector('input[name="funcao"]');
+                        const campoSetor = document.querySelector('input[name="setor"]');
+                        const campoMatricula = document.querySelector('input[name="matricula"]');
+                        if (campoFuncao) campoFuncao.value = selected.dataset.cargo;
+                        if (campoSetor) campoSetor.value = selected.dataset.setor;
+                        if (campoMatricula) campoMatricula.value = selected.dataset.matricula;
+                    }
+                });
+
+                if (preFuncionario) {
+                    select.value = preFuncionario;
+                    if (select.value === preFuncionario) {
+                        select.dispatchEvent(new Event('change'));
+                    }
+                }
+            })
+            .catch(err => console.error('Erro ao carregar funcionários:', err));
+
+        questions.forEach((q, index) => {
+            const block = document.createElement('div');
+            block.className = 'evaluation-section';
+            block.innerHTML = `
+                <div class="question-block">
+                    <div class="question-category">${q.category}</div>
+                    <div class="question-text">${q.text}</div>
+                    <div class="options-grid">
+                        <label class="option-card option-success">
+                            <input type="radio" name="q${index}" value="3" class="hidden-radio" required>
+                            <div class="option-content">
+                                <span class="option-icon">👍</span>
+                                <span class="option-text">ATENDE COMPLETAMENTE</span>
+                            </div>
+                        </label>
+                        <label class="option-card option-warning">
+                            <input type="radio" name="q${index}" value="2" class="hidden-radio">
+                            <div class="option-content">
+                                <span class="option-icon">⚠️</span>
+                                <span class="option-text">ATENDE PARCIALMENTE</span>
+                            </div>
+                        </label>
+                        <label class="option-card option-danger">
+                            <input type="radio" name="q${index}" value="1" class="hidden-radio">
+                            <div class="option-content">
+                                <span class="option-icon">👎</span>
+                                <span class="option-text">NÃO ATENDE</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            `;
+            container.appendChild(block);
+        });
+
+        const formEl = document.getElementById('evaluationForm');
+        const scoreDisplay = document.getElementById('displayTotalScore');
+
+        function computeTotalFromForm(formData) {
+            let total = 0;
+            let count = 0;
+            for (const [key, value] of formData.entries()) {
+                if (String(key || '').startsWith('q') && !isNaN(Number(value))) {
+                    total += Number(value);
+                    count += 1;
+                }
+            }
+            if (count <= 0) return 0;
+            return total / count;
+        }
+
+        function refreshTotalScore() {
+            const fd = new FormData(formEl);
+            const total = computeTotalFromForm(fd);
+            if (scoreDisplay) scoreDisplay.textContent = total.toFixed(1);
+        }
+
+        formEl.addEventListener('change', () => refreshTotalScore());
+        refreshTotalScore();
+
+        formEl.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+
+            const answers = [];
+            let totalScore = 0;
+            let totalMaxScore = 0;
+
+            questions.forEach((q, index) => {
+                const score = parseFloat(data[`q${index}`]);
+                const maxScore = 3;
+                answers.push({
+                    category: q.category,
+                    question: q.text,
+                    score: score,
+                    maxScore: maxScore
+                });
+                if (!isNaN(score)) {
+                    totalScore += score;
+                    totalMaxScore += maxScore;
+                }
+                delete data[`q${index}`];
+            });
+
+            discursiveQuestions.forEach((dq) => {
+                const response = String(data[dq.name] || '').trim();
+                answers.push({
+                    category: dq.category,
+                    question: dq.question,
+                    response,
+                    isDiscursive: true
+                });
+            });
+
+            data.answers = answers;
+            data.totalScore = totalScore;
+            data.maxScore = totalMaxScore;
+            if (preCicloId) data.cicloId = preCicloId;
+            else data.cicloId = 'ciclo-atendimento-default';
+            if (preParticipanteId) data.participanteId = preParticipanteId;
+
+            try {
+                const res = await fetch('/api/avaliacao', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const out = await res.json();
+                if (res.ok) {
+                    alert('Avaliação enviada com sucesso!');
+                    window.location.href = '../protected/dashboard-gestor.html';
+                } else {
+                    alert('Erro ao enviar: ' + (out.erro || 'Erro desconhecido'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Erro de conexão ao enviar avaliação.');
+            }
+        });
+    </script>
+</body>
+
+</html>

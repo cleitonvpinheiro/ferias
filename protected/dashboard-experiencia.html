@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard RH - Experiência</title>
+    <link rel="icon" href="/assets/logo.png" type="image/png">
+    <link rel="stylesheet" href="/rh-styles.css">
+    <script src="/lang-switcher.js" defer></script>
+    <style>
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: white;
+            text-transform: uppercase;
+        }
+
+        .status-pending {
+            background-color: #f59e0b;
+            color: #fff;
+        }
+
+        .status-approved {
+            background-color: #10b981;
+        }
+
+        .status-rejected {
+            background-color: #ef4444;
+        }
+
+        .btn-action {
+            background: none;
+            border: 1px solid #e2e8f0;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: #475569;
+            text-decoration: none;
+        }
+
+        .btn-action:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            color: #1e293b;
+        }
+
+        .deadline-badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            display: inline-block;
+        }
+
+        .deadline-warning {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .deadline-overdue {
+            background-color: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .deadline-ok {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+
+        .row-deadline-alert {
+            background-color: #fffbeb;
+        }
+
+        .filters-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+            align-items: center;
+        }
+
+        .filters-row label {
+            font-size: 0.85rem;
+            color: #4b5563;
+        }
+
+        .filters-row select {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            min-width: 180px;
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            background: #eef2ff;
+            color: #4338ca;
+        }
+
+        .chip span {
+            font-weight: 600;
+        }
+
+        .chip small {
+            font-weight: 400;
+            color: #4b5563;
+        }
+    </style>
+</head>
+
+<body data-page="rh-experiencia">
+    <div id="navbar-container"></div>
+    <script src="/rh-navbar.js"></script>
+    <script>renderRHNavbar('experiencia');</script>
+
+    <div class="dashboard-container">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title" data-translate="rh_dash_experiencia_title">Avaliações de Experiência</h1>
+                <p class="page-subtitle" data-translate="rh_dash_experiencia_subtitle">Acompanhamento de 45 e 90 dias
+                </p>
+            </div>
+            <button class="btn-primary" onclick="window.location.href='/form-avaliacao-experiencia.html'">+ <span
+                    data-translate="rh_dash_experiencia_new">Nova Avaliação</span></button>
+        </div>
+
+
+        <div class="stats-grid">
+            <div class="stat-card pending">
+                <div class="stat-header">
+                    <div class="stat-title" data-translate="rh_dash_experiencia_stat_next_45">Próximos 45 dias</div>
+                    <div class="stat-icon">⏱️</div>
+                </div>
+                <div class="stat-value" id="stat-45-near">0</div>
+            </div>
+            <div class="stat-card pending">
+                <div class="stat-header">
+                    <div class="stat-title" data-translate="rh_dash_experiencia_stat_next_90">Próximos 90 dias</div>
+                    <div class="stat-icon">⏱️</div>
+                </div>
+                <div class="stat-value" id="stat-90-near">0</div>
+            </div>
+            <div class="stat-card approved" id="card-45-overdue">
+                <div class="stat-header">
+                    <div class="stat-title" data-translate="rh_dash_experiencia_stat_overdue_45">Em atraso 45 dias</div>
+                    <div class="stat-icon">⚠️</div>
+                </div>
+                <div class="stat-value" id="stat-45-overdue">0</div>
+            </div>
+            <div class="stat-card approved" id="card-90-overdue">
+                <div class="stat-header">
+                    <div class="stat-title" data-translate="rh_dash_experiencia_stat_overdue_90">Em atraso 90 dias</div>
+                    <div class="stat-icon">⚠️</div>
+                </div>
+                <div class="stat-value" id="stat-90-overdue">0</div>
+            </div>
+        </div>
+        <div class="filters-row">
+            <!-- <div class="chip">
+                <span data-translate="rh_dash_experiencia_chip_title">Visão Gestor</span>
+                <small data-translate="rh_dash_experiencia_chip_desc">Mostra apenas quem está em alerta</small>
+            </div> -->
+            <div>
+                <label>
+                    <span data-translate="rh_dash_th_setor">Setor</span>:
+                    <select id="filter-setor">
+                        <option value="" data-translate="rh_dash_filter_all">Todos</option>
+                    </select>
+                </label>
+            </div>
+            <div>
+                <label>
+                    <span data-translate="rh_dash_avaliacoes_th_avaliador">Avaliador</span>:
+                    <select id="filter-avaliador">
+                        <option value="" data-translate="rh_dash_filter_all">Todos</option>
+                    </select>
+                </label>
+            </div>
+            <div>
+                <label>
+                    <span data-translate="rh_dash_experiencia_filter_stability">Estabilidade</span>:
+                    <select id="filter-estabilidade">
+                        <option value="" data-translate="rh_dash_filter_all">Todos</option>
+                        <option value="experiencia" data-translate="rh_dash_experiencia_stability_probation">Em
+                            experiência</option>
+                        <option value="estavel" data-translate="rh_dash_experiencia_stability_stable">Com estabilidade
+                        </option>
+                    </select>
+                </label>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th data-translate="rh_dash_experiencia_th_created">Data Criação</th>
+                        <th data-translate="rh_dash_th_colaborador">Colaborador</th>
+                        <th data-translate="rh_dash_th_cargo">Cargo</th>
+                        <th data-translate="rh_dash_th_setor">Setor</th>
+                        <th data-translate="rh_dash_avaliacoes_th_avaliador">Avaliador</th>
+                        <th data-translate="rh_dash_experiencia_th_status_45">Status 45 Dias</th>
+                        <th data-translate="rh_dash_experiencia_th_status_90">Status 90 Dias</th>
+                        <th data-translate="rh_dash_experiencia_th_deadline_45">Prazo 45 Dias</th>
+                        <th data-translate="rh_dash_experiencia_th_deadline_90">Prazo 90 Dias</th>
+                        <th data-translate="rh_dash_experiencia_th_stability">Estabilidade</th>
+                        <th>Assin. 45</th>
+                        <th>Assin. 90</th>
+                        <th data-translate="rh_dash_th_acao">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="lista-corpo">
+                    <!-- Data injected via JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let __currentRole = null;
+
+        async function getCurrentRole() {
+            if (__currentRole !== null) return __currentRole;
+            try {
+                const res = await fetch('/api/access', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                __currentRole = String(data && data.user && data.user.role || '').trim().toLowerCase();
+                return __currentRole;
+            } catch (_) {
+                __currentRole = '';
+                return __currentRole;
+            }
+        }
+
+        function parseBrDateLocal(s) {
+            if (!s) return null;
+            // Já é um objeto Date (vindo do MySQL via JSON serializado)
+            if (s instanceof Date) return s;
+            const str = String(s).trim();
+            // Tenta parse direto primeiro (captura ISO com timezone)
+            const direct = new Date(str);
+            if (!isNaN(direct.getTime())) return direct;
+            // DD/MM/YYYY
+            const br = str.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+            if (br) return new Date(+br[3], +br[2] - 1, +br[1]);
+            // YYYY-MM-DD
+            const iso = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (iso) return new Date(+iso[1], +iso[2] - 1, +iso[3]);
+            return null;
+        }
+
+        function formatDate(s) {
+            if (!s || s === '-') return '-';
+            const d = parseBrDateLocal(s);
+            return d ? d.toLocaleDateString('pt-BR') : s;
+        }
+
+        function getPrazoInfo(p) {
+            if (!p) return { label: '-', className: '', isAlert: false, isOverdue: false };
+            if (p.status === 'concluido') return { label: 'Concluído', className: 'deadline-ok', isAlert: false, isOverdue: false };
+
+            if (!p.cicloDataFim) {
+                return { label: 'Sem prazo', className: 'deadline-badge deadline-warning', isAlert: true, isOverdue: false };
+            }
+
+            const deadline = parseBrDateLocal(p.cicloDataFim);
+            if (!deadline) {
+                return { label: 'Sem prazo', className: 'deadline-badge deadline-warning', isAlert: true, isOverdue: false };
+            }
+
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            deadline.setHours(0, 0, 0, 0);
+            const diff = Math.round((deadline - today) / 86400000);
+
+            let label, className = 'deadline-badge', isAlert = false, isOverdue = false;
+            if (diff < 0) {
+                label = `Vencido há ${Math.abs(diff)}d`;
+                className += ' deadline-overdue'; isAlert = true; isOverdue = true;
+            } else if (diff === 0) {
+                label = 'Vence hoje';
+                className += ' deadline-warning'; isAlert = true;
+            } else if (diff <= 10) {
+                label = `Faltam ${diff}d`;
+                className += ' deadline-warning'; isAlert = true;
+            } else {
+                label = `Em ${diff}d`;
+                className += ' deadline-ok';
+                isAlert = true;
+            }
+
+            return { label, className, isAlert, isOverdue };
+        }
+
+        function statusBadge(status) {
+            if (!status || status === 'pendente') return '<span style="color:#999">Pendente</span>';
+            if (status === 'concluido') return '<span class="status-badge status-approved">Concluído</span>';
+            return `<span class="status-badge status-pending">${status}</span>`;
+        }
+
+        function infoBadge(info) {
+            if (info.label === '-') return '<span style="color:#999">-</span>';
+            return `<span class="${info.className}">${info.label}</span>`;
+        }
+
+        function populateSelect(id, values) {
+            const sel = document.getElementById(id);
+            if (!sel || sel.options.length > 1) return;
+            Array.from(values).sort().forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v; opt.textContent = v;
+                sel.appendChild(opt);
+            });
+        }
+
+        async function carregarDados() {
+            try {
+                const role = await getCurrentRole();
+                const isRH = ['admin', 'rh', 'rh_geral', 'dp', 'td'].includes(role);
+
+                const card45Over = document.getElementById('card-45-overdue');
+                const card90Over = document.getElementById('card-90-overdue');
+                if (card45Over) card45Over.style.display = isRH ? '' : 'none';
+                if (card90Over) card90Over.style.display = isRH ? '' : 'none';
+
+                const [resPendencias, resFunc, resAssinaturas] = await Promise.all([
+                    fetch('/api/avaliacao/pendencias?contexto=experiencia'),
+                    fetch('/api/funcionarios'),
+                    fetch('/api/avaliacoes/assinaturas')
+                ]);
+
+                const pendencias = await resPendencias.json().catch(() => []);
+                const allFuncionarios = await resFunc.json().catch(() => []);
+                const todasAssinaturas = await resAssinaturas.json().catch(() => ({}));
+
+                console.log('PRIMEIRA PENDENCIA:', JSON.stringify(pendencias[0], null, 2));
+
+                // ── Mapa de assinaturas ───────────────────────────────────────────
+                const assinaturasMap = new Map();
+                if (Array.isArray(todasAssinaturas.assinaturas)) {
+                    todasAssinaturas.assinaturas.forEach(a => {
+                        if (!assinaturasMap.has(a.avaliacao_id))
+                            assinaturasMap.set(a.avaliacao_id, new Map());
+                        assinaturasMap.get(a.avaliacao_id).set(String(a.periodo), a);
+                    });
+                }
+
+                // ── Mapa de funcionários ──────────────────────────────────────────
+                const funcById = new Map(allFuncionarios.map(f => [String(f.id), f]));
+
+                // ── Agrupa pendências por avaliado ────────────────────────────────
+                const byAvaliado = new Map();
+                (Array.isArray(pendencias) ? pendencias : []).forEach(p => {
+                    const key = String(p.avaliadoId || '').trim();
+                    if (!key) return;
+
+                    if (!byAvaliado.has(key)) {
+                        byAvaliado.set(key, {
+                            avaliadoId: key,
+                            avaliadoNome: p.avaliadoNome,
+                            avaliadoSetor: p.avaliadoSetor,
+                            avaliadoCargo: p.avaliadoCargo,
+                            p45: null,
+                            p90: null,
+                            p1des: null
+                        });
+                    }
+
+                    const item = byAvaliado.get(key);
+                    const titulo = String(p.cicloTitulo || '').toLowerCase();
+
+                    if (titulo.includes('45')) item.p45 = p;
+                    else if (titulo.includes('90')) item.p90 = p;
+                    else if (titulo.includes('1º desempenho') || titulo.includes('1o desempenho')) item.p1des = p;
+                });
+
+                // ── Leitura dos filtros ativos ────────────────────────────────────
+                const filterSetor = document.getElementById('filter-setor').value;
+                const filterAval = document.getElementById('filter-avaliador').value;
+                const filterEstab = document.getElementById('filter-estabilidade').value;
+
+                const setores = new Set();
+                const avaliadores = new Set();
+
+                // ─────────────────────────────────────────────────────────────────
+                // ✅ CORREÇÃO PRINCIPAL:
+                // Contadores calculados em loop SEPARADO, ANTES dos filtros de tabela,
+                // garantindo que o total dos cards sempre reflita TODOS os registros,
+                // independente dos filtros de setor/avaliador/estabilidade aplicados.
+                // ─────────────────────────────────────────────────────────────────
+                let stat45Near = 0, stat90Near = 0, stat45Overdue = 0, stat90Overdue = 0;
+
+                byAvaliado.forEach(item => {
+                    // Valida que são ciclos de experiência
+                    if (item.p45 && !/(experiência|experiencia|45)/i.test(item.p45.cicloTitulo || '')) item.p45 = null;
+                    if (item.p90 && !/(experiência|experiencia|90)/i.test(item.p90.cicloTitulo || '')) item.p90 = null;
+                    if (item.p1des && !/(1º desempenho|1o desempenho)/i.test(item.p1des.cicloTitulo || '')) item.p1des = null;
+                    if (!item.p45 && !item.p90 && !item.p1des) return;
+
+                    const info45 = getPrazoInfo(item.p45);
+                    const info90 = getPrazoInfo(item.p90);
+
+                    if (info45.isAlert) {
+                        if (info45.isOverdue) { if (isRH) stat45Overdue++; }
+                        else stat45Near++;
+                    }
+                    if (info90.isAlert) {
+                        if (info90.isOverdue) { if (isRH) stat90Overdue++; }
+                        else stat90Near++;
+                    }
+                });
+
+                // Atualiza cards imediatamente após contar
+                document.getElementById('stat-45-near').textContent = stat45Near;
+                document.getElementById('stat-90-near').textContent = stat90Near;
+                document.getElementById('stat-45-overdue').textContent = stat45Overdue;
+                document.getElementById('stat-90-overdue').textContent = stat90Overdue;
+
+                // ─────────────────────────────────────────────────────────────────
+                // Loop de renderização da tabela — aplica filtros normalmente
+                // ─────────────────────────────────────────────────────────────────
+                const tbody = document.getElementById('lista-corpo');
+                tbody.innerHTML = '';
+
+                byAvaliado.forEach(item => {
+                    const func = funcById.get(item.avaliadoId);
+                    const admDateStr = func?.data_admissao || func?.dataAdmissao || null;
+                    if (admDateStr) {
+                        const adm = parseBrDateLocal(admDateStr);
+                        if (adm) {
+                            const diasDesde = Math.floor((new Date() - adm) / 86400000);
+                            const ambosConcluidosOuAusentes =
+                                (!item.p45 || item.p45.status === 'concluido') &&
+                                (!item.p90 || item.p90.status === 'concluido');
+                            if (diasDesde > 180) return;
+                        }
+                    }
+
+                    // ── Estabilidade ──────────────────────────────────────────────
+                    let diasDesdeAdmissao = null;
+                    if (admDateStr) {
+                        const adm = parseBrDateLocal(admDateStr);
+                        if (adm) {
+                            const today = new Date(); today.setHours(0, 0, 0, 0);
+                            diasDesdeAdmissao = Math.floor((today - adm) / 86400000);
+                        }
+                    }
+                    const emExperiencia = diasDesdeAdmissao !== null && diasDesdeAdmissao < 90;
+                    const estabilidadeLabel = diasDesdeAdmissao === null ? '-'
+                        : (emExperiencia ? 'Em experiência' : 'Com estabilidade');
+
+                    // ── Valores para filtros ──────────────────────────────────────
+                    const setorVal = (func && func.setor) ? String(func.setor).trim() : (item.avaliadoSetor || '');
+                    const avaliadorVal = (item.p45 || item.p90 || item.p1des)?.avaliadorNome || '';
+
+                    if (setorVal) setores.add(setorVal);
+                    if (avaliadorVal) avaliadores.add(avaliadorVal);
+
+                    // ── Aplica filtros ────────────────────────────────────────────
+                    if (filterSetor && setorVal !== filterSetor) return;
+                    if (filterAval && avaliadorVal !== filterAval) return;
+                    if (filterEstab === 'experiencia' && !emExperiencia) return;
+                    if (filterEstab === 'estavel' && emExperiencia) return;
+
+                    // ── Valida ciclos de experiência ──────────────────────────────
+                    if (item.p45 && !/(experiência|experiencia|45)/i.test(item.p45.cicloTitulo || '')) item.p45 = null;
+                    if (item.p90 && !/(experiência|experiencia|90)/i.test(item.p90.cicloTitulo || '')) item.p90 = null;
+                    if (item.p1des && !/(1º desempenho|1o desempenho)/i.test(item.p1des.cicloTitulo || '')) item.p1des = null;
+                    if (!item.p45 && !item.p90 && !item.p1des) return;
+
+                    // ── Status ────────────────────────────────────────────────────
+                    const concluido45 = item.p45?.status === 'concluido';
+                    const concluido90 = item.p90?.status === 'concluido';
+
+                    // ── Assinaturas ───────────────────────────────────────────────
+                    const sigs45 = item.p45?.avaliacaoId ? assinaturasMap.get(item.p45.avaliacaoId) : null;
+                    const sigs90 = item.p90?.avaliacaoId ? assinaturasMap.get(item.p90.avaliacaoId) : null;
+
+                    const temAssinatura45 = !!(sigs45?.get('45')?.gestor && sigs45?.get('45')?.colaborador);
+                    const temAssinatura90 = !!(sigs90?.get('90')?.gestor && sigs90?.get('90')?.colaborador);
+
+                    // ── Prazos ────────────────────────────────────────────────────
+                    const info45 = getPrazoInfo(item.p45);
+                    const info90 = getPrazoInfo(item.p90);
+
+                    // ── Link ──────────────────────────────────────────────────────
+                    const pAberta = (!concluido45 && item.p45) ? item.p45
+                        : (!concluido90 && item.p90) ? item.p90
+                            : item.p1des;
+                    const link = pAberta?.link || '#';
+
+                    // ── Data de criação ───────────────────────────────────────────
+                    const rawDate = item.p45?.cicloDataFim ?? item.p90?.cicloDataFim ?? item.p1des?.cicloDataFim ?? null;
+                    const dateCreated = formatDate(rawDate);
+
+
+
+                    // ── E-mail de alerta ──────────────────────────────────────────
+                    const partesAlerta = [];
+                    if (info45.isAlert) partesAlerta.push(`45 dias: ${info45.label}`);
+                    if (info90.isAlert) partesAlerta.push(`90 dias: ${info90.label}`);
+                    const assuntoEmail = encodeURIComponent(`Alerta de Período de Experiência – ${item.avaliadoNome || ''}`);
+                    const corpoEmail = encodeURIComponent(
+                        `Olá,\n\n` +
+                        `Segue alerta de período de experiência do colaborador ${item.avaliadoNome || '-'} ` +
+                        `(${item.avaliadoCargo || '-'} / ${setorVal || '-'}).\n\n` +
+                        `Situação:\n${partesAlerta.join(' | ') || 'Sem alerta registrado.'}\n\n` +
+                        `Estabilidade: ${estabilidadeLabel}\n\n` +
+                        `Assinatura 45 dias: ${temAssinatura45 ? 'OK' : 'Pendente'}\n` +
+                        `Assinatura 90 dias: ${temAssinatura90 ? 'OK' : 'Pendente'}\n\n` +
+                        `Este e-mail foi gerado a partir do painel de experiência.\n`
+                    );
+
+                    // ── Linha da tabela ───────────────────────────────────────────
+                    const tr = document.createElement('tr');
+                    if (info45.isAlert || info90.isAlert) tr.classList.add('row-deadline-alert');
+
+                    tr.innerHTML = `
+                    <td>${dateCreated}</td>
+                    <td>${item.avaliadoNome || '-'}</td>
+                    <td>${item.avaliadoCargo || '-'}</td>
+                    <td>${setorVal || '-'}</td>
+                    <td>${avaliadorVal || '-'}</td>
+                    <td>${statusBadge(item.p45?.status)}</td>
+                    <td>${statusBadge(item.p90?.status)}</td>
+                    <td>${infoBadge(info45)}</td>
+                    <td>${infoBadge(info90)}</td>
+                    <td>${estabilidadeLabel}</td>
+                    <td><span class="status-badge ${temAssinatura45 ? 'status-approved' : 'status-pending'}">${temAssinatura45 ? '✅' : '⚠️'}</span></td>
+                    <td><span class="status-badge ${temAssinatura90 ? 'status-approved' : 'status-pending'}">${temAssinatura90 ? '✅' : '⚠️'}</span></td>
+                    <td>
+                        <a href="${link}" class="btn-action">✏️ Abrir/Editar</a>
+                        <a href="mailto:?subject=${assuntoEmail}&body=${corpoEmail}" class="btn-action">✉️ E-mail</a>
+                    </td>
+                `;
+                    tbody.appendChild(tr);
+                });
+
+                // ── Popula selects de filtro (só na primeira carga) ───────────────
+                populateSelect('filter-setor', setores);
+                populateSelect('filter-avaliador', avaliadores);
+
+            } catch (e) {
+                console.error(e);
+                alert('Erro ao carregar dados.');
+            }
+        }
+
+        function getStatusClass(status) {
+            if (!status) return '';
+            if (status.includes('aprovado') || status.includes('prorrogado')) return 'status-approved';
+            if (status.includes('reprovado')) return 'status-rejected';
+            return 'status-pending';
+        }
+
+        document.getElementById('filter-setor').addEventListener('change', carregarDados);
+        document.getElementById('filter-avaliador').addEventListener('change', carregarDados);
+        document.getElementById('filter-estabilidade').addEventListener('change', carregarDados);
+
+        carregarDados();
+    </script>
+</body>
+
+</html>

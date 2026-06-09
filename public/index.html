@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Portal de Formulários - Família Madalosso</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="/lang-switcher.js" defer></script>
+</head>
+<body data-page="index">
+
+  <main class="container">
+     
+    <nav class="topbar">
+        <a class="brand-inline" href="/formularios">
+            <img src="/assets/logo.png" alt="Logo">
+            <span data-translate="idx_brand">Portal Interno</span>
+        </a>
+        <button class="btn btn-outline btn-login" onclick="toggleModal()">
+            🔒 <span data-translate="idx_restricted">Área Restrita</span>
+        </button>
+    </nav>
+    
+    <div class="hero">
+        <img class="brand-logo" src="/assets/logo.png" alt="Logo Família Madalosso" style="height: 120px; margin: 0 auto;">
+        <h1 class="hero-title" data-translate="idx_welcome">Bem-vindo ao Portal</h1>
+        <p class="hero-subtitle" data-translate="idx_welcome_desc">Acesse abaixo os formulários de solicitação ou utilize o botão de acesso restrito para áreas administrativas.</p>
+    </div>
+
+    <div class="menu-toolbar">
+        <div class="menu-toolbar-inner">
+            <div class="menu-search">
+                <div class="search-wrap">
+                    <input id="menuSearch" class="input search-input" type="search" data-translate="idx_search_ph" placeholder="Buscar formulário..." aria-label="Buscar formulário">
+                    <button id="btnClearSearch" class="btn-search-clear" type="button" aria-label="Limpar busca" hidden>✕</button>
+                </div>
+            </div>
+            <div class="menu-filters" aria-label="Filtros">
+                <button class="filter-chip active" type="button" data-cat="all">Todos</button>
+                <button class="filter-chip" type="button" data-cat="rh">RH</button>
+                <button class="filter-chip" type="button" data-cat="recrutamento">Recrutamento</button>
+                <button class="filter-chip" type="button" data-cat="avaliacoes">Avaliações</button>
+                <button class="filter-chip" type="button" data-cat="operacional">Operacional</button>
+            </div>
+            <div id="menuCount" class="menu-count">—</div>
+        </div>
+    </div>
+    <div id="menuEmpty" class="menu-empty" data-translate="idx_search_empty" style="display:none;">Nenhum resultado encontrado.</div>
+
+    <div class="menu-grid">
+        <a href="/ferias.html" class="menu-card" id="card-ferias" data-cats="rh">
+            <div class="menu-icon" aria-hidden="true">🏖️</div>
+            <div class="menu-content">
+                <div class="menu-title" data-translate="idx_card_ferias_title">Solicitação de Férias</div>
+                <div class="menu-desc" data-translate="idx_card_ferias_desc">Formulário para solicitação e programação de férias dos colaboradores.</div>
+            </div>
+        </a>
+
+        <a href="/vagas.html" class="menu-card" id="card-vagas" data-cats="recrutamento">
+            <div class="menu-icon" aria-hidden="true">👔</div>
+            <div class="menu-content">
+                <div class="menu-title" data-translate="idx_card_vagas_title">Abertura de Vaga</div>
+                <div class="menu-desc" data-translate="idx_card_vagas_desc">Formulário para requisição de abertura de novas vagas de trabalho.</div>
+            </div>
+        </a>
+
+        <a href="/taxas.html" class="menu-card" id="card-taxas" data-cats="rh operacional">
+            <div class="menu-icon" aria-hidden="true">💰</div>
+            <div class="menu-content">
+                <div class="menu-title" data-translate="idx_card_taxas_title">Pagamento de Taxas</div>
+                <div class="menu-desc" data-translate="idx_card_taxas_desc">Formulário para solicitação de pagamento de taxas e VT.</div>
+            </div>
+        </a>
+
+        <a href="/solicitacao-taxa.html" class="menu-card" id="card-solicitacao-taxa" data-cats="operacional">
+            <div class="menu-icon" aria-hidden="true">👷</div>
+            <div class="menu-content">
+                <div class="menu-title" data-translate="idx_card_solicitacao_taxa_title">Solicitação de Taxa</div>
+                <div class="menu-desc" data-translate="idx_card_solicitacao_taxa_desc">Requisição de mão de obra extra (taxa) para eventos ou cobertura.</div>
+            </div>
+        </a>
+
+        <a href="/trabalheConosco.html" class="menu-card" id="card-trabalhe-conosco" data-cats="recrutamento">
+            <div class="menu-icon" aria-hidden="true">🤝</div>
+            <div class="menu-content">
+                <div class="menu-title" data-translate="idx_card_trabalhe_title">Trabalhe Conosco</div>
+                <div class="menu-desc" data-translate="idx_card_trabalhe_desc">Formulário para envio de currículo e cadastro no banco de talentos.</div>
+            </div>
+        </a>
+
+        <a href="/recrutamentoInterno.html" class="menu-card" id="card-recrutamento-interno" data-cats="recrutamento">
+            <div class="menu-icon" aria-hidden="true">📋</div>
+            <div class="menu-content">
+                <div class="menu-title" data-translate="idx_card_recrutamento_title">Recrutamento Interno</div>
+                <div class="menu-desc" data-translate="idx_card_recrutamento_desc">Formulário para candidatura interna a vagas disponíveis.</div>
+            </div>
+        </a>
+
+       <!--  <a href="/onTheJob.html" class="menu-card" id="card-onthejob" data-cats="operacional rh">
+            <div class="menu-icon" aria-hidden="true">🚀</div>
+            <div class="menu-content">
+                <div class="menu-title" data-translate="idx_card_onthejob_title">On The Job</div>
+                <div class="menu-desc" data-translate="idx_card_onthejob_desc">Formulário para processo de movimentação e promoção (On The Job).</div>
+            </div>
+        </a> -->
+
+        <a href="/avaliacao-operacional.html" class="menu-card" id="card-avaliacoes" data-cats="avaliacoes" data-eval="1" onclick="return abrirModalAvaliacoes(event)">
+            <div class="menu-icon" aria-hidden="true">📊</div>
+            <div class="menu-content">
+                <div class="menu-title">Avaliações de Desempenho</div>
+                <div class="menu-desc">Avaliação de performance: ADM, Gestores, Atendimento e Operacional.</div>
+            </div>
+        </a>
+
+        <a href="/form-avaliacao-experiencia.html" class="menu-card" id="card-avaliacao-experiencia" data-cats="avaliacoes rh">
+            <div class="menu-icon" aria-hidden="true">⭐</div>
+            <div class="menu-content">
+                <div class="menu-title">Avaliação Experiência</div>
+                <div class="menu-desc">Acompanhamento de período de experiência (45/90 dias).</div>
+            </div>
+        </a>
+    </div>
+
+  </main>
+
+  <!-- Login Modal -->
+  <div class="modal-overlay" id="loginModal" onclick="if(event.target === this) toggleModal()">
+      <div class="modal">
+          <div class="modal-header">
+              <div>
+                  <h2 class="modal-title">Acesso Restrito</h2>
+                  <p class="modal-subtitle">Faça login para acessar sua área.</p>
+              </div>
+              <button class="modal-close" onclick="toggleModal()" aria-label="Fechar">&times;</button>
+          </div>
+          <div class="modal-body">
+              <form id="loginForm">
+                  <div class="form-group">
+                      <label for="username">Usuário</label>
+                      <input class="input" type="text" id="username" name="username" required autocomplete="username">
+                  </div>
+                  <div class="form-group">
+                      <label for="password">Senha</label>
+                      <input class="input" type="password" id="password" name="password" required autocomplete="current-password">
+                  </div>
+                  <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+                  <div id="errorMsg" class="error-msg"></div>
+              </form>
+          </div>
+      </div>
+  </div>
+
+  <div class="modal-overlay" id="avaliacoesModal" onclick="if(event.target === this) toggleAvaliacoesModal(false)">
+      <div class="modal">
+          <div class="modal-header">
+              <div>
+                  <h2 class="modal-title">Avaliações</h2>
+                  <p class="modal-subtitle">Selecione o tipo de avaliação.</p>
+              </div>
+              <button class="modal-close" onclick="toggleAvaliacoesModal(false)" aria-label="Fechar">&times;</button>
+          </div>
+          <div class="modal-body">
+              <div class="stack">
+                  <a id="optAvaliacaoAdm" href="/avaliacao-adm.html" class="btn btn-outline btn-block">ADM</a>
+                  <a id="optAvaliacaoGestores" href="/avaliacao-lideranca.html" class="btn btn-outline btn-block">Gestores</a>
+                  <a id="optAvaliacaoAtendimento" href="/avaliacao-atendimento.html" class="btn btn-outline btn-block">Atendimento</a>
+                  <a id="optAvaliacaoOperacional" href="/avaliacao-operacional.html" class="btn btn-outline btn-block">Operacional</a>
+              </div>
+          </div>
+      </div>
+  </div>
+
+  <footer class="app-footer">
+    &copy; 2026 Família Madalosso. Todos os direitos reservados.
+  </footer>
+
+  <script>
+      function toggleModal() {
+          const modal = document.getElementById('loginModal');
+          modal.classList.toggle('active');
+      }
+
+      function toggleAvaliacoesModal(open) {
+          const modal = document.getElementById('avaliacoesModal');
+          if (!modal) return;
+          const shouldOpen = typeof open === 'boolean' ? open : !modal.classList.contains('active');
+          if (shouldOpen) modal.classList.add('active');
+          else modal.classList.remove('active');
+      }
+
+      function abrirModalAvaliacoes(e) {
+          if (e && e.preventDefault) e.preventDefault();
+          toggleAvaliacoesModal(true);
+          return false;
+      }
+
+      const evalEnabled = {};
+
+      (async function liberarAvaliacoes() {
+          const cardAvaliacoes = document.getElementById('card-avaliacoes');
+          const forms = ['avaliacao_lideranca', 'avaliacao_adm', 'avaliacao_operacional'];
+
+          for (const formId of forms) {
+              try {
+                  const res = await fetch(`/api/rh/formularios/public/${formId}`);
+                  evalEnabled[formId] = !!res.ok;
+              } catch (e) {
+                  evalEnabled[formId] = false;
+              }
+          }
+
+          const any = !!(evalEnabled.avaliacao_lideranca || evalEnabled.avaliacao_adm || evalEnabled.avaliacao_operacional);
+          if (cardAvaliacoes) {
+              cardAvaliacoes.dataset.active = any ? '1' : '0';
+          }
+
+          if (window.__applyRoleCards && window.__currentRole) {
+              window.__applyRoleCards(window.__currentRole);
+          }
+      })();
+
+      (async function gateIndexByRole() {
+          const setBlockedUI = () => {
+              document.querySelectorAll('.menu-card').forEach(c => {
+                  c.style.display = 'none';
+              });
+              const heroDesc = document.querySelector('.hero p');
+              if (heroDesc) heroDesc.textContent = 'Acesso restrito: faça login para continuar.';
+              const toolbar = document.querySelector('.menu-toolbar');
+              if (toolbar) toolbar.style.display = 'none';
+              const empty = document.getElementById('menuEmpty');
+              if (empty) empty.style.display = 'none';
+          };
+
+          const setLoggedUI = (user) => {
+              // Mudar botão de Login para Dashboard/Logout
+              const navBtn = document.querySelector('.btn-login');
+              if (navBtn) {
+                  navBtn.innerHTML = `👤 ${user.name || user.username}`;
+                  navBtn.onclick = (e) => {
+                      e.preventDefault();
+                      let dashLink = '/protected/dashboard-gestor.html';
+                      if (user.role === 'portaria') dashLink = '/protected/dashboard-portaria.html';
+                      window.location.href = dashLink;
+                  };
+                  navBtn.title = "Ir para o Painel Administrativo";
+                  
+                  // Adicionar botão de logout
+                  if (document.getElementById('logoutBtn')) return;
+                  const logoutBtn = document.createElement('button');
+                  logoutBtn.id = 'logoutBtn';
+                  logoutBtn.className = 'btn btn-outline btn-login';
+                  logoutBtn.style.marginLeft = '10px';
+                  logoutBtn.style.borderColor = 'var(--danger)';
+                  logoutBtn.style.color = 'var(--danger)';
+                  logoutBtn.innerHTML = 'Sair';
+                  logoutBtn.onclick = async () => {
+                      await fetch('/api/logout', { method: 'POST' });
+                      window.location.reload();
+                  };
+                  navBtn.parentNode.insertBefore(logoutBtn, navBtn.nextSibling);
+              }
+          };
+
+      const getActiveCat = () => {
+          const btn = document.querySelector('.filter-chip.active');
+          return btn ? String(btn.dataset.cat || 'all') : 'all';
+      };
+
+      const updateCount = (visible, totalAllowed) => {
+          const el = document.getElementById('menuCount');
+          if (!el) return;
+          el.textContent = `${visible} de ${totalAllowed}`;
+      };
+
+      const applySearch = () => {
+              const q = String(document.getElementById('menuSearch')?.value || '').trim().toLowerCase();
+          const cat = getActiveCat();
+              const cards = Array.from(document.querySelectorAll('.menu-card'));
+              let visible = 0;
+          let allowedTotal = 0;
+              cards.forEach(c => {
+                  const isAllowed = c.dataset && c.dataset.allowed === '1';
+                  if (!isAllowed) return;
+              allowedTotal++;
+              const cats = String(c.getAttribute('data-cats') || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
+              const catOk = (cat === 'all') || cats.includes(cat);
+              if (!catOk) {
+                  c.style.display = 'none';
+                  return;
+              }
+                  if (!q) {
+                      c.style.display = '';
+                      visible++;
+                      return;
+                  }
+                  const title = (c.querySelector('.menu-title')?.textContent || '').toLowerCase();
+                  const desc = (c.querySelector('.menu-desc')?.textContent || '').toLowerCase();
+              const ok = (title + ' ' + desc + ' ' + cats.join(' ')).includes(q);
+                  c.style.display = ok ? '' : 'none';
+                  if (ok) visible++;
+              });
+              const empty = document.getElementById('menuEmpty');
+              if (empty) empty.style.display = visible === 0 ? '' : 'none';
+          updateCount(visible, allowedTotal);
+
+          const clearBtn = document.getElementById('btnClearSearch');
+          if (clearBtn) clearBtn.hidden = !q;
+          };
+
+          const applyAllowedPublicPaths = (publicPaths) => {
+              const allowed = new Set(publicPaths || []);
+              document.querySelectorAll('.menu-card').forEach(c => {
+                  c.style.display = 'none';
+                  c.dataset.allowed = '0';
+              });
+
+              document.querySelectorAll('.menu-card').forEach(c => {
+                  const href = c.getAttribute('href') || '';
+                  const path = href.split('?')[0];
+                  if (!allowed.has(path)) return;
+                  c.style.display = '';
+                  c.dataset.allowed = '1';
+              });
+
+              const optAdm = document.getElementById('optAvaliacaoAdm');
+              const optGestores = document.getElementById('optAvaliacaoGestores');
+              const optAtendimento = document.getElementById('optAvaliacaoAtendimento');
+              const optOperacional = document.getElementById('optAvaliacaoOperacional');
+
+              const canAdm = allowed.has('/avaliacao-adm.html');
+              const canGestores = allowed.has('/avaliacao-lideranca.html');
+              const canOperacional = allowed.has('/avaliacao-operacional.html');
+              const canAtendimento = canOperacional;
+
+              if (optAdm) optAdm.style.display = canAdm ? '' : 'none';
+              if (optGestores) optGestores.style.display = canGestores ? '' : 'none';
+              if (optOperacional) optOperacional.style.display = canOperacional ? '' : 'none';
+              if (optAtendimento) optAtendimento.style.display = canAtendimento ? '' : 'none';
+
+              applySearch();
+          };
+          window.__applyRoleCards = () => applyAllowedPublicPaths(window.__publicPaths);
+
+          try {
+              const res = await fetch('/api/access');
+              if (!res.ok) {
+                  setBlockedUI();
+                  toggleModal(); // Auto-open login modal
+                  return;
+              }
+              const data = await res.json();
+              window.__publicPaths = data.access && data.access.publicPaths ? data.access.publicPaths : [];
+              setLoggedUI(data.user);
+              window.__currentRole = data.user && data.user.role;
+              applyAllowedPublicPaths(window.__publicPaths);
+              const search = document.getElementById('menuSearch');
+              if (search) {
+                  search.addEventListener('input', applySearch);
+              }
+              const clearBtn = document.getElementById('btnClearSearch');
+              if (clearBtn) {
+                  clearBtn.addEventListener('click', () => {
+                      const s = document.getElementById('menuSearch');
+                      if (s) s.value = '';
+                      applySearch();
+                      if (s) s.focus();
+                  });
+              }
+              document.querySelectorAll('.filter-chip').forEach(b => {
+                  b.addEventListener('click', () => {
+                      document.querySelectorAll('.filter-chip').forEach(x => x.classList.remove('active'));
+                      b.classList.add('active');
+                      applySearch();
+                  });
+              });
+          } catch (e) {
+              setBlockedUI();
+              toggleModal();
+          }
+      })();
+
+      // Login Form Handler
+      const loginForm = document.getElementById('loginForm');
+      if (loginForm) {
+          loginForm.addEventListener('submit', async (e) => {
+              e.preventDefault();
+              const username = document.getElementById('username').value;
+              const password = document.getElementById('password').value;
+              const errorMsg = document.getElementById('errorMsg');
+              
+              try {
+                  const response = await fetch('/api/login', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ username, password })
+                  });
+                  
+                  const result = await response.json();
+                  
+                  if (result.ok) {
+                      // Ao logar, recarrega a página atual para mostrar os formulários
+                      // em vez de redirecionar imediatamente para o dashboard
+                      window.location.reload();
+                  } else {
+                      errorMsg.textContent = result.erro || 'Erro ao fazer login';
+                      errorMsg.style.display = 'block';
+                  }
+              } catch (err) {
+                  errorMsg.textContent = 'Erro de conexão';
+                  errorMsg.style.display = 'block';
+              }
+          });
+      }
+  </script>
+</body>
+</html>

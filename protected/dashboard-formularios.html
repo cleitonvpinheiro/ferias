@@ -1,0 +1,2248 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gestão de Formulários - RH</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="/rh-styles.css">
+  <script src="/lang-switcher.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body data-page="rh-formularios">
+  <div id="navbar-container"></div>
+  <script src="/rh-navbar.js"></script>
+  <script>
+    renderRHNavbar('formularios');
+    
+    // Check Access (Admin, RH Geral, T&D, Endomarketing)
+    (async function() {
+        try {
+            const res = await fetch('/api/me');
+            if (!res.ok) throw new Error('Not logged in');
+            const data = await res.json();
+            const role = data.user.role;
+            window.__USER_ROLE = role;
+            const allowed = ['admin', 'rh_geral', 'td', 'endomarketing'];
+            if (!allowed.includes(role)) {
+                window.location.href = '/protected/index.html';
+            }
+        } catch (e) {
+            window.location.href = '/login.html';
+        }
+    })();
+  </script>
+
+  <main class="dashboard-container">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title" data-translate="rh_dash_formularios_title">Gestão de Formulários</h1>
+            <p class="page-subtitle" data-translate="rh_dash_formularios_subtitle">Crie e edite formulários de avaliação e pesquisa</p>
+        </div>
+        <div class="action-buttons">
+            <button class="btn btn-outline" onclick="importarViaIA()">
+                ✨ <span>Importar via IA</span>
+            </button>
+            <button class="btn btn-outline" onclick="downloadModeloFormularios()">
+                📄 <span>Baixar Modelo</span>
+            </button>
+            <button class="btn btn-outline" onclick="document.getElementById('importFormsInput').click()">
+                📥 <span>Importar Excel</span>
+            </button>
+            <input type="file" id="importFormsInput" accept=".xlsx, .xls" style="display: none;" onchange="handleImportFormularios(this)">
+            <button class="btn btn-primary" id="btn-novo-form" onclick="abrirModalCriacao()">
+                <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> <span data-translate="rh_dash_formularios_new">Novo Formulário</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="filters-bar" style="margin-top: 16px;">
+        <div class="filter-group">
+            <label data-translate="rh_dash_search">Buscar</label>
+            <input id="filter-q" class="filter-input" type="text" placeholder="Buscar por ID ou título" data-translate="rh_dash_formularios_search_placeholder">
+        </div>
+        <div class="filter-group">
+            <label data-translate="rh_dash_type">Tipo</label>
+            <select id="filter-tipo" class="filter-select">
+                <option value="" data-translate="rh_dash_filter_all">Todos</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label data-translate="rh_dash_status">Status</label>
+            <select id="filter-status" class="filter-select">
+                <option value="" data-translate="rh_dash_filter_all">Todos</option>
+                <option value="ativo" data-translate="rh_dash_status_active">Ativo</option>
+                <option value="inativo" data-translate="rh_dash_status_inactive">Inativo</option>
+            </select>
+        </div>
+        <div class="filter-group filter-actions">
+            <label>&nbsp;</label>
+            <button class="btn btn-secondary" type="button" onclick="limparFiltros()">
+                <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg> <span data-translate="rh_dash_clear">Limpar</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="last-update" id="forms-summary" style="margin: -10px 0 14px;"></div>
+
+    <div class="table-container">
+        <div class="table-wrapper">
+            <table id="tabela-formularios">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th data-translate="rh_dash_formularios_th_title">Título</th>
+                        <th data-translate="rh_dash_type">Tipo</th>
+                        <th data-translate="rh_dash_formularios_th_questions">Questões</th>
+                        <th data-translate="rh_dash_status">Status</th>
+                        <th data-translate="rh_dash_th_acao">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="lista-corpo">
+                    <!-- Preenchido via JS -->
+                </tbody>
+            </table>
+        </div>
+        <div id="empty-state" class="empty-state" hidden>
+            <div class="empty-icon"><svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="12" height="18" rx="2"/><path d="M9 2h6v4H9z"/><path d="M9 11h6M9 15h6M9 19h4"/></svg></div>
+            <p data-translate="rh_dash_formularios_empty">Nenhum formulário encontrado.</p>
+            <button class="btn btn-outline" id="btn-empty-create" onclick="abrirModalCriacao()" data-translate="rh_dash_formularios_empty_cta">Criar Primeiro Formulário</button>
+        </div>
+    </div>
+  </main>
+
+  <!-- Modal de Edição/Criação -->
+  <div id="modal-form" class="modal-overlay" style="display: none;">
+      <div class="modal-content full-screen-modal">
+          <div class="modal-header">
+              <div class="modal-title-wrap">
+                  <h2 id="modal-title" data-translate="rh_dash_formularios_modal_title">Editar Formulário</h2>
+                  <div class="modal-subtitle">
+                      <span id="modal-form-meta-id" class="meta-pill" style="display:none"></span>
+                      <span id="modal-form-meta-type" class="meta-pill"></span>
+                      <span id="modal-form-meta-status" class="meta-pill meta-pill-muted"></span>
+                  </div>
+              </div>
+              <div class="header-actions">
+                  <button class="btn btn-primary" id="btn-save-header" onclick="salvarFormulario()">
+                      <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21h14a2 2 0 0 0 2-2V7.5L16.5 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg> <span data-translate="rh_dash_save">Salvar</span>
+                  </button>
+                  <button class="btn btn-outline" onclick="abrirPreview()">
+                      <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M1.5 12s4-7.5 10.5-7.5S22.5 12 22.5 12s-4 7.5-10.5 7.5S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3.5"/></svg> <span data-translate="rh_dash_preview">Visualizar</span>
+                  </button>
+                  <button class="close-btn" onclick="fecharModal()">&times;</button>
+              </div>
+          </div>
+          
+          <div class="modal-body-layout">
+              <!-- Sidebar: Configurações Gerais -->
+              <aside class="editor-sidebar">
+                  <h3 data-translate="rh_dash_settings">Configurações</h3>
+                  <form id="form-settings" onsubmit="event.preventDefault()">
+                      <input type="hidden" id="form-id">
+                      
+                      <div class="form-group">
+                          <label data-translate="rh_dash_formularios_label_title">Título do Formulário</label>
+                          <input type="text" id="form-titulo" class="form-control" required placeholder="Ex: Avaliação de Clima" data-translate="rh_dash_formularios_placeholder_title">
+                      </div>
+
+                      <div class="form-group">
+                          <label data-translate="rh_dash_type">Tipo</label>
+                          <select id="form-tipo" class="form-control">
+                              <option value="avaliacao" data-translate="rh_dash_formularios_type_perf">Avaliação de Desempenho</option>
+                              <option value="pesquisa" data-translate="rh_dash_formularios_type_climate">Pesquisa de Clima</option>
+                              <option value="checklist" data-translate="rh_dash_formularios_type_checklist">Checklist</option>
+                          </select>
+                      </div>
+
+                      <div class="form-group">
+                          <label>Modelo (Dashboard)</label>
+                          <select id="form-dashboard" class="form-control"></select>
+                      </div>
+
+                      <div class="form-group">
+                          <label class="toggle-switch">
+                              <input type="checkbox" id="form-ativo">
+                              <span class="slider"></span>
+                              <span class="label-text" data-translate="rh_dash_formularios_active">Formulário Ativo</span>
+                          </label>
+                      </div>
+
+                      <div class="form-group">
+                          <label class="toggle-switch">
+                              <input type="checkbox" id="form-publico">
+                              <span class="slider"></span>
+                              <span class="label-text">Acesso público (sem login)</span>
+                          </label>
+                      </div>
+
+                      <div class="form-group" id="form-roles-wrap" style="display:none;">
+                          <label>Perfis permitidos</label>
+                          <div id="form-roles" style="display:flex; flex-direction:column; gap:6px; max-height: 220px; overflow:auto; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-body);"></div>
+                      </div>
+                  </form>
+                  
+                  <div class="sidebar-footer">
+                      <button type="button" class="btn btn-primary btn-block" id="btn-save-sidebar" onclick="salvarFormulario()">
+                          <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21h14a2 2 0 0 0 2-2V7.5L16.5 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg> <span data-translate="rh_dash_formularios_save_form">Salvar Formulário</span>
+                      </button>
+                  </div>
+              </aside>
+
+              <!-- Main: Construtor de Questões -->
+              <main class="editor-main">
+                  <div class="editor-toolbar">
+                      <div class="toolbar-left">
+                          <h3 data-translate="rh_dash_formularios_questions">Questões</h3>
+                          <span class="count-badge" id="questions-count">0</span>
+                      </div>
+                      <button class="btn btn-sm btn-primary" id="btn-add-question" onclick="adicionarQuestao()">
+                          <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> <span data-translate="rh_dash_add">Adicionar</span>
+                      </button>
+                  </div>
+
+                  <details class="inline-form-preview" open>
+                      <summary>
+                          <span class="inline-form-preview-title">
+                              <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M1.5 12s4-7.5 10.5-7.5S22.5 12 22.5 12s-4 7.5-10.5 7.5S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3.5"/></svg>
+                              <span data-translate="rh_dash_formularios_inline_preview">Prévia do Formulário</span>
+                          </span>
+                          <svg class="svg-icon svg-stroke inline-form-preview-chevron" viewBox="0 0 24 24" aria-hidden="true" style="margin-right:0"><path d="M6 9l6 6 6-6"/></svg>
+                      </summary>
+                      <div class="inline-form-preview-body">
+                          <div id="inline-preview-host"></div>
+                      </div>
+                  </details>
+
+                  <div id="questions-container" class="questions-list">
+                      <!-- Questões serão renderizadas aqui -->
+                  </div>
+                  
+                  <div class="add-question-placeholder" onclick="adicionarQuestao()">
+                      <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg> <span data-translate="rh_dash_formularios_add_question_hint">Clique para adicionar uma nova questão</span>
+                  </div>
+              </main>
+          </div>
+      </div>
+  </div>
+
+  <!-- Modal de Preview -->
+  <div id="modal-preview" class="modal-overlay" style="display: none; z-index: 1100;">
+      <div class="modal-content preview-modal">
+          <div class="modal-header">
+              <h2 data-translate="rh_dash_preview_title">Pré-visualização</h2>
+              <button class="close-btn" onclick="fecharPreview()">&times;</button>
+          </div>
+          <div class="modal-body preview-body" id="preview-content">
+              <!-- Renderização do Form -->
+          </div>
+          <div class="modal-footer">
+              <button class="btn btn-primary" onclick="fecharPreview()" data-translate="rh_dash_close">Fechar</button>
+          </div>
+      </div>
+  </div>
+
+  <style>
+      .svg-icon {
+          width: 16px;
+          height: 16px;
+          display: inline-block;
+          vertical-align: -0.15em;
+          margin-right: 8px;
+          flex: 0 0 auto;
+      }
+      .svg-stroke {
+          fill: none;
+          stroke: currentColor;
+          stroke-width: 2;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+      }
+      .btn .svg-icon { margin-right: 8px; }
+      .btn-icon .svg-icon { margin-right: 0; }
+
+      .inline-form-preview {
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          background: var(--bg-surface);
+          margin-bottom: 12px;
+          overflow: hidden;
+      }
+      .inline-form-preview summary {
+          cursor: pointer;
+          list-style: none;
+          padding: 12px 14px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          user-select: none;
+          border-bottom: 1px solid var(--border);
+          background: var(--bg-body);
+      }
+      .inline-form-preview summary::-webkit-details-marker { display: none; }
+      .inline-form-preview-title {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-weight: 700;
+          color: var(--text-primary);
+      }
+      .inline-form-preview-chevron { transition: transform 0.15s ease; }
+      .inline-form-preview[open] .inline-form-preview-chevron { transform: rotate(180deg); }
+      .inline-form-preview-body { padding: 12px; }
+      .inline-form-preview-body .main-container { margin: 0; padding: 0; max-width: 100%; }
+      .inline-form-preview-body .form-card { padding: 18px; }
+
+      /* Modal Full Screen */
+      .modal-overlay {
+          position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+          background: var(--backdrop-bg); z-index: 1000;
+          display: flex; justify-content: center; align-items: center;
+          backdrop-filter: blur(4px);
+          padding: 18px;
+      }
+      .modal-content.full-screen-modal {
+          width: 95%; height: 90vh; max-width: 1200px;
+          display: flex; flex-direction: column;
+          padding: 0; overflow: hidden;
+          border-radius: 14px;
+          background: var(--bg-surface);
+          box-shadow: var(--shadow-lg);
+      }
+      .modal-header {
+          padding: 14px 18px; border-bottom: 1px solid var(--border);
+          display: flex; justify-content: space-between; align-items: center;
+          background: var(--bg-body);
+          gap: 16px;
+      }
+      .header-actions { display: flex; gap: 12px; align-items: center; }
+      .modal-title-wrap { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+      #modal-title { margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
+      .modal-subtitle { display: flex; gap: 8px; flex-wrap: wrap; }
+      .meta-pill {
+          font-size: 0.78rem;
+          padding: 5px 10px;
+          border-radius: 999px;
+          border: 1px solid var(--border);
+          background: var(--bg-surface);
+          color: var(--text-primary);
+          white-space: nowrap;
+      }
+      .meta-pill-muted { color: var(--text-secondary); background: var(--bg-body); }
+      .close-btn {
+          width: 34px;
+          height: 34px;
+          border-radius: 999px;
+          border: 1px solid var(--border);
+          background: var(--bg-surface);
+          color: var(--text-primary);
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 20px;
+          line-height: 1;
+          padding: 0;
+      }
+      .close-btn:hover { background: var(--bg-body); }
+      
+      .modal-body-layout {
+          display: flex; flex: 1; overflow: hidden;
+      }
+      
+      /* Sidebar */
+      .editor-sidebar {
+          width: 320px; background: var(--bg-surface); border-right: 1px solid var(--border);
+          padding: 20px; display: flex; flex-direction: column; gap: 16px;
+          overflow-y: auto;
+      }
+      .editor-sidebar h3 { margin: 0; font-size: 1rem; color: var(--text-primary); }
+      .sidebar-footer { margin-top: auto; position: sticky; bottom: 0; padding-top: 14px; background: linear-gradient(180deg, transparent 0%, var(--bg-surface) 45%); }
+      
+      /* Main Editor */
+      .editor-main {
+          flex: 1; padding: 20px; background: var(--bg-body); overflow-y: auto;
+      }
+      .editor-toolbar {
+          display: flex; justify-content: space-between; align-items: center;
+          margin-bottom: 20px;
+          position: sticky;
+          top: 0;
+          z-index: 2;
+          padding: 12px 12px;
+          margin: -8px -8px 14px;
+          background: var(--bg-body);
+          backdrop-filter: blur(6px);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+      }
+      .toolbar-left { display: inline-flex; align-items: center; gap: 10px; }
+      .editor-toolbar h3 { margin: 0; font-size: 1rem; color: var(--text-primary); }
+      
+      /* Question Card */
+      .question-card {
+          background: var(--bg-surface); border-radius: 8px; padding: 20px;
+          margin-bottom: 16px; box-shadow: var(--shadow-xs);
+          border-left: 4px solid transparent; transition: all 0.2s;
+          position: relative;
+      }
+      .question-card:hover, .question-card.active {
+          border-left-color: var(--accent); box-shadow: var(--shadow-md);
+      }
+      .card-header {
+          display: flex; justify-content: space-between; margin-bottom: 16px; align-items: center;
+          gap: 12px;
+      }
+      .card-title {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          min-width: 0;
+      }
+      .card-title strong { font-size: 0.95rem; color: var(--text-primary); }
+      .card-title small { color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 560px; }
+      .q-badges { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+      .q-badge {
+          font-size: 0.72rem;
+          padding: 4px 8px;
+          border-radius: 999px;
+          border: 1px solid var(--border);
+          background: var(--bg-body);
+          color: var(--text-primary);
+          white-space: nowrap;
+      }
+      .q-badge-required { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger-text); }
+      .q-badge-type { background: var(--accent-soft); border-color: var(--border); color: var(--accent); }
+      .card-tools {
+          display: flex; gap: 8px;
+      }
+      .tool-btn {
+          background: none; border: none; cursor: pointer; color: var(--text-secondary);
+          padding: 4px 8px; border-radius: 4px; transition: background 0.2s;
+      }
+      .tool-btn:hover { background: var(--bg-body); color: var(--text-primary); }
+      .tool-btn.delete:hover { background: var(--danger-bg); color: var(--danger); }
+      .tool-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+      .card-body { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+      .full-width { grid-column: span 2; }
+
+      .builder-preview {
+          grid-column: span 2;
+          background: var(--bg-surface);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 0;
+          overflow: hidden;
+      }
+      .builder-preview summary {
+          list-style: none;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          user-select: none;
+          padding: 10px 12px;
+          background: var(--bg-body);
+          border-bottom: 1px solid var(--border);
+      }
+      .builder-preview summary::-webkit-details-marker { display: none; }
+      .builder-preview summary:hover { background: var(--bg-body); }
+      .builder-preview[open] summary { background: var(--accent-soft); border-bottom-color: var(--border); }
+      .builder-preview-title {
+          font-size: 0.9rem;
+          font-weight: 600;
+          color: var(--text-primary);
+          text-transform: none;
+          letter-spacing: 0;
+          margin: 0;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+      }
+      .builder-preview-chevron { color: var(--text-secondary); }
+      .builder-preview[open] .builder-preview-chevron { transform: rotate(180deg); }
+      .builder-preview-body { padding: 12px; }
+      .builder-preview-label {
+          font-weight: 600;
+          font-size: 1.05rem;
+          margin-bottom: 12px;
+          display: block;
+          color: var(--text-primary);
+      }
+      .builder-preview-category {
+          color: var(--accent);
+          display: block;
+          margin-top: -8px;
+          margin-bottom: 12px;
+      }
+      .builder-preview .form-control,
+      .builder-preview .form-select,
+      .builder-preview input[type="text"],
+      .builder-preview textarea,
+      .builder-preview select {
+          width: 100%;
+          padding: 12px;
+          border-radius: 6px;
+          border: 1px solid var(--border);
+          box-sizing: border-box;
+          background: var(--bg-body);
+          cursor: not-allowed;
+          color: var(--text-secondary);
+      }
+      .builder-preview textarea {
+          resize: vertical;
+      }
+
+      .builder-rating-group {
+          display: flex;
+          gap: 15px;
+          flex-wrap: wrap;
+      }
+      .builder-rating-option {
+          flex: 1;
+          min-width: 60px;
+      }
+      .builder-rating-option input[type="radio"] {
+          display: none;
+      }
+      .builder-rating-option label {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 12px;
+          border: 2px solid var(--border);
+          border-radius: 8px;
+          cursor: not-allowed;
+          height: 100%;
+          user-select: none;
+          background: var(--bg-surface);
+      }
+      .builder-rating-value {
+          font-size: 1.25rem;
+          margin-bottom: 4px;
+      }
+      .builder-rating-label {
+          font-size: 0.8rem;
+          text-align: center;
+          color: var(--text-secondary);
+      }
+      .builder-custom-option {
+          display: flex;
+          align-items: center;
+          padding: 10px;
+          border: 1px solid var(--border);
+          border-radius: 6px;
+          margin-bottom: 8px;
+          cursor: not-allowed;
+          user-select: none;
+          background: var(--bg-surface);
+      }
+      .builder-custom-option input {
+          margin-right: 12px;
+          width: 18px;
+          height: 18px;
+          cursor: not-allowed;
+          accent-color: var(--primary);
+      }
+      
+      .options-list {
+          margin-top: 10px;
+          border: 1px solid var(--border);
+          padding: 12px;
+          border-radius: 12px;
+          background: var(--bg-body);
+      }
+      .option-item { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+      .option-item:last-child { margin-bottom: 0; }
+      .option-item .form-control { flex: 1; min-width: 0; }
+      .btn-icon {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          border: 1px solid var(--border);
+          background: var(--bg-surface);
+          color: var(--text-secondary);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: background 0.15s, color 0.15s, border-color 0.15s;
+      }
+      .btn-icon:hover { background: var(--bg-body); color: var(--text-primary); }
+      .btn-icon.danger:hover { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger); }
+
+      .table-actions { display: inline-flex; gap: 8px; align-items: center; }
+      .table-actions .btn-icon { width: 32px; height: 32px; border-radius: 10px; }
+      .table-actions .btn-icon i { font-size: 14px; line-height: 1; }
+      .table-actions .btn-icon.primary { background: var(--accent-soft); border-color: var(--border); color: var(--accent); }
+      .table-actions .btn-icon.primary:hover { background: var(--accent-soft); border-color: var(--border); }
+      .table-actions .btn-icon:disabled { opacity: 0.35; cursor: not-allowed; }
+
+      /* Add Placeholder */
+      .add-question-placeholder {
+          border: 2px dashed var(--border); border-radius: 8px; padding: 20px;
+          text-align: center; color: var(--text-secondary); cursor: pointer;
+          transition: all 0.2s; background: var(--bg-surface);
+      }
+      .add-question-placeholder:hover {
+          border-color: var(--accent); color: var(--accent); background: var(--bg-surface);
+      }
+
+      /* Toggle Switch */
+      .toggle-switch {
+          display: flex; align-items: center; cursor: pointer; gap: 10px;
+      }
+      .toggle-switch input { display: none; }
+      .slider {
+          width: 40px; height: 20px; background-color: var(--border);
+          border-radius: 20px; position: relative; transition: .4s;
+      }
+      .slider:before {
+          content: ""; position: absolute; height: 16px; width: 16px;
+          left: 2px; bottom: 2px; background-color: var(--bg-surface);
+          border-radius: 50%; transition: .4s;
+      }
+      input:checked + .slider { background-color: var(--success); }
+      input:checked + .slider:before { transform: translateX(20px); }
+
+      .btn-block { width: 100%; justify-content: center; }
+
+      #form-settings { display: flex; flex-direction: column; gap: 12px; }
+      #modal-form .form-group { display: flex; flex-direction: column; gap: 6px; }
+      #modal-form .form-group label { font-weight: 600; color: var(--text-primary); }
+      #modal-form .form-control {
+          width: 100%;
+          display: block;
+          box-sizing: border-box;
+          border-radius: 10px;
+          padding: 10px 12px;
+          border: 1px solid var(--border);
+          background: var(--bg-surface);
+          color: var(--text-primary);
+      }
+      #modal-form .form-control:focus { outline: none; border-color: var(--accent); box-shadow: var(--focus-ring); }
+
+      @media (max-width: 980px) {
+          .modal-content.full-screen-modal { width: 100%; height: 100%; max-width: none; border-radius: 0; }
+          .modal-overlay { padding: 0; }
+          .modal-body-layout { flex-direction: column; }
+          .editor-sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+          .editor-main { padding: 14px; }
+          .card-body { grid-template-columns: 1fr; }
+          .full-width { grid-column: auto; }
+          .builder-preview { grid-column: auto; }
+      }
+
+      /* Preview Modal */
+      .preview-modal { width: 920px; max-height: 90vh; display: flex; flex-direction: column; }
+      .preview-body { overflow-y: auto; padding: 24px; background: var(--bg-body); }
+
+      #modal-preview .main-container {
+          max-width: 800px;
+          margin: 10px auto;
+          padding: 0 20px;
+      }
+
+      #modal-preview .form-card {
+          background: var(--bg-surface);
+          border-radius: 12px;
+          box-shadow: var(--shadow-sm);
+          padding: 40px;
+          margin-bottom: 20px;
+          border-top: 6px solid var(--accent);
+      }
+
+      #modal-preview .form-header {
+          margin-bottom: 30px;
+          border-bottom: 1px solid var(--border);
+          padding-bottom: 20px;
+      }
+
+      #modal-preview .form-title {
+          font-size: 2rem;
+          font-weight: 700;
+          color: var(--text-primary);
+          margin-bottom: 10px;
+      }
+
+      #modal-preview .form-description {
+          color: var(--text-secondary);
+          font-size: 1.1rem;
+      }
+
+      #modal-preview .question-card {
+          background: var(--bg-surface);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 24px;
+          margin-bottom: 20px;
+      }
+
+      #modal-preview .question-label {
+          font-weight: 600;
+          font-size: 1.1rem;
+          margin-bottom: 15px;
+          display: block;
+          color: var(--text-primary);
+      }
+
+      #modal-preview .required-mark {
+          color: var(--danger);
+          margin-left: 4px;
+      }
+
+      #modal-preview .form-control, #modal-preview .form-select {
+          width: 100%;
+          padding: 12px;
+          border-radius: 6px;
+          border: 1px solid var(--border);
+          box-sizing: border-box;
+          background: var(--bg-body);
+          cursor: not-allowed;
+          color: var(--text-secondary);
+      }
+
+      #modal-preview textarea.form-control {
+          resize: vertical;
+      }
+
+      #modal-preview .rating-group {
+          display: flex;
+          gap: 15px;
+          flex-wrap: wrap;
+      }
+
+      #modal-preview .rating-option {
+          flex: 1;
+          min-width: 60px;
+      }
+
+      #modal-preview .rating-option input[type="radio"] {
+          display: none;
+      }
+
+      #modal-preview .rating-option label {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 12px;
+          border: 2px solid var(--border);
+          border-radius: 8px;
+          cursor: not-allowed;
+          transition: all 0.2s;
+          height: 100%;
+          user-select: none;
+      }
+
+      #modal-preview .rating-value {
+          font-size: 1.25rem;
+          margin-bottom: 4px;
+      }
+
+      #modal-preview .rating-label {
+          font-size: 0.8rem;
+          text-align: center;
+          color: var(--secondary);
+      }
+
+      #modal-preview .custom-option {
+          display: flex;
+          align-items: center;
+          padding: 10px;
+          border: 1px solid var(--border);
+          border-radius: 6px;
+          margin-bottom: 8px;
+          cursor: not-allowed;
+          transition: all 0.2s;
+          user-select: none;
+          background: var(--bg-surface);
+      }
+
+      #modal-preview .custom-option input {
+          margin-right: 12px;
+          width: 18px;
+          height: 18px;
+          accent-color: var(--primary);
+          cursor: not-allowed;
+      }
+
+      #modal-preview .btn-submit {
+          background-color: var(--text-secondary);
+          color: var(--brand-text);
+          padding: 14px 28px;
+          font-size: 1.1rem;
+          font-weight: 600;
+          border-radius: 8px;
+          border: none;
+          width: 100%;
+          cursor: not-allowed;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+      }
+
+      #modal-preview .text-muted {
+          color: var(--secondary);
+      }
+
+      #modal-preview .error-message {
+          display: none;
+      }
+  </style>
+
+  <script>
+    let currentForms = [];
+    let currentDashboards = [];
+    let editingQuestions = [];
+
+    const FORM_TYPE_LABELS = {
+        avaliacao: 'Avaliação',
+        pesquisa: 'Pesquisa',
+        checklist: 'Checklist',
+        recrutamento: 'Recrutamento',
+        desligamento: 'Desligamento',
+        solicitacao: 'Solicitação',
+        financeiro: 'Financeiro',
+        onthejob: 'On the Job'
+    };
+
+    function canCreateForms() {
+        const role = String(window.__USER_ROLE || '');
+        return role === 'td' || role === 'rh_geral' || role === 'rh' || role === 'admin';
+    }
+
+    function canDeleteForms() {
+        const role = String(window.__USER_ROLE || '');
+        return role === 'td' || role === 'rh_geral' || role === 'rh' || role === 'admin';
+    }
+
+    function normalizeText(value) {
+        return String(value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim();
+    }
+
+    function getFormTypeLabel(tipo) {
+        if (!tipo) return '';
+        return FORM_TYPE_LABELS[tipo] || String(tipo);
+    }
+
+    function getFormTypeBadgeClass(tipo) {
+        if (tipo === 'avaliacao') return 'badge-primary';
+        if (tipo === 'pesquisa') return 'badge-info';
+        if (tipo === 'checklist') return 'badge-secondary';
+        return 'badge-info';
+    }
+
+    function updateCreateVisibility() {
+        const canWrite = canCreateForms();
+        const btnNovo = document.getElementById('btn-novo-form');
+        const btnEmpty = document.getElementById('btn-empty-create');
+        if (btnNovo) btnNovo.style.display = canWrite ? '' : 'none';
+        if (btnEmpty) btnEmpty.style.display = canWrite ? '' : 'none';
+    }
+
+    function updateEditorPermissions() {
+        const readOnly = !canCreateForms();
+
+        const saveHeader = document.getElementById('btn-save-header');
+        const saveSidebar = document.getElementById('btn-save-sidebar');
+        const addQuestion = document.getElementById('btn-add-question');
+        const addPlaceholder = document.querySelector('.add-question-placeholder');
+
+        if (saveHeader) {
+            saveHeader.disabled = readOnly;
+            saveHeader.title = readOnly ? 'Apenas T&D ou Admin pode salvar alterações' : '';
+        }
+        if (saveSidebar) {
+            saveSidebar.disabled = readOnly;
+            saveSidebar.title = readOnly ? 'Apenas T&D ou Admin pode salvar alterações' : '';
+        }
+        if (addQuestion) {
+            addQuestion.disabled = readOnly;
+            addQuestion.title = readOnly ? 'Apenas T&D ou Admin pode adicionar questões' : '';
+        }
+        if (addPlaceholder) {
+            addPlaceholder.style.pointerEvents = readOnly ? 'none' : '';
+            addPlaceholder.style.opacity = readOnly ? '0.55' : '';
+        }
+
+        const titulo = document.getElementById('form-titulo');
+        const tipo = document.getElementById('form-tipo');
+        const ativo = document.getElementById('form-ativo');
+        if (titulo) titulo.disabled = readOnly;
+        if (tipo) tipo.disabled = readOnly;
+        if (ativo) ativo.disabled = readOnly;
+
+        const container = document.getElementById('questions-container');
+        if (container) {
+            container.querySelectorAll('input, select, textarea, button').forEach(el => {
+                if (el.closest('.builder-preview')) return;
+                el.disabled = readOnly;
+                if (readOnly) el.setAttribute('aria-disabled', 'true');
+                else el.removeAttribute('aria-disabled');
+            });
+        }
+    }
+
+    function getActiveFilters() {
+        const q = document.getElementById('filter-q')?.value || '';
+        const tipo = document.getElementById('filter-tipo')?.value || '';
+        const status = document.getElementById('filter-status')?.value || '';
+        return { q, tipo, status };
+    }
+
+    function applyFilters(forms) {
+        const { q, tipo, status } = getActiveFilters();
+        const qn = normalizeText(q);
+
+        return (forms || []).filter(f => {
+            if (tipo && String(f.tipo) !== String(tipo)) return false;
+            if (status) {
+                const isAtivo = !!f.ativo;
+                if (status === 'ativo' && !isAtivo) return false;
+                if (status === 'inativo' && isAtivo) return false;
+            }
+            if (qn) {
+                const hay = `${normalizeText(f.id)} ${normalizeText(f.titulo)}`;
+                if (!hay.includes(qn)) return false;
+            }
+            return true;
+        });
+    }
+
+    function buildTipoFilterOptions(forms) {
+        const select = document.getElementById('filter-tipo');
+        if (!select) return;
+
+        const existingValue = select.value;
+        const types = Array.from(new Set((forms || []).map(f => String(f.tipo || '')).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+
+        select.innerHTML = `<option value="">Todos</option>` + types.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(getFormTypeLabel(t))}</option>`).join('');
+        select.value = types.includes(existingValue) ? existingValue : '';
+    }
+
+    function renderFormsTable(forms, totalCount) {
+        const tbody = document.getElementById('lista-corpo');
+        const summary = document.getElementById('forms-summary');
+        if (!tbody) return;
+
+        const shownCount = forms.length;
+        if (summary) summary.textContent = `Mostrando ${shownCount} de ${totalCount} formulário(s)`;
+
+        tbody.innerHTML = '';
+
+        if (shownCount === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-secondary); padding: 22px;">Nenhum formulário encontrado com os filtros atuais.</td></tr>`;
+            return;
+        }
+
+        const allowDelete = canDeleteForms();
+        const allowCreate = canCreateForms();
+
+        forms.forEach(f => {
+            const tr = document.createElement('tr');
+            const idJson = JSON.stringify(String(f.id));
+            const dashJson = JSON.stringify(String(f.dashboardId || f.dashboard_id || f.id));
+
+            const tipoLabel = getFormTypeLabel(f.tipo);
+            const tipoBadge = getFormTypeBadgeClass(f.tipo);
+            const questoesCount = Array.isArray(f.questoes) ? f.questoes.length : 0;
+            const statusBadge = f.ativo ? '<span class="badge badge-success">Ativo</span>' : '<span class="badge badge-secondary">Inativo</span>';
+
+            tr.innerHTML = `
+                <td><code>${escapeHtml(f.id)}</code></td>
+                <td><strong>${escapeHtml(f.titulo)}</strong></td>
+                <td><span class="badge ${tipoBadge}">${escapeHtml(tipoLabel)}</span></td>
+                <td>${questoesCount} questão(ões)</td>
+                <td>${statusBadge}</td>
+                <td>
+                    <div class="table-actions">
+                        <button class="btn-icon primary" onclick='editarFormulario(${idJson})' title="Editar">
+                            <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4 11.5-11.5z"/></svg>
+                        </button>
+                        <button class="btn-icon" onclick='previewFormulario(${idJson})' title="Prévia">
+                            <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M1.5 12s4-7.5 10.5-7.5S22.5 12 22.5 12s-4 7.5-10.5 7.5S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3.5"/></svg>
+                        </button>
+                        <button class="btn-icon" onclick='verRespostas(${idJson})' title="Respostas">
+                            <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v12H3z"/><path d="M7 9h10M7 13h6"/></svg>
+                        </button>
+                        <button class="btn-icon" onclick='abrirDashboardRespostas(${dashJson})' title="Dashboard">
+                            <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="M8 16v-5"/><path d="M12 16V8"/><path d="M16 16v-3"/></svg>
+                        </button>
+                        <button class="btn-icon" onclick='duplicarFormulario(${idJson})' title="Duplicar" ${allowCreate ? '' : 'disabled'}>
+                            <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><rect x="2" y="2" width="13" height="13" rx="2"/></svg>
+                        </button>
+                        <button class="btn-icon danger" onclick='excluirFormulario(${idJson})' title="Excluir" ${allowDelete ? '' : 'disabled'}>
+                            <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function refreshList() {
+        const filtered = applyFilters(currentForms);
+        renderFormsTable(filtered, currentForms.length);
+        updateCreateVisibility();
+    }
+
+    function limparFiltros() {
+        const q = document.getElementById('filter-q');
+        const tipo = document.getElementById('filter-tipo');
+        const status = document.getElementById('filter-status');
+        if (q) q.value = '';
+        if (tipo) tipo.value = '';
+        if (status) status.value = '';
+        refreshList();
+    }
+
+    function downloadModeloFormularios() {
+        const data = [
+            {
+                "id": "pesquisa-satisfacao-2026",
+                "titulo": "Pesquisa de Satisfação 2026",
+                "tipo": "pesquisa",
+                "dashboard_id": "satisfacao-geral",
+                "questoes": JSON.stringify([
+                    {
+                        "id": "q1",
+                        "category": "Geral",
+                        "type": "rating",
+                        "question": "Como você avalia nosso atendimento?",
+                        "required": true,
+                        "options": [
+                            {"value": "1", "label": "Muito Ruim"},
+                            {"value": "2", "label": "Ruim"},
+                            {"value": "3", "label": "Regular"},
+                            {"value": "4", "label": "Bom"},
+                            {"value": "5", "label": "Excelente"}
+                        ]
+                    },
+                    {
+                        "id": "q2",
+                        "category": "Comentários",
+                        "type": "textarea",
+                        "question": "Deixe sua sugestão:",
+                        "required": false
+                    }
+                ])
+            }
+        ];
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Formularios");
+        XLSX.writeFile(wb, "Modelo_Importacao_Formularios.xlsx");
+    }
+
+    async function handleImportFormularios(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                if (!jsonData || jsonData.length === 0) {
+                    Swal.fire('Erro', 'O arquivo Excel está vazio ou não pôde ser lido.', 'error');
+                    return;
+                }
+
+                const result = await Swal.fire({
+                    title: 'Importar Formulários',
+                    text: `Deseja importar ${jsonData.length} formulário(s) do arquivo?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sim, importar',
+                    cancelButtonText: 'Cancelar'
+                });
+
+                if (!result.isConfirmed) {
+                    input.value = '';
+                    return;
+                }
+
+                const res = await fetch('/api/formularios/importar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items: jsonData })
+                });
+
+                const resData = await res.json();
+                if (resData.ok) {
+                    Swal.fire('Sucesso', `Importação concluída! ${resData.importados} formulário(s) processado(s).`, 'success');
+                    carregarFormularios();
+                } else {
+                    Swal.fire('Erro', 'Erro na importação: ' + (resData.erro || 'Erro desconhecido'), 'error');
+                }
+            } catch (err) {
+                console.error('Erro ao processar Excel:', err);
+                Swal.fire('Erro', 'Erro ao processar o arquivo Excel. Verifique se o formato das questões está correto.', 'error');
+            } finally {
+                input.value = '';
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    async function importarViaIA() {
+        const { value: text } = await Swal.fire({
+            title: 'Importação Inteligente (IA)',
+            input: 'textarea',
+            inputLabel: 'Cole aqui o texto do seu formulário (do Word, Forms, etc)',
+            inputPlaceholder: 'Ex: \n1. Como você avalia o clima? \n2. Deixe um comentário...',
+            inputAttributes: { 'aria-label': 'Texto do formulário' },
+            showCancelButton: true,
+            confirmButtonText: 'Analisar com IA',
+            cancelButtonText: 'Cancelar',
+            inputValidator: (value) => {
+                if (!value) return 'Você precisa colar algum texto!';
+            }
+        });
+
+        if (text) {
+            Swal.fire({
+                title: 'Analisando...',
+                html: 'A IA está estruturando seu formulário. Por favor, aguarde.',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            try {
+                const res = await fetch('/api/formularios/ia-parse', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ texto: text })
+                });
+                const result = await res.json();
+                
+                if (result.ok && result.data) {
+                    Swal.close();
+                    // Abre o modal de criação com os dados da IA
+                    abrirModalCriacao();
+                    document.getElementById('form-titulo').value = result.data.titulo || '';
+                    document.getElementById('form-tipo').value = result.data.tipo || 'avaliacao';
+                    editingQuestions = result.data.questoes || [];
+                    renderQuestions();
+                    Swal.fire('Pronto!', 'O formulário foi estruturado. Revise os campos e clique em Salvar.', 'success');
+                } else {
+                    throw new Error(result.erro || 'Falha na análise');
+                }
+            } catch (err) {
+                Swal.fire('Erro', 'Não foi possível converter o texto: ' + err.message, 'error');
+            }
+        }
+    }
+
+    function previewFormulario(id) {
+        const form = currentForms.find(f => f.id === id);
+        if (!form) return;
+        document.getElementById('form-id').value = form.id;
+        document.getElementById('form-titulo').value = form.titulo;
+        document.getElementById('form-tipo').value = form.tipo;
+        document.getElementById('form-ativo').checked = !!form.ativo;
+        editingQuestions = form.questoes ? JSON.parse(JSON.stringify(form.questoes)) : [];
+        syncFormHeader();
+        abrirPreview();
+    }
+
+    async function verRespostas(id) {
+        try {
+            const form = await getFormularioForExport(id);
+
+            const res = await fetch(`/api/rh/formularios/${id}/respostas`);
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                Swal.fire('Erro', err.error || 'Erro ao carregar respostas', 'error');
+                return;
+            }
+            const data = await res.json();
+            if (!Array.isArray(data) || data.length === 0) {
+                Swal.fire('Respostas', 'Nenhuma resposta encontrada para este formulário.', 'info');
+                return;
+            }
+
+            const html = buildRespostasHtml(form, data);
+            Swal.fire({
+                title: 'Respostas do Formulário',
+                html,
+                width: 900,
+                showCloseButton: true,
+                showConfirmButton: true,
+                confirmButtonText: 'Abrir Dashboard',
+                showCancelButton: true,
+                cancelButtonText: 'Fechar',
+                didOpen: () => {
+                    const btnCsv = document.getElementById('btn-export-csv');
+                    if (btnCsv) {
+                        btnCsv.addEventListener('click', () => exportRespostas(form, data, 'csv'));
+                    }
+                    const btnXlsx = document.getElementById('btn-export-xlsx');
+                    if (btnXlsx) {
+                        btnXlsx.addEventListener('click', () => exportRespostas(form, data, 'xlsx'));
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) abrirDashboardRespostas(String(form.dashboardId || form.dashboard_id || form.id || id));
+            });
+        } catch (e) {
+            console.error(e);
+            Swal.fire('Erro', 'Erro de conexão ao carregar respostas', 'error');
+        }
+    }
+
+    function abrirDashboardRespostas(dashId) {
+        window.open(`/protected/dashboard-formulario-respostas.html?dash=${encodeURIComponent(String(dashId))}`, '_blank');
+    }
+
+    async function getFormularioForExport(id) {
+        const local = currentForms.find(f => f.id === id);
+        if (local && local.questoes) return local;
+        const res = await fetch(`/api/rh/formularios/${id}`);
+        if (!res.ok) throw new Error('Erro ao carregar formulário');
+        return await res.json();
+    }
+
+    function exportRespostas(form, items, format) {
+        const { columns, rows } = buildExportData(form, items);
+        const fileBase = `${String(form.id || 'formulario')}_respostas_${new Date().toISOString().slice(0, 10)}`;
+
+        if (format === 'csv') {
+            const csv = toCsv(columns, rows);
+            downloadTextFile(`${fileBase}.csv`, csv, 'text/csv;charset=utf-8');
+            return;
+        }
+
+        if (format === 'xlsx') {
+            if (!window.XLSX) {
+                Swal.fire('Erro', 'Exportação Excel indisponível (biblioteca não carregou).', 'error');
+                return;
+            }
+            const aoa = [columns, ...rows.map(r => columns.map(c => r[c] ?? ''))];
+            const ws = XLSX.utils.aoa_to_sheet(aoa);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Respostas');
+            XLSX.writeFile(wb, `${fileBase}.xlsx`);
+            return;
+        }
+    }
+
+    function buildExportData(form, items) {
+        const baseColumns = ['Data', 'Funcionario'];
+        const qCols = buildQuestionColumns(form);
+        const columns = [...baseColumns, ...qCols];
+
+        const rows = items.map(it => {
+            const created = String(it.created_at || it.createdAt || '');
+            const funcionario = it.funcionario_id ? String(it.funcionario_id) : '';
+            const row = { Data: created, Funcionario: funcionario };
+
+            const respostasObj = (it && it.respostas && typeof it.respostas === 'object') ? it.respostas : {};
+            (form.questoes || []).forEach((q, idx) => {
+                const key = qCols[idx] || `Q${idx + 1}`;
+                const r = respostasObj[String(idx)] || respostasObj[idx];
+                const ans = r && typeof r === 'object' ? (r.answer ?? '') : (r ?? '');
+                row[key] = String(ans ?? '');
+            });
+            return row;
+        });
+
+        return { columns, rows };
+    }
+
+    function buildQuestionColumns(form) {
+        const raw = (form.questoes || []).map((q, idx) => {
+            const category = String(q.category || '').trim();
+            const question = String(q.question || q.text || '').trim();
+            const base = `${category ? `${category} - ` : ''}${question || `Q${idx + 1}`}`.trim();
+            return base || `Q${idx + 1}`;
+        });
+
+        const used = new Map();
+        return raw.map(name => {
+            const current = used.get(name) || 0;
+            used.set(name, current + 1);
+            if (current === 0) return name;
+            return `${name} (${current + 1})`;
+        });
+    }
+
+    function toCsv(columns, rows) {
+        const escape = (v) => {
+            const s = String(v ?? '');
+            const mustQuote = /[",\r\n]/.test(s);
+            const escaped = s.replace(/"/g, '""');
+            return mustQuote ? `"${escaped}"` : escaped;
+        };
+        const header = columns.map(escape).join(',');
+        const lines = rows.map(r => columns.map(c => escape(r[c])).join(','));
+        return [header, ...lines].join('\r\n');
+    }
+
+    function downloadTextFile(filename, content, mime) {
+        const blob = new Blob([content], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    }
+
+    function buildRespostasHtml(form, items) {
+        const rows = items.map((it, idx) => {
+            const created = escapeHtml(String(it.created_at || it.createdAt || ''));
+            const funcionario = it.funcionario_id ? `Funcionário #${escapeHtml(String(it.funcionario_id))}` : 'Anônimo';
+            const respostas = (it.respostas && typeof it.respostas === 'object')
+                ? Object.values(it.respostas).map(r => {
+                    const cat = escapeHtml(String(r.category || ''));
+                    const q = escapeHtml(String(r.question || ''));
+                    const ans = escapeHtml(String(r.answer || ''));
+                    return `<div style="margin:2px 0;"><strong>${cat ? `[${cat}] ` : ''}${q}:</strong> ${ans}</div>`;
+                  }).join('')
+                : '<em>Sem conteúdo</em>';
+            return `
+                <tr>
+                    <td style="white-space:nowrap; color:var(--muted)">${created}</td>
+                    <td style="white-space:nowrap">${funcionario}</td>
+                    <td>${respostas}</td>
+                </tr>
+            `;
+        }).join('');
+        return `
+            <div style="text-align:left;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
+                    <div style="color:var(--text-secondary); font-size:0.9rem;">
+                        <div><strong>${escapeHtml(String(form.titulo || form.id || 'Formulário'))}</strong></div>
+                        <div>${items.length} resposta(s)</div>
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                        <button id="btn-export-csv" class="btn btn-secondary" type="button">Exportar CSV</button>
+                        <button id="btn-export-xlsx" class="btn btn-primary" type="button">Exportar Excel</button>
+                    </div>
+                </div>
+                <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+                    <thead>
+                        <tr style="border-bottom:1px solid var(--border); color:var(--text-secondary);">
+                            <th style="padding:8px;">Data</th>
+                            <th style="padding:8px;">Origem</th>
+                            <th style="padding:8px;">Respostas</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    async function duplicarFormulario(id) {
+        if (!canCreateForms()) return;
+        const form = currentForms.find(f => f.id === id);
+        if (!form) return;
+
+        const baseId = `${String(form.id)}-copia`;
+        let newId = baseId;
+        let counter = 2;
+        while (currentForms.some(f => f.id === newId)) {
+            newId = `${baseId}-${counter}`;
+            counter += 1;
+        }
+
+        const { value: values } = await Swal.fire({
+            title: 'Duplicar formulário',
+            html: `
+                <div style="text-align:left; display:flex; flex-direction:column; gap:10px;">
+                    <div>
+                        <div style="font-size:0.8rem; font-weight:700; color: var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:6px;">Novo ID</div>
+                        <input id="dup-id" class="swal2-input" value="${escapeHtml(newId)}" placeholder="ex: avaliacao-admin-copia">
+                    </div>
+                    <div>
+                        <div style="font-size:0.8rem; font-weight:700; color: var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:6px;">Título</div>
+                        <input id="dup-title" class="swal2-input" value="${escapeHtml(`${form.titulo} (Cópia)`)}" placeholder="Título do formulário">
+                    </div>
+                </div>
+            `,
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: 'Criar cópia',
+            cancelButtonText: 'Cancelar',
+            preConfirm: () => {
+                const idVal = document.getElementById('dup-id')?.value?.trim();
+                const titleVal = document.getElementById('dup-title')?.value?.trim();
+                if (!idVal) return Swal.showValidationMessage('O ID é obrigatório');
+                if (!titleVal) return Swal.showValidationMessage('O título é obrigatório');
+                if (currentForms.some(f => f.id === idVal)) return Swal.showValidationMessage('Já existe um formulário com este ID');
+                return { id: idVal, titulo: titleVal };
+            }
+        });
+
+        if (!values) return;
+
+        try {
+            const payload = {
+                id: values.id,
+                titulo: values.titulo,
+                tipo: form.tipo,
+                ativo: !!form.ativo,
+                questoes: form.questoes || []
+            };
+
+            const res = await fetch('/api/rh/formularios', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                Swal.fire('Erro', err.error || 'Erro ao duplicar', 'error');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Cópia criada!',
+                text: 'O formulário foi duplicado com sucesso.',
+                icon: 'success',
+                timer: 1400,
+                showConfirmButton: false
+            });
+            await carregarFormularios();
+        } catch (e) {
+            console.error(e);
+            Swal.fire('Erro', 'Erro de conexão', 'error');
+        }
+    }
+
+    // --- CRUD Forms ---
+    async function carregarFormularios() {
+        const tbody = document.getElementById('lista-corpo');
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Carregando...</td></tr>';
+        
+        try {
+            const [formsRes, dashesRes] = await Promise.all([
+                fetch('/api/rh/formularios'),
+                fetch('/api/rh/formularios/dashboards/list').catch(() => null)
+            ]);
+            const data = await formsRes.json();
+            const dashes = dashesRes ? await dashesRes.json().catch(() => []) : [];
+            currentForms = data;
+            currentDashboards = Array.isArray(dashes) ? dashes : [];
+            if (data.length === 0) {
+                document.getElementById('empty-state').hidden = false;
+                document.getElementById('tabela-formularios').hidden = true;
+                document.getElementById('forms-summary').textContent = '';
+                setDashboardSelectOptions('__new__', false);
+                return;
+            }
+
+            document.getElementById('empty-state').hidden = true;
+            document.getElementById('tabela-formularios').hidden = false;
+            buildTipoFilterOptions(currentForms);
+            setDashboardSelectOptions('__new__', false);
+            refreshList();
+        } catch (e) {
+            console.error(e);
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:red">Erro ao carregar</td></tr>';
+        }
+    }
+
+    // --- Modal Logic ---
+    function getDashboardsFromForms(forms) {
+        if (Array.isArray(currentDashboards) && currentDashboards.length) {
+            return currentDashboards.map(d => ({
+                id: String(d.id || '').trim(),
+                titulo: d.titulo || d.id,
+                tipo: d.tipo || ''
+            })).filter(d => d.id);
+        }
+        const map = new Map();
+        (forms || []).forEach(f => {
+            const dash = String(f.dashboardId || f.dashboard_id || f.id || '').trim();
+            if (!dash) return;
+            if (!map.has(dash)) {
+                map.set(dash, { id: dash, titulo: f.titulo || dash, tipo: f.tipo || '' });
+            }
+        });
+        return Array.from(map.values());
+    }
+
+    function setDashboardSelectOptions(selectedValue, disabled) {
+        const select = document.getElementById('form-dashboard');
+        if (!select) return;
+
+        const dashboards = getDashboardsFromForms(currentForms);
+        const prev = selectedValue || select.value || '__new__';
+
+        select.innerHTML = '';
+        const optNew = document.createElement('option');
+        optNew.value = '__new__';
+        optNew.textContent = 'Criar novo modelo';
+        select.appendChild(optNew);
+
+        dashboards.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.id;
+            opt.textContent = `${d.titulo || d.id} (${d.id})`;
+            select.appendChild(opt);
+        });
+
+        const has = Array.from(select.options).some(o => o.value === prev);
+        select.value = has ? prev : '__new__';
+        select.disabled = !!disabled;
+    }
+
+    const FORM_ROLE_OPTIONS = [
+        { value: 'gestor', label: 'Gestor' },
+        { value: 'supervisor', label: 'Supervisor' },
+        { value: 'gerente', label: 'Gerente' },
+        { value: 'rh_geral', label: 'RH (Geral)' },
+        { value: 'rh', label: 'RH' },
+        { value: 'dp', label: 'DP' },
+        { value: 'td', label: 'T&D' },
+        { value: 'recrutamento', label: 'Recrutamento' },
+        { value: 'sesmt', label: 'SESMT' },
+        { value: 'endomarketing', label: 'Endomarketing' },
+        { value: 'portaria', label: 'Portaria' }
+    ];
+
+    function renderFormRolesOptions() {
+        const host = document.getElementById('form-roles');
+        if (!host) return;
+        host.innerHTML = FORM_ROLE_OPTIONS.map(r => `
+            <label style="display:flex; align-items:center; gap:10px; margin: 0;">
+                <input type="checkbox" value="${escapeHtml(r.value)}">
+                <span>${escapeHtml(r.label)}</span>
+            </label>
+        `).join('');
+    }
+
+    function getSelectedFormRoles() {
+        const host = document.getElementById('form-roles');
+        if (!host) return [];
+        const checks = Array.from(host.querySelectorAll('input[type="checkbox"]'));
+        return checks.filter(c => c.checked).map(c => String(c.value || '').trim().toLowerCase()).filter(Boolean);
+    }
+
+    function setSelectedFormRoles(roles) {
+        const host = document.getElementById('form-roles');
+        if (!host) return;
+        const set = new Set((Array.isArray(roles) ? roles : []).map(r => String(r || '').trim().toLowerCase()).filter(Boolean));
+        Array.from(host.querySelectorAll('input[type="checkbox"]')).forEach(c => {
+            const v = String(c.value || '').trim().toLowerCase();
+            c.checked = set.has(v);
+        });
+    }
+
+    function syncFormAccessUI() {
+        const publico = document.getElementById('form-publico');
+        const wrap = document.getElementById('form-roles-wrap');
+        if (!publico || !wrap) return;
+        wrap.style.display = publico.checked ? 'none' : '';
+    }
+
+    function abrirModalCriacao() {
+        document.getElementById('modal-title').innerText = 'Novo Formulário';
+        document.getElementById('form-id').value = '';
+        document.getElementById('form-titulo').value = '';
+        document.getElementById('form-tipo').value = 'avaliacao';
+        document.getElementById('form-ativo').checked = true;
+        const pub = document.getElementById('form-publico');
+        if (pub) pub.checked = true;
+        setSelectedFormRoles([]);
+        syncFormAccessUI();
+        setDashboardSelectOptions('__new__', false);
+        editingQuestions = [];
+        renderizarQuestões();
+        syncFormHeader();
+        updateEditorPermissions();
+        renderInlinePreview();
+        document.getElementById('modal-form').style.display = 'flex';
+    }
+
+    function editarFormulario(id) {
+        const form = currentForms.find(f => f.id === id);
+        if (!form) return;
+
+        document.getElementById('modal-title').innerText = 'Editar Formulário';
+        document.getElementById('form-id').value = form.id;
+        document.getElementById('form-titulo').value = form.titulo;
+        document.getElementById('form-tipo').value = form.tipo;
+        document.getElementById('form-ativo').checked = form.ativo;
+        const pub = document.getElementById('form-publico');
+        if (pub) pub.checked = (form.publico == null ? true : !!Number(form.publico));
+        setSelectedFormRoles(form.allowed_roles || form.allowedRoles || []);
+        syncFormAccessUI();
+        setDashboardSelectOptions(String(form.dashboardId || form.dashboard_id || form.id || ''), true);
+        
+        editingQuestions = form.questoes ? JSON.parse(JSON.stringify(form.questoes)) : [];
+        renderizarQuestões();
+        syncFormHeader();
+        updateEditorPermissions();
+        renderInlinePreview();
+        
+        document.getElementById('modal-form').style.display = 'flex';
+    }
+
+    function fecharModal() {
+        document.getElementById('modal-form').style.display = 'none';
+    }
+
+    function syncFormHeader() {
+        const id = document.getElementById('form-id').value;
+        const titulo = document.getElementById('form-titulo').value;
+        const tipo = document.getElementById('form-tipo').value;
+        const ativo = document.getElementById('form-ativo').checked;
+
+        const metaId = document.getElementById('modal-form-meta-id');
+        const metaType = document.getElementById('modal-form-meta-type');
+        const metaStatus = document.getElementById('modal-form-meta-status');
+
+        metaId.style.display = id ? '' : 'none';
+        metaId.textContent = id ? `ID: ${id}` : '';
+
+        const tipoLabel = tipo === 'avaliacao' ? 'Avaliação de Desempenho' : (tipo === 'pesquisa' ? 'Pesquisa de Clima' : (tipo === 'checklist' ? 'Checklist' : String(tipo || '')));
+        metaType.textContent = tipoLabel;
+
+        const titlePrefix = id ? 'Editar Formulário' : 'Novo Formulário';
+        const titleSuffix = titulo && String(titulo).trim() ? ` — ${String(titulo).trim()}` : '';
+        document.getElementById('modal-title').innerText = `${titlePrefix}${titleSuffix}`;
+
+        metaStatus.textContent = ativo ? 'Ativo' : 'Inativo';
+        renderInlinePreview();
+    }
+
+    // --- Question Builder Logic ---
+    function escapeHtml(str) {
+        return String(str || '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    }
+
+    const TYPE_LABELS = {
+        text: 'Texto Curto',
+        textarea: 'Texto Longo',
+        rating: 'Nota (1-5)',
+        yesno: 'Sim/Não',
+        select: 'Seleção Única',
+        multi: 'Múltipla Escolha',
+        date: 'Data',
+        number: 'Número',
+        email: 'E-mail',
+        tel: 'Telefone',
+        time: 'Horário',
+        file: 'Arquivo'
+    };
+
+    function getTypeLabel(type) {
+        return TYPE_LABELS[type] || (type ? String(type) : '');
+    }
+
+    function renderInputPreview(q, idx) {
+        const name = `builder_preview_q_${idx}`;
+        const requiredAttr = q.required ? 'required' : '';
+
+        if (q.type === 'textarea') {
+            return `<textarea class="form-control" name="${name}" rows="3" ${requiredAttr} disabled></textarea>`;
+        }
+        if (q.type === 'rating') {
+            return `
+                <div class="builder-rating-group">
+                    ${[1, 2, 3, 4, 5].map(val => `
+                        <div class="builder-rating-option">
+                            <input type="radio" name="${name}" id="${name}_${val}" value="${val}" ${requiredAttr} disabled>
+                            <label for="${name}_${val}">
+                                <div class="builder-rating-value">${val}</div>
+                            </label>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        if (q.type === 'yesno') {
+            return `
+                <div class="builder-rating-group" style="max-width: 300px;">
+                    <div class="builder-rating-option">
+                        <input type="radio" name="${name}" id="${name}_yes" value="Sim" ${requiredAttr} disabled>
+                        <label for="${name}_yes">
+                            <div class="builder-rating-value"><svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true" style="margin-right:0"><path d="M20 6L9 17l-5-5"/></svg></div>
+                            <div class="builder-rating-label">Sim</div>
+                        </label>
+                    </div>
+                    <div class="builder-rating-option">
+                        <input type="radio" name="${name}" id="${name}_no" value="Não" ${requiredAttr} disabled>
+                        <label for="${name}_no">
+                            <div class="builder-rating-value"><svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true" style="margin-right:0"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+                            <div class="builder-rating-label">Não</div>
+                        </label>
+                    </div>
+                </div>
+            `;
+        }
+        if (q.type === 'select') {
+            return `
+                <select class="form-select" name="${name}" ${requiredAttr} disabled>
+                    <option value="">Selecione uma opção...</option>
+                    ${(q.options || []).map(opt => `<option value="${escapeHtml(opt)}">${escapeHtml(opt)}</option>`).join('')}
+                </select>
+            `;
+        }
+        if (q.type === 'multi') {
+            return `
+                <div class="checkbox-group">
+                    ${(q.options || []).map(opt => `
+                        <label class="builder-custom-option">
+                            <input type="checkbox" name="${name}" value="${escapeHtml(opt)}" disabled>
+                            <span>${escapeHtml(opt)}</span>
+                        </label>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        return `<input type="text" class="form-control" name="${name}" ${requiredAttr} placeholder="Sua resposta..." disabled>`;
+    }
+
+    function syncPreview(index) {
+        const q = editingQuestions[index];
+        if (!q) return;
+
+        const qEl = document.querySelector(`[data-preview-question="${index}"]`);
+        if (qEl) {
+            const base = q.question || q.text || q.pergunta || q.label || '';
+            qEl.textContent = (base && String(base).trim()) ? String(base).trim() : 'Sem pergunta';
+        }
+
+        const reqEl = document.querySelector(`[data-preview-required="${index}"]`);
+        if (reqEl) reqEl.style.display = q.required ? 'inline' : 'none';
+
+        const catEl = document.querySelector(`[data-preview-category="${index}"]`);
+        if (catEl) {
+            if (q.category && q.category.trim()) {
+                catEl.textContent = q.category;
+                catEl.style.display = 'block';
+            } else {
+                catEl.textContent = '';
+                catEl.style.display = 'none';
+            }
+        }
+    }
+
+    function syncPreviewOptions(index) {
+        const host = document.querySelector(`[data-preview-input="${index}"]`);
+        if (!host) return;
+        host.innerHTML = renderInputPreview(editingQuestions[index], index);
+    }
+
+    function renderizarQuestões() {
+        const container = document.getElementById('questions-container');
+        container.innerHTML = '';
+        
+        editingQuestions.forEach((q, index) => {
+            const qTextBase = q.question || q.text || q.pergunta || q.label || '';
+            const qTextFull = (qTextBase && String(qTextBase).trim()) ? String(qTextBase).trim() : 'Sem pergunta';
+            const qTextShort = qTextFull.length > 64 ? `${qTextFull.slice(0, 64)}…` : qTextFull;
+            const typeLabel = getTypeLabel(q.type);
+
+            const div = document.createElement('div');
+            div.className = 'question-card';
+            div.innerHTML = `
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="q-badges">
+                            <strong>Questão #${index + 1}</strong>
+                            ${typeLabel ? `<span class="q-badge q-badge-type">${escapeHtml(typeLabel)}</span>` : ''}
+                            ${q.required ? `<span class="q-badge q-badge-required">Obrigatória</span>` : ''}
+                        </div>
+                        <small>${escapeHtml(qTextShort)}</small>
+                    </div>
+                    <div class="card-tools">
+                        <button class="tool-btn" onclick="moverQuestao(${index}, -1)" title="Mover para cima" ${index === 0 ? 'disabled' : ''}><svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true" style="margin-right:0"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg></button>
+                        <button class="tool-btn" onclick="moverQuestao(${index}, 1)" title="Mover para baixo" ${index === editingQuestions.length - 1 ? 'disabled' : ''}><svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true" style="margin-right:0"><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg></button>
+                        <button class="tool-btn" onclick="duplicarQuestao(${index})" title="Duplicar"><svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true" style="margin-right:0"><rect x="9" y="9" width="13" height="13" rx="2"/><rect x="2" y="2" width="13" height="13" rx="2"/></svg></button>
+                        <button class="tool-btn delete" onclick="removerQuestao(${index})" title="Remover"><svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true" style="margin-right:0"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <details class="builder-preview" open>
+                        <summary>
+                            <span class="builder-preview-title"><svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M1.5 12s4-7.5 10.5-7.5S22.5 12 22.5 12s-4 7.5-10.5 7.5S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3.5"/></svg> Prévia (colaborador)</span>
+                            <svg class="svg-icon svg-stroke builder-preview-chevron" viewBox="0 0 24 24" aria-hidden="true" style="margin-right:0"><path d="M6 9l6 6 6-6"/></svg>
+                        </summary>
+                        <div class="builder-preview-body">
+                            <label class="builder-preview-label">
+                                <span data-preview-question="${index}">${escapeHtml(qTextFull)}</span>
+                                <span class="required-mark" data-preview-required="${index}" style="${q.required ? '' : 'display:none;'}">*</span>
+                            </label>
+                            <small class="builder-preview-category" data-preview-category="${index}" style="${q.category ? '' : 'display:none;'}">${escapeHtml(q.category || '')}</small>
+                            <div data-preview-input="${index}">
+                                ${renderInputPreview(q, index)}
+                            </div>
+                        </div>
+                    </details>
+
+                    <div class="form-group full-width">
+                        <label>Texto da Pergunta</label>
+                        <input type="text" class="form-control" value="${escapeHtml(q.question || q.text || q.pergunta || q.label || '')}" 
+                            oninput="atualizarQuestao(${index}, 'question', this.value)" placeholder="Digite a pergunta...">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Tipo de Resposta</label>
+                        <select class="form-control" onchange="atualizarQuestao(${index}, 'type', this.value)">
+                            <option value="text" ${q.type === 'text' ? 'selected' : ''}>Texto Curto</option>
+                            <option value="textarea" ${q.type === 'textarea' ? 'selected' : ''}>Texto Longo</option>
+                            <option value="rating" ${q.type === 'rating' ? 'selected' : ''}>Nota (1-5)</option>
+                            <option value="yesno" ${q.type === 'yesno' ? 'selected' : ''}>Sim/Não</option>
+                            <option value="select" ${q.type === 'select' ? 'selected' : ''}>Seleção Única</option>
+                            <option value="multi" ${q.type === 'multi' ? 'selected' : ''}>Múltipla Escolha</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Categoria (Opcional)</label>
+                        <input type="text" class="form-control" value="${escapeHtml(q.category || '')}" 
+                            oninput="atualizarQuestao(${index}, 'category', this.value)" placeholder="Ex: Liderança">
+                    </div>
+
+                    <div class="form-group full-width" style="display: flex; gap: 20px; align-items: center;">
+                         <label class="toggle-switch">
+                              <input type="checkbox" ${q.required ? 'checked' : ''} onchange="atualizarQuestao(${index}, 'required', this.checked)">
+                              <span class="slider"></span>
+                              <span class="label-text">Obrigatória</span>
+                          </label>
+                    </div>
+
+                    ${(q.type === 'select' || q.type === 'multi') ? `
+                    <div class="form-group full-width">
+                        <label>Opções</label>
+                        <div class="options-list">
+                            ${(Array.isArray(q.options) ? q.options : []).map((opt, optIdx) => `
+                                <div class="option-item">
+                                    <input type="text" class="form-control" value="${escapeHtml(opt)}" oninput="atualizarOpcaoIndividual(${index}, ${optIdx}, this.value)" placeholder="Opção ${optIdx + 1}">
+                                    <button class="btn-icon danger" onclick="removerOpcao(${index}, ${optIdx})" title="Remover opção"><svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button class="btn btn-sm btn-secondary" onclick="adicionarOpcao(${index})" style="margin-top: 10px;">
+                            <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Adicionar Opção
+                        </button>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+            container.appendChild(div);
+        });
+
+        const countEl = document.getElementById('questions-count');
+        if (countEl) countEl.textContent = String(editingQuestions.length);
+        updateEditorPermissions();
+    }
+
+    function adicionarQuestao() {
+        editingQuestions.push({ 
+            question: '', 
+            type: 'text', 
+            category: '', 
+            required: true 
+        });
+        renderizarQuestões();
+        renderInlinePreview();
+        // Scroll to bottom
+        setTimeout(() => {
+            const container = document.getElementById('questions-container');
+            container.scrollTop = container.scrollHeight;
+        }, 50);
+    }
+
+    function removerQuestao(index) {
+        editingQuestions.splice(index, 1);
+        renderizarQuestões();
+        renderInlinePreview();
+    }
+
+    function duplicarQuestao(index) {
+        const clone = JSON.parse(JSON.stringify(editingQuestions[index]));
+        editingQuestions.splice(index + 1, 0, clone);
+        renderizarQuestões();
+        renderInlinePreview();
+    }
+
+    function moverQuestao(index, direction) {
+        if (index + direction < 0 || index + direction >= editingQuestions.length) return;
+        const temp = editingQuestions[index];
+        editingQuestions[index] = editingQuestions[index + direction];
+        editingQuestions[index + direction] = temp;
+        renderizarQuestões();
+        renderInlinePreview();
+    }
+
+    function atualizarQuestao(index, field, value) {
+        editingQuestions[index][field] = value;
+        if (field === 'type') {
+            if ((value === 'select' || value === 'multi') && !editingQuestions[index].options) {
+                editingQuestions[index].options = ['Opção 1', 'Opção 2'];
+            }
+            renderizarQuestões(); 
+            syncPreview(index);
+            syncPreviewOptions(index);
+            renderInlinePreview();
+            return;
+        }
+        syncPreview(index);
+        renderInlinePreview();
+    }
+
+    function atualizarOpcaoIndividual(qIndex, optIndex, value) {
+        editingQuestions[qIndex].options[optIndex] = value;
+        syncPreviewOptions(qIndex);
+        renderInlinePreview();
+    }
+
+    function adicionarOpcao(index) {
+        if (!editingQuestions[index].options) editingQuestions[index].options = [];
+        editingQuestions[index].options.push(`Opção ${editingQuestions[index].options.length + 1}`);
+        renderizarQuestões();
+        syncPreviewOptions(index);
+        renderInlinePreview();
+    }
+
+    function removerOpcao(qIndex, optIndex) {
+        editingQuestions[qIndex].options.splice(optIndex, 1);
+        renderizarQuestões();
+        syncPreviewOptions(qIndex);
+        renderInlinePreview();
+    }
+
+    // --- Saving Logic ---
+    async function salvarFormulario() {
+        const id = document.getElementById('form-id').value;
+        const titulo = document.getElementById('form-titulo').value;
+        const tipo = document.getElementById('form-tipo').value;
+        const ativo = document.getElementById('form-ativo').checked;
+        const publico = document.getElementById('form-publico')?.checked;
+        const allowedRoles = getSelectedFormRoles();
+        const dashboardSel = document.getElementById('form-dashboard')?.value;
+
+        if (!titulo) {
+            Swal.fire('Atenção', 'O título é obrigatório', 'warning');
+            return;
+        }
+
+        // Validate Questions
+        for (let i = 0; i < editingQuestions.length; i++) {
+            const q = editingQuestions[i];
+            if (!q.question || q.question.trim() === '') {
+                Swal.fire('Atenção', `A questão #${i + 1} precisa de uma pergunta.`, 'warning');
+                return;
+            }
+            if ((q.type === 'select' || q.type === 'multi') && (!q.options || q.options.length === 0)) {
+                Swal.fire('Atenção', `A questão #${i + 1} deve ter pelo menos uma opção.`, 'warning');
+                return;
+            }
+             // Filter empty options
+             if (q.options) {
+                q.options = q.options.filter(o => o.trim() !== '');
+                if ((q.type === 'select' || q.type === 'multi') && q.options.length === 0) {
+                     Swal.fire('Atenção', `A questão #${i + 1} tem opções vazias.`, 'warning');
+                     return;
+                }
+             }
+        }
+
+        const payload = {
+            titulo,
+            tipo,
+            ativo,
+            publico: publico ? 1 : 0,
+            allowed_roles: publico ? [] : allowedRoles,
+            questoes: editingQuestions.map(q => ({
+                question: q.question,
+                type: q.type,
+                category: q.category,
+                required: q.required,
+                options: q.options
+            }))
+        };
+        if (dashboardSel && dashboardSel !== '__new__') {
+            payload.dashboardId = dashboardSel;
+        }
+
+        try {
+            let res;
+            if (id) {
+                res = await fetch(`/api/rh/formularios/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            } else {
+                res = await fetch('/api/rh/formularios', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            }
+
+            if (res.ok) {
+                const saved = await res.json().catch(() => ({}));
+                const savedId = String(saved.id || id || '');
+                const savedDash = String(saved.dashboardId || saved.dashboard_id || savedId || '');
+                Swal.fire({
+                    title: 'Sucesso!',
+                    html: `Formulário salvo com sucesso.<br><small style="color:var(--text-secondary)">ID: <code>${escapeHtml(savedId)}</code></small>`,
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+                fecharModal();
+                carregarFormularios();
+                if (!id && savedDash) {
+                    abrirDashboardRespostas(savedDash);
+                }
+            } else {
+                const err = await res.json();
+                Swal.fire('Erro', err.error || 'Erro ao salvar', 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            Swal.fire('Erro', 'Erro de conexão', 'error');
+        }
+    }
+
+    async function excluirFormulario(id) {
+        const result = await Swal.fire({
+            title: 'Tem certeza?',
+            text: "Você não poderá reverter isso!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: 'var(--danger)',
+            confirmButtonText: 'Sim, excluir!',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const res = await fetch(`/api/rh/formularios/${id}`, { method: 'DELETE', credentials: 'include', headers: { 'Accept': 'application/json' } });
+                if (res.ok) {
+                    Swal.fire('Excluído!', 'O formulário foi excluído.', 'success');
+                    carregarFormularios();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    Swal.fire('Erro', err.error || err.erro || err.message || 'Erro ao excluir', 'error');
+                }
+            } catch (e) {
+                Swal.fire('Erro', 'Erro de conexão', 'error');
+            }
+        }
+    }
+
+    // --- Preview Logic ---
+    function buildFormPreviewDom({ titulo, tipo, questoes, showSubmitButton }) {
+        const tipoLabel = tipo === 'avaliacao' ? 'Avaliação de Desempenho' : 'Pesquisa / Formulário';
+
+        const main = document.createElement('div');
+        main.className = 'main-container';
+
+        const card = document.createElement('div');
+        card.className = 'form-card';
+        card.innerHTML = `
+            <div class="form-header">
+                <h1 class="form-title" id="formTitle"></h1>
+                <p class="form-description" id="formType"></p>
+            </div>
+            <form onsubmit="event.preventDefault()">
+                <div id="questionsContainer"></div>
+                ${showSubmitButton ? `
+                    <div class="mt-4">
+                        <button type="button" class="btn-submit" disabled>
+                            <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg> Enviar Respostas
+                        </button>
+                    </div>
+                ` : ''}
+            </form>
+        `;
+
+        main.appendChild(card);
+
+        card.querySelector('#formTitle').textContent = titulo;
+        card.querySelector('#formType').textContent = tipoLabel;
+
+        const questionsContainer = card.querySelector('#questionsContainer');
+        const list = Array.isArray(questoes) ? questoes : [];
+
+        if (list.length === 0) {
+            questionsContainer.innerHTML = '<p class="text-muted" style="text-align:center">Este formulário não possui questões.</p>';
+            return main;
+        }
+
+        list.forEach((q, index) => {
+            const qDiv = document.createElement('div');
+            qDiv.className = 'question-card';
+
+            const requiredStar = q.required ? '<span class="required-mark">*</span>' : '';
+            const qText = escapeHtml(q.question || q.text || q.pergunta || q.label || '');
+            const label = `<label class="question-label">${qText}${requiredStar}</label>`;
+
+            let inputHtml = '';
+            const name = `preview_q_${index}`;
+            const requiredAttr = q.required ? 'required' : '';
+
+            if (q.type === 'text') {
+                inputHtml = `<input type="text" class="form-control" name="${name}" ${requiredAttr} placeholder="Sua resposta..." disabled>`;
+            } else if (['date', 'number', 'email', 'tel', 'time'].includes(q.type)) {
+                inputHtml = `<input type="${q.type}" class="form-control" name="${name}" ${requiredAttr} placeholder="Sua resposta..." disabled>`;
+            } else if (q.type === 'textarea') {
+                inputHtml = `<textarea class="form-control" name="${name}" rows="3" ${requiredAttr} placeholder="Sua resposta..." disabled></textarea>`;
+            } else if (q.type === 'select') {
+                inputHtml = `
+                    <select class="form-select" name="${name}" ${requiredAttr} disabled>
+                        <option value="">Selecione uma opção...</option>
+                        ${(q.options || []).map(opt => `<option value="${escapeHtml(opt)}">${escapeHtml(opt)}</option>`).join('')}
+                    </select>
+                `;
+            } else if (q.type === 'yesno') {
+                inputHtml = `
+                    <div class="rating-group" style="max-width: 300px;">
+                        <div class="rating-option">
+                            <input type="radio" name="${name}" id="${name}_yes" value="Sim" ${requiredAttr} disabled>
+                            <label for="${name}_yes">
+                                <div class="rating-value"><svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true" style="margin-right:0"><path d="M20 6L9 17l-5-5"/></svg></div>
+                                <div class="rating-label">Sim</div>
+                            </label>
+                        </div>
+                        <div class="rating-option">
+                            <input type="radio" name="${name}" id="${name}_no" value="Não" ${requiredAttr} disabled>
+                            <label for="${name}_no">
+                                <div class="rating-value"><svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true" style="margin-right:0"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+                                <div class="rating-label">Não</div>
+                            </label>
+                        </div>
+                    </div>
+                `;
+            } else if (q.type === 'rating') {
+                inputHtml = `
+                    <div class="rating-group">
+                        ${[1, 2, 3, 4, 5].map(val => `
+                            <div class="rating-option">
+                                <input type="radio" name="${name}" id="${name}_${val}" value="${val}" ${requiredAttr} disabled>
+                                <label for="${name}_${val}">
+                                    <div class="rating-value">${val}</div>
+                                </label>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else if (q.type === 'multi') {
+                inputHtml = `
+                    <div class="checkbox-group">
+                        ${(q.options || []).map((opt) => `
+                            <label class="custom-option">
+                                <input type="checkbox" name="${name}" value="${escapeHtml(opt)}" disabled>
+                                <span>${escapeHtml(opt)}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                `;
+            } else if (q.type === 'file') {
+                inputHtml = `
+                    <input type="file" class="form-control" name="${name}" ${requiredAttr} disabled>
+                    <small class="text-muted">Formatos aceitos: PDF, DOC, DOCX, Imagem (Máx 5MB)</small>
+                `;
+            } else {
+                inputHtml = `<input type="text" class="form-control" name="${name}" ${requiredAttr} placeholder="Sua resposta..." disabled>`;
+            }
+
+            qDiv.innerHTML = label + inputHtml + `<div class="error-message">Este campo é obrigatório</div>`;
+            questionsContainer.appendChild(qDiv);
+        });
+
+        return main;
+    }
+
+    function renderInlinePreview() {
+        const host = document.getElementById('inline-preview-host');
+        if (!host) return;
+        host.innerHTML = '';
+
+        const titulo = document.getElementById('form-titulo')?.value || 'Sem título';
+        const tipo = document.getElementById('form-tipo')?.value;
+        const dom = buildFormPreviewDom({ titulo, tipo, questoes: editingQuestions, showSubmitButton: false });
+        host.appendChild(dom);
+    }
+
+    function abrirPreview() {
+        const container = document.getElementById('preview-content');
+        container.innerHTML = '';
+
+        const titulo = document.getElementById('form-titulo').value || 'Sem título';
+        const tipo = document.getElementById('form-tipo').value;
+        const dom = buildFormPreviewDom({ titulo, tipo, questoes: editingQuestions, showSubmitButton: true });
+        container.appendChild(dom);
+
+        document.getElementById('modal-preview').style.display = 'flex';
+    }
+
+    function fecharPreview() {
+        document.getElementById('modal-preview').style.display = 'none';
+    }
+
+    // Init
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (!window.__USER_ROLE) {
+            try {
+                const res = await fetch('/api/me');
+                if (res.ok) {
+                    const data = await res.json();
+                    window.__USER_ROLE = data.user.role;
+                }
+            } catch (e) {}
+        }
+
+        updateCreateVisibility();
+        renderFormRolesOptions();
+        const pub = document.getElementById('form-publico');
+        if (pub) pub.addEventListener('change', syncFormAccessUI);
+        syncFormAccessUI();
+
+        const fq = document.getElementById('filter-q');
+        const ft = document.getElementById('filter-tipo');
+        const fs = document.getElementById('filter-status');
+        if (fq) fq.addEventListener('input', () => refreshList());
+        if (ft) ft.addEventListener('change', () => refreshList());
+        if (fs) fs.addEventListener('change', () => refreshList());
+
+        carregarFormularios();
+
+        const t = document.getElementById('form-titulo');
+        const ty = document.getElementById('form-tipo');
+        const a = document.getElementById('form-ativo');
+        if (t) t.addEventListener('input', syncFormHeader);
+        if (ty) ty.addEventListener('change', syncFormHeader);
+        if (a) a.addEventListener('change', syncFormHeader);
+    });
+  </script>
+</body>
+</html>

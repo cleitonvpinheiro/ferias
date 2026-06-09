@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard RH - Férias</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="/rh-styles.css">
+  <script src="/lang-switcher.js" defer></script>
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body data-page="rh-ferias">
+  <div id="navbar-container"></div>
+  <script src="/rh-navbar.js"></script>
+  <script>renderRHNavbar('ferias');</script>
+
+  <main class="dashboard-container">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title" data-translate="rh_dash_ferias_title">Gestão de Férias</h1>
+            <p class="page-subtitle" data-translate="rh_dash_ferias_subtitle">Gerencie as solicitações de férias dos colaboradores</p>
+        </div>
+        <div class="last-update">
+            <span id="lastUpdate" data-translate="rh_dash_last_update_now">Atualizado agora</span>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card pending">
+            <div class="stat-header">
+                <div class="stat-title" data-translate="rh_dash_stat_pending">Pendentes RH</div>
+                <div class="stat-icon">⏳</div>
+            </div>
+            <div class="stat-value" id="stat-pending">0</div>
+        </div>
+        <div class="stat-card approved">
+            <div class="stat-header">
+                <div class="stat-title" data-translate="rh_dash_stat_done">Concluídas</div>
+                <div class="stat-icon">✅</div>
+            </div>
+            <div class="stat-value" id="stat-approved">0</div>
+        </div>
+        <div class="stat-card rejected">
+            <div class="stat-header">
+                <div class="stat-title" data-translate="rh_dash_stat_rejected">Reprovadas</div>
+                <div class="stat-icon">❌</div>
+            </div>
+            <div class="stat-value" id="stat-rejected">0</div>
+        </div>
+    </div>
+
+    <div class="action-bar">
+        <h2 data-translate="rh_dash_history_title">Histórico de Solicitações</h2>
+        <div class="action-buttons">
+            <button class="btn btn-outline" onclick="exportarExcel()">
+                📊 Excel
+            </button>
+            <button class="btn btn-outline" onclick="exportarPDF()">
+                📄 PDF
+            </button>
+            <button class="btn btn-primary" onclick="carregarSolicitacoes()">
+                🔄 <span data-translate="rh_dash_refresh">Atualizar</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <div class="table-wrapper">
+            <table id="tabela-solicitacoes">
+                <thead>
+                    <tr>
+                        <th data-translate="rh_dash_th_colaborador">Colaborador</th>
+                        <th data-translate="rh_dash_th_setor">Setor</th>
+                        <th data-translate="rh_dash_th_inicio">Início Férias</th>
+                        <th data-translate="rh_dash_th_status">Status</th>
+                        <th data-translate="rh_dash_th_acao">Ação</th>
+                    </tr>
+                </thead>
+                <tbody id="lista-corpo">
+                    <!-- Preenchido via JS -->
+                </tbody>
+            </table>
+        </div>
+        <div id="empty-state" class="empty-state" hidden>
+            <p style="font-size: 1.1rem; margin-bottom: 0.5rem;" data-translate="rh_dash_empty_title">Nenhuma solicitação encontrada.</p>
+            <p style="font-size: 0.9rem;" data-translate="rh_dash_empty_desc">Tudo limpo por aqui! 🎉</p>
+        </div>
+    </div>
+  </main>
+
+  <footer style="text-align: center; padding: 40px; color: var(--text-secondary); font-size: 0.875rem;">
+    <p data-translate="rh_footer">&copy; 2026 Família Madalosso. Acesso Restrito ao RH.</p>
+  </footer>
+
+  <script>
+    let globalData = [];
+
+    async function alterarStatus(id, novoStatus) {
+        if (!confirm(`Deseja alterar o status para ${novoStatus === 'concluido' ? 'RESOLVIDO' : 'PENDENTE'}?`)) return;
+
+        try {
+            const res = await fetch('/api/solicitacao/definir-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, status: novoStatus })
+            });
+            const data = await res.json();
+            if (data.ok) {
+                // alert('Status atualizado!');
+                carregarSolicitacoes();
+            } else {
+                alert('Erro: ' + data.erro);
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erro ao atualizar status');
+        }
+    }
+
+    async function carregarSolicitacoes() {
+        const tbody = document.getElementById('lista-corpo');
+        const emptyState = document.getElementById('empty-state');
+        const table = document.getElementById('tabela-solicitacoes');
+        
+        // Reset Stats
+        document.getElementById('stat-pending').innerText = '0';
+        document.getElementById('stat-approved').innerText = '0';
+        document.getElementById('stat-rejected').innerText = '0';
+        
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-secondary);">Carregando dados...</td></tr>';
+
+        try {
+            const res = await fetch('/api/rh/solicitacoes');
+            globalData = await res.json();
+            const data = globalData;
+
+            // Calcular Estatísticas
+            const stats = data.reduce((acc, curr) => {
+                if (['pendente_rh', 'assinado'].includes(curr.status)) acc.pending++;
+                else if (['aguardando_assinatura', 'concluido'].includes(curr.status)) acc.approved++;
+                else if (['reprovado', 'pendente_gestor'].includes(curr.status)) acc.rejected++;
+                return acc;
+            }, { pending: 0, approved: 0, rejected: 0 });
+
+            document.getElementById('stat-pending').innerText = stats.pending;
+            document.getElementById('stat-approved').innerText = stats.approved;
+            document.getElementById('stat-rejected').innerText = stats.rejected;
+
+            tbody.innerHTML = '';
+
+            if (data.length === 0) {
+                table.hidden = true;
+                emptyState.hidden = false;
+                return;
+            }
+
+            table.hidden = false;
+            emptyState.hidden = true;
+
+            data.forEach(item => {
+                const tr = document.createElement('tr');
+                const dataInicio = new Date(item.inicio).toLocaleDateString('pt-BR');
+                
+                let statusBadge = '';
+                let actionBtn = '';
+                
+                switch(item.status) {
+                    case 'pendente_rh':
+                        statusBadge = '<span class="badge badge-pending">Pendente RH</span>';
+                        actionBtn = `<a href="/ferias.html?id=${item.id}&mode=rh" class="btn btn-sm btn-primary">Avaliar</a>`;
+                        break;
+                    case 'pendente_gestor':
+                        statusBadge = '<span class="badge badge-rejected">Ajuste do Gestor</span>';
+                        actionBtn = `<a href="/ferias.html?id=${item.id}&mode=rh" class="btn btn-sm btn-outline">Visualizar</a>`;
+                        break;
+                    case 'aguardando_assinatura':
+                        statusBadge = '<span class="badge badge-info">Aguardando Assinatura</span>';
+                        // Se tiver token, abre modo de assinatura. Caso contrário, visualização RH.
+                        const link = item.signatureToken ? `/ferias.html?token=${item.signatureToken}` : `/ferias.html?id=${item.id}&mode=rh`;
+                        actionBtn = `<a href="${link}" class="btn btn-sm btn-outline">Visualizar</a>`;
+                        break;
+                    case 'assinado':
+                        statusBadge = '<span class="badge badge-warning">Assinado (Pendente)</span>';
+                        actionBtn = `
+                            <div style="display: flex; gap: 5px;">
+                                <button onclick="alterarStatus('${item.id}', 'concluido')" class="btn btn-sm btn-success" title="Marcar como Resolvido">✅ Resolvido</button>
+                                <a href="/api/pdf/${item.id}" target="_blank" class="btn btn-sm btn-outline">PDF</a>
+                            </div>
+                        `;
+                        break;
+                    case 'concluido':
+                        statusBadge = '<span class="badge badge-approved">Resolvido</span>';
+                        actionBtn = `
+                            <div style="display: flex; gap: 5px;">
+                                <button onclick="alterarStatus('${item.id}', 'assinado')" class="btn btn-sm btn-warning" title="Marcar como Pendente">⏳ Pendente</button>
+                                <a href="/api/pdf/${item.id}" target="_blank" class="btn btn-sm btn-outline">PDF</a>
+                            </div>
+                        `;
+                        break;
+                    case 'reprovado':
+                        statusBadge = '<span class="badge badge-rejected">Reprovado</span>';
+                        actionBtn = `<span style="color: var(--text-secondary); font-size: 0.8rem;">Arquivado</span>`;
+                        break;
+                    default:
+                        statusBadge = `<span class="badge badge-neutral">${item.status}</span>`;
+                        actionBtn = '';
+                }
+
+                tr.innerHTML = `
+                    <td>
+                        <div style="font-weight: 600; color: var(--primary);">${item.nome}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">${item.gestorEmail || 'Sem email gestor'}</div>
+                    </td>
+                    <td>${item.setor}</td>
+                    <td>${dataInicio}</td>
+                    <td>${statusBadge}</td>
+                    <td>${actionBtn}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (error) {
+            console.error('Erro ao carregar:', error);
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--danger); padding: 1rem;">Erro ao carregar dados. Tente novamente.</td></tr>';
+        }
+    }
+
+    function exportarExcel() {
+        if (!globalData || globalData.length === 0) {
+            alert('Sem dados para exportar');
+            return;
+        }
+
+        const wb = XLSX.utils.book_new();
+        
+        // Mapear dados para formato amigável
+        const rows = globalData.map(item => ({
+            Nome: item.nome,
+            Gestor: item.gestorEmail,
+            Setor: item.setor,
+            'Data Início': new Date(item.inicio).toLocaleDateString('pt-BR'),
+            'Tipo': item.tipoGozo,
+            '13º Salário': item.decimo ? 'Sim' : 'Não',
+            Status: item.status,
+            'Criado em': new Date(item.createdAt).toLocaleDateString('pt-BR')
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Solicitações");
+        XLSX.writeFile(wb, "Relatorio_Ferias.xlsx");
+    }
+
+    async function getLogoBase64() {
+        try {
+            const res = await fetch('/assets/logo.png');
+            if (!res.ok) return null;
+            const blob = await res.blob();
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.readAsDataURL(blob);
+            });
+        } catch (e) { return null; }
+    }
+
+    async function exportarPDF() {
+        if (!globalData || globalData.length === 0) {
+            alert('Sem dados para exportar');
+            return;
+        }
+        
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        const logo = await getLogoBase64();
+        if (logo) {
+            doc.addImage(logo, 'PNG', 14, 10, 40, 15);
+        }
+
+        doc.setFontSize(18);
+        doc.text('Relatório de Solicitações de Férias', 14, 35);
+        doc.setFontSize(11);
+        doc.setTextColor(100);
+        doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 14, 42);
+
+        const tableColumn = ["Nome", "Setor", "Início", "Tipo", "Status"];
+        const tableRows = [];
+
+        globalData.forEach(item => {
+            const statusMap = {
+                'pendente_rh': 'Pendente',
+                'aguardando_assinatura': 'Aprovado (Assinatura)',
+                'concluido': 'Concluído',
+                'reprovado': 'Reprovado'
+            };
+
+            const row = [
+                item.nome,
+                item.setor,
+                new Date(item.inicio).toLocaleDateString('pt-BR'),
+                item.tipoGozo,
+                statusMap[item.status] || item.status
+            ];
+            tableRows.push(row);
+        });
+
+        doc.autoTable({
+            head: [tableColumn],
+            body: tableRows,
+            startY: 50,
+        });
+
+        doc.save('Relatorio_Ferias.pdf');
+    }
+
+    // Carrega ao iniciar
+    document.addEventListener('DOMContentLoaded', carregarSolicitacoes);
+  </script>
+</body>
+</html>

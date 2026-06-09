@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Recrutamento Interno</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="/lang-switcher.js" defer></script>
+</head>
+<body data-page="recrutamento-interno">
+  <main class="container">
+    <div style="margin-bottom: 20px;">
+            <a href="../protected/dashboard-gestor.html" style="color: var(--muted); text-decoration: none; font-size: 0.9rem;"
+                data-translate="public_back_menu">&larr; Voltar ao Painel</a>
+        </div>
+     
+   <div class="brand-inner">
+      <img class="brand-logo" src="/assets/logo.png" alt="Logo Família Madalosso">
+      <div class="brand-title" data-translate="recrutamento_title">Recrutamento Interno</div>
+    </div>
+    
+    <form id="formRecrutamento" novalidate>
+      <h2 class="section-title" data-translate="recrutamento_section_job">Dados da Vaga</h2>
+      <label>
+        Cargo Pretendido
+        <input type="text" id="cargoPretendido" required>
+      </label>
+
+      <h2 class="section-title" data-translate="recrutamento_section_employee">Dados do Colaborador</h2>
+      
+      <label>
+        Nome Completo
+        <select id="nome" required style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; margin-top: 4px; background: var(--card); color: var(--text);">
+            <option value="">Selecione um colaborador...</option>
+        </select>
+      </label>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <label>
+            Cargo Atual
+            <input type="text" id="cargoAtual" required>
+        </label>
+        <label>
+            Setor
+            <input type="text" id="setor" required>
+        </label>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <label>
+            Data Admissão
+            <input type="date" id="dataAdmissao" required>
+        </label>
+        <label>
+            Tempo no cargo
+            <input type="text" id="tempoCargo" placeholder="Ex: 1 ano e 2 meses" required>
+        </label>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <label>
+            Salário Atual (R$)
+            <input type="number" id="salarioAtual" step="0.01" required>
+        </label>
+        <label>
+            Telefone
+            <input type="tel" id="telefone" required>
+        </label>
+      </div>
+
+      <h2 class="section-title" data-translate="recrutamento_section_education">Formação Acadêmica</h2>
+      <p class="form-note">Anexar cópia dos certificados se necessário (entregar ao RH)</p>
+      <label>
+        Descreva sua formação
+        <textarea id="formacao" rows="4" placeholder="Graduação, Pós-graduação, etc." required></textarea>
+      </label>
+
+      <h2 class="section-title" data-translate="recrutamento_section_courses">Cursos Complementares</h2>
+      <p class="form-note">Anexar cópia dos certificados se necessário (entregar ao RH)</p>
+      <label>
+        Descreva seus cursos
+        <textarea id="cursos" rows="4" placeholder="Cursos técnicos, workshops, idiomas, etc." required></textarea>
+      </label>
+
+      <h2 class="section-title" data-translate="recrutamento_section_expectations">Expectativas</h2>
+      <label>
+        Quais são suas expectativas para o novo cargo?
+        <textarea id="expectativas" rows="4" required></textarea>
+      </label>
+
+      <h2 class="section-title" data-translate="recrutamento_section_availability">Disponibilidade</h2>
+      <label>
+        Você tem disponibilidade para trabalhar em qualquer turno?
+        <select id="disponibilidade" required style="margin-top: 8px; width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+            <option value="">Selecione</option>
+            <option value="sim">Sim</option>
+            <option value="nao">Não</option>
+        </select>
+      </label>
+      
+      <label style="margin-top: 10px;">
+        Por quê? (Justifique se necessário)
+        <input type="text" id="motivoDisponibilidade">
+      </label>
+
+      <button class="enviar" type="submit" id="btnSubmit" style="margin-top: 24px;" data-translate="recrutamento_submit">Enviar Candidatura</button>
+    </form>
+    <div id="feedback" class="feedback" role="alert" hidden></div>
+  </main>
+
+  <footer class="app-footer">
+    <div class="footer-content">
+      <img src="/assets/logo.png" alt="Logo" class="footer-logo">
+      <p data-translate="public_footer_rights">&copy; 2026 Família Madalosso. Todos os direitos reservados.</p>
+    </div>
+  </footer>
+
+  <script>
+    // Carregar lista de funcionários
+    fetch('/api/funcionarios')
+        .then(r => r.json())
+        .then(funcionarios => {
+            const select = document.getElementById('nome');
+            funcionarios.sort((a, b) => a.nome.localeCompare(b.nome));
+
+            const normalizeDateToISODate = (value) => {
+                if (!value) return '';
+                const s = String(value).trim();
+                if (!s) return '';
+                const mIso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                if (mIso) return `${mIso[1]}-${mIso[2]}-${mIso[3]}`;
+                const mBr = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                if (mBr) {
+                    const dd = mBr[1].padStart(2, '0');
+                    const mm = mBr[2].padStart(2, '0');
+                    const yyyy = mBr[3];
+                    return `${yyyy}-${mm}-${dd}`;
+                }
+                const d = new Date(s);
+                if (Number.isNaN(d.getTime())) return '';
+                return d.toISOString().slice(0, 10);
+            };
+            
+            funcionarios.forEach(f => {
+                const option = document.createElement('option');
+                option.value = f.nome;
+                option.textContent = f.nome;
+                option.dataset.cargo = f.cargo || '';
+                option.dataset.setor = f.setor || '';
+                option.dataset.dataAdmissao = normalizeDateToISODate(f.data_admissao || f.dataAdmissao || '');
+                select.appendChild(option);
+            });
+
+            select.addEventListener('change', (e) => {
+                const selected = e.target.selectedOptions[0];
+                const campoDataAdmissao = document.getElementById('dataAdmissao');
+                if (selected && selected.value) {
+                    const campoCargo = document.getElementById('cargoAtual');
+                    const campoSetor = document.getElementById('setor');
+                    if (campoCargo) campoCargo.value = selected.dataset.cargo;
+                    if (campoSetor) campoSetor.value = selected.dataset.setor;
+                    if (campoDataAdmissao) campoDataAdmissao.value = selected.dataset.dataAdmissao || '';
+                } else {
+                    const campoCargo = document.getElementById('cargoAtual');
+                    const campoSetor = document.getElementById('setor');
+                    if (campoCargo) campoCargo.value = '';
+                    if (campoSetor) campoSetor.value = '';
+                    if (campoDataAdmissao) campoDataAdmissao.value = '';
+                }
+            });
+        })
+        .catch(err => console.error('Erro ao carregar funcionários:', err));
+
+    document.getElementById('formRecrutamento').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('btnSubmit');
+        const feedback = document.getElementById('feedback');
+        
+        btn.disabled = true;
+        btn.textContent = 'Enviando...';
+        feedback.hidden = true;
+        feedback.className = 'feedback';
+
+        const payload = {
+            cargoPretendido: document.getElementById('cargoPretendido').value,
+            nome: document.getElementById('nome').value,
+            cargoAtual: document.getElementById('cargoAtual').value,
+            setor: document.getElementById('setor').value,
+            dataAdmissao: document.getElementById('dataAdmissao').value,
+            tempoCargo: document.getElementById('tempoCargo').value,
+            salarioAtual: document.getElementById('salarioAtual').value,
+            telefone: document.getElementById('telefone').value,
+            formacao: document.getElementById('formacao').value,
+            cursos: document.getElementById('cursos').value,
+            expectativas: document.getElementById('expectativas').value,
+            disponibilidade: document.getElementById('disponibilidade').value,
+            motivoDisponibilidade: document.getElementById('motivoDisponibilidade').value
+        };
+
+        try {
+            const res = await fetch('/api/recrutamento-interno', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+
+            if (data.ok) {
+                feedback.textContent = 'Candidatura enviada com sucesso!';
+                feedback.classList.add('success');
+                feedback.hidden = false;
+                document.getElementById('formRecrutamento').reset();
+            } else {
+                throw new Error(data.erro || 'Erro ao enviar');
+            }
+        } catch (err) {
+            feedback.textContent = err.message;
+            feedback.classList.add('error');
+            feedback.hidden = false;
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Enviar Candidatura';
+        }
+    });
+  </script>
+  </body>
+  </html>

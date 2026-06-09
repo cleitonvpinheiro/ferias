@@ -1,0 +1,1945 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Painel do Gestor</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="/rh-styles.css">
+  <script src="/lang-switcher.js" defer></script>
+</head>
+
+<body data-page="rh-gestor">
+  <div id="navbar-container"></div>
+  <script src="/rh-navbar.js"></script>
+  <script>renderRHNavbar('gestor');</script>
+
+  <main class="dashboard-container">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title" id="mgrGreeting">Painel do Gestor</h1>
+        <p class="page-subtitle" id="mgrSubtitle">Visão rápida do seu dia e atalhos do portal.</p>
+      </div>
+      <div class="last-update">
+        <span id="mgrClock">—</span>
+      </div>
+    </div>
+
+    <section class="mgr-kpi" aria-label="Indicadores principais">
+      <div class="stat-card pending">
+        <div class="stat-header">
+          <div class="stat-title">Férias pendentes (RH)</div>
+          <div class="stat-icon">🏖️</div>
+        </div>
+        <div class="stat-value" id="kpiFerias">—</div>
+        <div class="stat-sub">Solicitações aguardando</div>
+      </div>
+      <div class="stat-card pending">
+        <div class="stat-header">
+          <div class="stat-title">Taxas pendentes</div>
+          <div class="stat-icon">💰</div>
+        </div>
+        <div class="stat-value" id="kpiTaxas">—</div>
+        <div class="stat-sub">Itens em análise</div>
+      </div>
+      <div class="stat-card approved">
+        <div class="stat-header">
+          <div class="stat-title">Vagas abertas</div>
+          <div class="stat-icon">📢</div>
+        </div>
+        <div class="stat-value" id="kpiVagas">—</div>
+        <div class="stat-sub">Em andamento</div>
+      </div>
+      <div class="stat-card pending">
+        <div class="stat-header">
+          <div class="stat-title">Av. de desempenho</div>
+          <div class="stat-icon">�</div>
+        </div>
+        <div class="stat-value" id="kpiAvalDesempenho">—</div>
+        <div class="stat-sub">Pendências para avaliar</div>
+      </div>
+      <div class="stat-card pending">
+        <div class="stat-header">
+          <div class="stat-title">Av. de experiência</div>
+          <div class="stat-icon">⏱️</div>
+        </div>
+        <div class="stat-value" id="kpiAvalExperiencia">—</div>
+        <div class="stat-sub">Alertas 45/90 dias</div>
+      </div>
+    </section>
+
+    <div class="mgr-dashboard">
+      <section class="mgr-card" aria-label="Acontecendo agora">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+          <div style="font-weight:900; color: var(--primary);">Comunicados e feed</div>
+          <button class="btn btn-outline btn-sm" type="button" id="btnFeedRefresh">Atualizar</button>
+        </div>
+        <div class="mgr-team-tools" style="margin-top: 10px;">
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            <button class="btn btn-outline btn-sm" type="button" id="btnFeedHoje">Hoje</button>
+            <button class="btn btn-outline btn-sm" type="button" id="btnFeedOntem" style="display:none;">Ontem</button>
+          </div>
+          <input id="feedSearch" type="search" class="filter-input" placeholder="Pesquisar..."
+            aria-label="Pesquisar no feed">
+        </div>
+        <div class="mgr-list" id="feedList" style="margin-top: 12px;">
+          <div class="mgr-item">
+            <div class="dot"></div>
+            <div>
+              <p class="mgr-item-title">Carregando...</p>
+              <p class="mgr-item-meta">—</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="mgr-card" aria-label="Acesso rápido">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+          <div style="font-weight:900; color: var(--primary);">Acesso rápido</div>
+        </div>
+        <div class="mgr-quick" id="mgrQuick" style="margin-top: 10px;">
+          <a href="/protected/dashboard-vagas.html">
+            <div class="mgr-quick-btn">
+              <span class="mgr-quick-icon">📢</span>
+              <span class="mgr-quick-meta">
+                <span class="mgr-quick-title">Vagas</span>
+                <span class="mgr-quick-desc">Abertas e desligamentos</span>
+              </span>
+              <span class="mgr-quick-badge mgr-badge-warn" id="badgeVagas" hidden>0</span>
+            </div>
+          </a>
+          <a href="/protected/dashboard-taxas.html">
+            <div class="mgr-quick-btn">
+              <span class="mgr-quick-icon">💰</span>
+              <span class="mgr-quick-meta">
+                <span class="mgr-quick-title">Taxas</span>
+                <span class="mgr-quick-desc">Pendências e PDF</span>
+              </span>
+              <span class="mgr-quick-badge mgr-badge-warn" id="badgeTaxas" hidden>0</span>
+            </div>
+          </a>
+          <a href="/protected/dashboard-rh.html">
+            <div class="mgr-quick-btn">
+              <span class="mgr-quick-icon">🏖️</span>
+              <span class="mgr-quick-meta">
+                <span class="mgr-quick-title">Férias</span>
+                <span class="mgr-quick-desc">Solicitações pendentes</span>
+              </span>
+              <span class="mgr-quick-badge mgr-badge-danger" id="badgeFerias" hidden>0</span>
+            </div>
+          </a>
+          <a href="/protected/dashboard-avaliacao.html">
+            <div class="mgr-quick-btn">
+              <span class="mgr-quick-icon">📊</span>
+              <span class="mgr-quick-meta">
+                <span class="mgr-quick-title">Av. de desempenho</span>
+                <span class="mgr-quick-desc">Pendências e histórico</span>
+              </span>
+              <span class="mgr-quick-badge" id="badgeAval" hidden>0</span>
+            </div>
+          </a>
+          <a href="/protected/dashboard-experiencia.html">
+            <div class="mgr-quick-btn">
+              <span class="mgr-quick-icon">⏱️</span>
+              <span class="mgr-quick-meta">
+                <span class="mgr-quick-title">Av. de experiência</span>
+                <span class="mgr-quick-desc">45/90 dias</span>
+              </span>
+              <span class="mgr-quick-badge mgr-badge-warn" id="badgeExperiencia" hidden>0</span>
+            </div>
+          </a>
+          <a href="/protected/dashboard-funcionarios.html">
+            <div class="mgr-quick-btn">
+              <span class="mgr-quick-icon">👷</span>
+              <span class="mgr-quick-meta">
+                <span class="mgr-quick-title">Equipe</span>
+                <span class="mgr-quick-desc">Colaboradores vinculados</span>
+              </span>
+              <span class="mgr-quick-badge mgr-badge-accent" id="badgeEquipe" hidden>0</span>
+            </div>
+          </a>
+        </div>
+        <div class="mgr-quick-empty" id="mgrQuickEmpty" style="display:none; margin-top: 10px;">
+          Sem acessos configurados.
+        </div>
+        <div style="margin-top: 14px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+          <div style="font-weight:900; color: var(--primary);">Formulários</div>
+        </div>
+        <div class="mgr-team-tools" style="margin-top: 10px;">
+          <input id="formQuickSearch" type="search" class="filter-input" placeholder="Buscar formulário..."
+            aria-label="Pesquisar formulários">
+        </div>
+        <div class="mgr-quick" id="mgrQuickForms" style="margin-top: 10px;"></div>
+        <div class="mgr-quick-empty" id="mgrQuickFormsEmpty" style="display:none; margin-top: 10px;">
+          Sem formulários disponíveis.
+        </div>
+      </aside>
+
+      <section class="mgr-card" aria-label="Minha equipe">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+          <div style="font-weight:900; color: var(--primary);">Minha equipe</div>
+          <a href="/protected/dashboard-funcionarios.html" class="backlink" style="padding: 6px 10px;">Ver todos</a>
+        </div>
+        <div class="mgr-team-tools" style="margin-top: 10px; display: flex; flex-direction: column; gap: 10px;">
+          <input id="teamSearch" type="search" class="filter-input" placeholder="Buscar colaborador por nome..."
+            aria-label="Pesquisar na equipe">
+          <select id="teamSelect" class="filter-select" aria-label="Selecionar colaborador" style="width:100%;">
+            <option value="">Carregando...</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="mgr-card" aria-label="Notificações recentes">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+          <div style="font-weight:900; color: var(--primary);">Atividades recentes</div>
+          <button class="btn btn-outline btn-sm" type="button" id="btnMarkAllRead">Marcar lidas</button>
+        </div>
+        <div class="mgr-list" id="notifList">
+          <div class="mgr-item">
+            <div class="dot"></div>
+            <div>
+              <p class="mgr-item-title">Carregando...</p>
+              <p class="mgr-item-meta">—</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="mgr-card" aria-label="Indicadores">
+        <div style="font-weight:900; color: var(--primary);">Indicadores</div>
+        <div class="mgr-list" style="margin-top: 10px;">
+          <div class="mgr-item">
+            <div class="dot" style="background: var(--success);"></div>
+            <div>
+              <p class="mgr-item-title">Média de performance</p>
+              <p class="mgr-item-meta"><span id="kpiPerfAvg">—</span>% (últimas avaliações)</p>
+            </div>
+          </div>
+          <div class="mgr-item">
+            <div class="dot" style="background: var(--warning);"></div>
+            <div>
+              <p class="mgr-item-title">Turnover (30 dias)</p>
+              <p class="mgr-item-meta"><span id="kpiTurnover">—</span> desligamento(s)</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <div class="modal-overlay" id="modalColab" onclick="if(event.target === this) closeColabModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="profile-head">
+          <div class="profile-avatar" id="colabAvatar">—</div>
+          <div style="min-width:0;">
+            <h2 class="profile-title" id="colabName">Colaborador</h2>
+            <div class="profile-subtitle" id="colabMeta">—</div>
+          </div>
+        </div>
+        <button class="close-modal" onclick="closeColabModal()" aria-label="Fechar">&times;</button>
+      </div>
+      <div class="modal-content-wrapper">
+        <div class="modal-grid">
+          <div>
+            <h3 class="section-title">Dados</h3>
+            <div class="detail-card">
+              <div class="detail-label">Cargo</div>
+              <div class="detail-value" id="colabCargo">—</div>
+            </div>
+            <div class="detail-card">
+              <div class="detail-label">Setor</div>
+              <div class="detail-value" id="colabSetor">—</div>
+            </div>
+            <div class="detail-card">
+              <div class="detail-label">Vínculo</div>
+              <div class="detail-value" id="colabVinculo">—</div>
+            </div>
+            <div class="detail-card">
+              <div class="detail-label">Contrato</div>
+              <div class="detail-value" id="colabContrato">—</div>
+            </div>
+            <div class="detail-card">
+              <div class="detail-label">Matrícula</div>
+              <div class="detail-value" id="colabMatricula">—</div>
+            </div>
+            <div class="detail-card">
+              <div class="detail-label">Admissão</div>
+              <div class="detail-value" id="colabAdmissao">—</div>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+              <h3 class="section-title" style="margin:0;">Últimas avaliações</h3>
+              <button class="btn btn-outline btn-sm" type="button" id="btnColabAvalDisponiveis" style="display:none;">
+                Avaliações disponíveis <span id="colabAvalDisponiveisCount" class="mgr-quick-badge mgr-badge-warn"
+                  style="position:static; margin-left:8px;" hidden>0</span>
+              </button>
+            </div>
+            <div class="profile-kpi" id="colabEvalGrid">
+              <div class="detail-card">
+                <div class="detail-label">Liderança</div>
+                <div class="detail-value" id="colabEvalLideranca">—</div>
+              </div>
+              <div class="detail-card">
+                <div class="detail-label">ADM</div>
+                <div class="detail-value" id="colabEvalAdm">—</div>
+              </div>
+              <div class="detail-card">
+                <div class="detail-label">Operacional</div>
+                <div class="detail-value" id="colabEvalOperacional">—</div>
+              </div>
+              <div class="detail-card">
+                <div class="detail-label">Experiência</div>
+                <div class="detail-value" id="colabEvalExperiencia">—</div>
+              </div>
+              <div class="detail-card">
+                <div class="detail-label">Última atualização</div>
+                <div class="detail-value" id="colabEvalUpdated">—</div>
+              </div>
+            </div>
+            <div class="profile-list" id="colabAvalDisponiveisWrap"
+              style="display:none; flex-direction: column; gap: 10px;">
+              <input id="avalDisponiveisSearch" type="search" class="filter-input"
+                placeholder="Buscar avaliação disponível..." style="width: 100%;">
+              <div id="colabAvalDisponiveisList"></div>
+            </div>
+            <div class="profile-list" id="colabDesempenhoList"></div>
+          </div>
+        </div>
+
+        <div class="profile-sections">
+          <div class="profile-section">
+            <h3 class="section-title">Férias</h3>
+            <div class="profile-kpi profile-kpi-3">
+              <div class="detail-card">
+                <div class="detail-label">Total</div>
+                <div class="detail-value" id="colabFeriasTotal">—</div>
+              </div>
+              <div class="detail-card">
+                <div class="detail-label">Pendentes</div>
+                <div class="detail-value" id="colabFeriasPendentes">—</div>
+              </div>
+              <div class="detail-card">
+                <div class="detail-label">Próximo início</div>
+                <div class="detail-value" id="colabFeriasProximo">—</div>
+              </div>
+            </div>
+            <div class="profile-list" id="colabFeriasList"></div>
+          </div>
+
+          <div class="profile-section">
+            <h3 class="section-title">Advertências / Suspensões</h3>
+            <div class="profile-kpi profile-kpi-3">
+              <div class="detail-card">
+                <div class="detail-label">Total</div>
+                <div class="detail-value" id="colabDiscTotal">—</div>
+              </div>
+              <div class="detail-card">
+                <div class="detail-label">Advertências</div>
+                <div class="detail-value" id="colabDiscAdv">—</div>
+              </div>
+              <div class="detail-card">
+                <div class="detail-label">Suspensões</div>
+                <div class="detail-value" id="colabDiscSusp">—</div>
+              </div>
+            </div>
+            <div class="profile-list" id="colabDiscList"></div>
+          </div>
+
+          <div class="profile-section">
+            <h3 class="section-title">Benefícios (linha do tempo)</h3>
+            <input id="colabBenefSearch" type="search" class="filter-input" placeholder="Pesquisar benefícios..."
+              aria-label="Pesquisar benefícios" style="margin: 10px 0 0;">
+            <div class="profile-list" id="colabBenefList"></div>
+          </div>
+
+          <div class="profile-section">
+            <h3 class="section-title">Próximos eventos</h3>
+            <div class="profile-list" id="colabEventsList"></div>
+          </div>
+
+          <div class="profile-section">
+            <h3 class="section-title">Dados pessoais</h3>
+            <div class="profile-kpi profile-kpi-3">
+              <div class="detail-card">
+                <div class="detail-label">Nascimento</div>
+                <div class="detail-value" id="colabNascimento">—</div>
+              </div>
+              <div class="detail-card">
+                <div class="detail-label">Sexo</div>
+                <div class="detail-value" id="colabSexo">—</div>
+              </div>
+              <div class="detail-card">
+                <div class="detail-label">Nacionalidade</div>
+                <div class="detail-value" id="colabNacionalidade">—</div>
+              </div>
+              <div class="detail-card">
+                <div class="detail-label">CPF</div>
+                <div class="detail-value" id="colabCpf">—</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="profile-section">
+            <h3 class="section-title">Contato e emergência</h3>
+            <div class="profile-list" id="colabContatoList"></div>
+          </div>
+
+          <div class="profile-section">
+            <h3 class="section-title">Treinamentos</h3>
+            <div class="profile-list" id="colabTreinosList"></div>
+          </div>
+
+          <div class="profile-section">
+            <h3 class="section-title">Jornada / faltas</h3>
+            <div class="profile-list" id="colabJornadaList"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <div style="color: var(--text-secondary); font-weight: 800;" id="colabModalFoot">—</div>
+        <div class="status-actions">
+          <a class="btn btn-outline" id="btnOpenAvaliacoes" href="/protected/dashboard-avaliacao.html">Ver
+            avaliações</a>
+          <a class="btn btn-primary" id="btnOpenEquipe" href="/protected/dashboard-funcionarios.html">Ver cadastro</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function escapeHtml(v) {
+      return String(v ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function formatDateTimePtBR(d) {
+      try {
+        const dt = d instanceof Date ? d : new Date(d);
+        if (Number.isNaN(dt.getTime())) return '—';
+        return dt.toLocaleString('pt-BR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+      } catch (_) {
+        return '—';
+      }
+    }
+
+    function greetingByTime(name) {
+      const h = new Date().getHours();
+      const base = h < 12 ? 'Bom dia' : (h < 18 ? 'Boa tarde' : 'Boa noite');
+      const n = String(name || '').trim();
+      return n ? `${base}, ${n}` : base;
+    }
+
+    async function safeJson(res) {
+      try { return await res.json(); } catch (_) { return null; }
+    }
+
+    async function loadMe() {
+      const res = await fetch('/api/me', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+      const data = await safeJson(res);
+      if (!res.ok || !data || !data.ok) throw new Error('unauth');
+      return data.user || null;
+    }
+
+    async function loadAccess() {
+      const res = await fetch('/api/access', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+      const data = await safeJson(res);
+      if (!res.ok || !data || !data.ok) return { protectedPaths: [], publicPaths: [], dynamicForms: [] };
+      const access = data.access || {};
+      return {
+        protectedPaths: Array.isArray(access.protectedPaths) ? access.protectedPaths : [],
+        publicPaths: Array.isArray(access.publicPaths) ? access.publicPaths : [],
+        dynamicForms: Array.isArray(access.dynamicForms) ? access.dynamicForms : []
+      };
+    }
+
+    async function loadOverview() {
+      const res = await fetch('/api/analytics/overview', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+      const data = await safeJson(res);
+      if (!res.ok || !data || !data.ok) throw new Error('overview');
+      return data;
+    }
+
+    async function loadAvaliacaoPendencias() {
+      const res = await fetch('/api/avaliacao/pendencias', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+      const data = await safeJson(res);
+      if (!res.ok) return [];
+      return Array.isArray(data) ? data : [];
+    }
+
+    async function loadAvaliacoesExperiencia() {
+      const res = await fetch('/api/avaliacao/pendencias?contexto=experiencia', {
+        headers: { 'Accept': 'application/json' },
+        cache: 'no-store'
+      });
+      const data = await safeJson(res);
+      console.log('experiencia raw data:', data); // DEBUG
+      if (!res.ok) return [];
+      return Array.isArray(data) ? data : [];
+    }
+
+
+    let __pendenciasAll = null;
+    let __pendenciasAt = 0;
+    let __colabAvalDisponiveis = [];
+
+    async function getPendenciasCached(maxAgeMs = 60000) {
+      const now = Date.now();
+      if (Array.isArray(__pendenciasAll) && (now - __pendenciasAt) <= maxAgeMs) return __pendenciasAll;
+      const list = await loadAvaliacaoPendencias();
+      __pendenciasAll = Array.isArray(list) ? list : [];
+      __pendenciasAt = now;
+      return __pendenciasAll;
+    }
+
+    let __feedAll = [];
+    let __feedDay = 0;
+    let __feedQuery = '';
+
+    function startOfDay(d) {
+      const x = d instanceof Date ? new Date(d) : new Date();
+      x.setHours(0, 0, 0, 0);
+      return x;
+    }
+
+    function dayBounds(daysAgo) {
+      const todayStart = startOfDay(new Date());
+      if (daysAgo === 0) {
+        const end = new Date(todayStart);
+        end.setDate(end.getDate() + 1);
+        return { start: todayStart, end };
+      }
+      const end = new Date(todayStart);
+      const start = new Date(todayStart);
+      start.setDate(start.getDate() - 1);
+      return { start, end };
+    }
+
+    async function loadFeedItems(limit = 80) {
+      const res = await fetch(`/api/intranet/feed?limit=${encodeURIComponent(limit)}`, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+      const data = await safeJson(res);
+      if (!res.ok || !data || !data.ok) return [];
+      return Array.isArray(data.items) ? data.items : [];
+    }
+
+    function hasItemsForYesterday(items) {
+      const arr = Array.isArray(items) ? items : [];
+      const { start, end } = dayBounds(1);
+      return arr.some(it => {
+        const dtRaw = it && (it.created_at || it.createdAt);
+        const dt = dtRaw ? new Date(dtRaw) : null;
+        if (!dt || Number.isNaN(dt.getTime())) return false;
+        return dt >= start && dt < end;
+      });
+    }
+
+    function truncateText(s, max = 180) {
+      const t = String(s || '').trim();
+      if (!t) return '';
+      if (t.length <= max) return t;
+      return t.slice(0, max - 1).trimEnd() + '…';
+    }
+
+    function filterFeedByDay(items, daysAgo) {
+      const arr = Array.isArray(items) ? items : [];
+      const { start, end } = dayBounds(daysAgo);
+      return arr.filter(it => {
+        const dtRaw = it && (it.created_at || it.createdAt);
+        const dt = dtRaw ? new Date(dtRaw) : null;
+        if (!dt || Number.isNaN(dt.getTime())) return false;
+        return dt >= start && dt < end;
+      });
+    }
+
+    function filterFeedByQuery(items, query) {
+      const q = String(query || '').trim().toLowerCase();
+      if (!q) return items;
+      return (Array.isArray(items) ? items : []).filter(it => {
+        const titulo = String(it && it.titulo || '').toLowerCase();
+        const conteudo = String(it && it.conteudo || '').toLowerCase();
+        const autor = String(it && (it.autor || it.usuario || it.user) || '').toLowerCase();
+        return titulo.includes(q) || conteudo.includes(q) || autor.includes(q);
+      });
+    }
+
+    function renderFeed(items, daysAgo, query) {
+      const root = document.getElementById('feedList');
+      if (!root) return;
+      const arr0 = filterFeedByDay(items, daysAgo).sort((a, b) => {
+        const da = new Date((a && (a.created_at || a.createdAt)) || 0).getTime();
+        const db = new Date((b && (b.created_at || b.createdAt)) || 0).getTime();
+        return db - da;
+      });
+      const arr = filterFeedByQuery(arr0, query).slice(0, 10);
+
+      if (arr.length === 0) {
+        const emptyTitle = daysAgo === 1 ? 'Nenhuma publicação ontem' : 'Nenhuma publicação hoje';
+        const emptyMeta = (query && String(query).trim()) ? 'Tente ajustar a pesquisa.' : 'Sem comunicados e posts no período.';
+        root.innerHTML = `
+          <div class="mgr-item">
+            <div class="dot" style="background: rgba(148, 163, 184, 0.9);"></div>
+            <div>
+              <p class="mgr-item-title">${escapeHtml(emptyTitle)}</p>
+              <p class="mgr-item-meta">${escapeHtml(emptyMeta)}</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      root.innerHTML = arr.map(it => {
+        const tipo = String(it && it.tipo || '').trim().toLowerCase();
+        const isAnn = tipo === 'announcement' || tipo === 'comunicado';
+        const dot = isAnn ? 'var(--warning)' : 'var(--accent)';
+        const titulo = escapeHtml(it && it.titulo || (isAnn ? 'Comunicado' : 'Feed'));
+        const conteudo = escapeHtml(truncateText(it && it.conteudo || '', 220));
+        const autor = escapeHtml(it && (it.autor || it.usuario || it.user) || '');
+        const dt = formatDateTimePtBR(it && (it.created_at || it.createdAt));
+        const meta = `${autor ? (autor + ' • ') : ''}${dt}`;
+        const imagemUrl = it && it.imagem_url ? String(it.imagem_url) : '';
+        const imagemHtml = imagemUrl ? `<img src="${imagemUrl}" alt="" style="width:100%; max-height:180px; object-fit:contain; border-radius:8px; margin-top:6px;">` : '';
+        return `
+          <div class="mgr-item">
+            <div class="dot" style="background: ${dot};"></div>
+            <div style="min-width:0; width:100%;">
+              <p class="mgr-item-title">${titulo}</p>
+              <p class="mgr-item-meta">${conteudo ? (conteudo + ' • ') : ''}${meta}</p>
+              ${imagemHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function applyFeedView() {
+      renderFeed(__feedAll, __feedDay, __feedQuery);
+      const btnHoje = document.getElementById('btnFeedHoje');
+      const btnOntem = document.getElementById('btnFeedOntem');
+      const input = document.getElementById('feedSearch');
+      if (btnHoje) btnHoje.className = __feedDay === 0 ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm';
+      if (btnOntem) btnOntem.className = __feedDay === 1 ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm';
+      if (input) input.placeholder = __feedDay === 1 ? 'Pesquisar ontem...' : 'Pesquisar hoje...';
+    }
+
+    function setFeedDay(daysAgo) {
+      __feedDay = daysAgo === 1 ? 1 : 0;
+      applyFeedView();
+    }
+
+    async function refreshFeed() {
+      const btn = document.getElementById('btnFeedRefresh');
+      if (btn) btn.disabled = true;
+      try {
+        __feedAll = await loadFeedItems(120);
+        const btnOntem = document.getElementById('btnFeedOntem');
+        const showOntem = hasItemsForYesterday(__feedAll);
+        if (btnOntem) btnOntem.style.display = showOntem ? '' : 'none';
+        if (!showOntem && __feedDay === 1) __feedDay = 0;
+        applyFeedView();
+      } catch (_) {
+        const root = document.getElementById('feedList');
+        if (root) {
+          root.innerHTML = `
+            <div class="mgr-item">
+              <div class="dot" style="background: var(--danger);"></div>
+              <div>
+                <p class="mgr-item-title">Falha ao carregar feed</p>
+                <p class="mgr-item-meta">Tente novamente.</p>
+              </div>
+            </div>
+          `;
+        }
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    function initFeedUI() {
+      const btnHoje = document.getElementById('btnFeedHoje');
+      const btnOntem = document.getElementById('btnFeedOntem');
+      const btnRefresh = document.getElementById('btnFeedRefresh');
+      const input = document.getElementById('feedSearch');
+
+      if (btnHoje) btnHoje.addEventListener('click', () => setFeedDay(0));
+      if (btnOntem) btnOntem.addEventListener('click', () => setFeedDay(1));
+      if (btnRefresh) btnRefresh.addEventListener('click', () => refreshFeed());
+      if (input) input.addEventListener('input', (e) => {
+        __feedQuery = e && e.target ? e.target.value : '';
+        applyFeedView();
+      });
+
+      applyFeedView();
+    }
+
+    async function loadNotifications() {
+      const res = await fetch('/api/notifications?limit=6&unreadOnly=0', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+      const data = await safeJson(res);
+      if (!res.ok || !data || !data.ok) return { unread: 0, items: [] };
+      return { unread: Number(data.unread || 0), items: Array.isArray(data.items) ? data.items : [] };
+    }
+
+    function initials(v) {
+      const s = String(v || '').trim();
+      if (!s) return '';
+      const parts = s.split(/\s+/g).filter(Boolean);
+      const a = (parts[0] || '').slice(0, 1);
+      const b = (parts.length > 1 ? parts[parts.length - 1] : '').slice(0, 1);
+      return (a + b).toUpperCase();
+    }
+
+    function fmtDatePtBR(iso) {
+      try {
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return '—';
+        return d.toLocaleDateString('pt-BR');
+      } catch (_) { return '—'; }
+    }
+
+    function fmtMaybeDatePtBR(v) {
+      const raw = String(v ?? '').trim();
+      if (!raw) return '—';
+      const d = new Date(raw);
+      if (!Number.isNaN(d.getTime())) return d.toLocaleDateString('pt-BR');
+      return raw;
+    }
+
+    function fmtMaybeDateTimePtBR(v) {
+      const raw = String(v ?? '').trim();
+      if (!raw) return '—';
+      const d = new Date(raw);
+      if (!Number.isNaN(d.getTime())) {
+        const date = d.toLocaleDateString('pt-BR');
+        const time = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        return `${date} ${time}`;
+      }
+      return raw;
+    }
+
+    function addMonths(date, months) {
+      const d = new Date(date);
+      const day = d.getDate();
+      d.setMonth(d.getMonth() + months);
+      if (d.getDate() < day) d.setDate(0);
+      return d;
+    }
+
+    function getDeadlineInfo(dataAdmissao, diasOrMonths, isPending, type = 'days') {
+      if (!isPending || !dataAdmissao) return { isAlert: false, isOverdue: false };
+      const base = new Date(dataAdmissao);
+      if (Number.isNaN(base.getTime())) return { isAlert: false, isOverdue: false };
+      let deadline;
+      if (type === 'months') {
+        deadline = addMonths(base, diasOrMonths);
+      } else {
+        deadline = new Date(base.getTime());
+        deadline.setDate(deadline.getDate() + Number(diasOrMonths || 0));
+      }
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      deadline.setHours(0, 0, 0, 0);
+      const diffDays = Math.round((deadline.getTime() - today.getTime()) / 86400000);
+      const nearThreshold = 10;
+      if (diffDays < 0) return { isAlert: true, isOverdue: true };
+      if (diffDays === 0) return { isAlert: true, isOverdue: false };
+      if (diffDays <= nearThreshold) return { isAlert: true, isOverdue: false };
+      return { isAlert: false, isOverdue: false };
+    }
+
+    function normalizeNumericIdValue(val) {
+      const s = String(val ?? '').trim();
+      if (!s) return '';
+      const compact = s.replace(/\s+/g, '');
+      if (/^\d+$/.test(compact)) return compact;
+      if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(compact)) return compact.replace(/\./g, '').split(',')[0];
+      if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(compact)) return compact.replace(/,/g, '').split('.')[0];
+      if (/^\d+[.,]\d+$/.test(compact)) return compact.split(compact.includes(',') ? ',' : '.')[0];
+      return s;
+    }
+
+    function formatCpfRBM(cpf) {
+      const digits = String(cpf ?? '').replace(/\D+/g, '');
+      if (!digits) return '—';
+      if (digits.length !== 11) return String(cpf);
+      return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+    }
+
+    function formatMoneyBRL(value) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return '—';
+      return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function pctFromEval(a) {
+      if (!a) return null;
+      const total = (a.weightedTotalScore != null) ? a.weightedTotalScore : a.totalScore;
+      const max = (a.weightedMaxScore != null) ? a.weightedMaxScore : a.maxScore;
+      const t = Number(total);
+      const m = Number(max);
+      if (!Number.isFinite(t) || !Number.isFinite(m) || m <= 0) return null;
+      return Math.round((t / m) * 1000) / 10;
+    }
+
+    async function loadPerfilColaborador(id) {
+      const res = await fetch(`/api/funcionarios/${encodeURIComponent(id)}/perfil`, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+      const data = await safeJson(res);
+      if (!res.ok || !data || !data.ok) {
+        const errMsg = (data && (data.erro || data.error)) ? String(data.erro || data.error) : `Falha ao carregar (HTTP ${res.status})`;
+        throw new Error(errMsg);
+      }
+      return data.perfil || null;
+    }
+
+    function setListHtml(id, html) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.innerHTML = html || '';
+    }
+
+    function renderEmptyList(targetId, title, meta) {
+      const safeTitle = escapeHtml(title || 'Sem dados');
+      const safeMeta = escapeHtml(meta || '');
+      setListHtml(targetId, `
+        <div class="mgr-list">
+          <div class="mgr-item">
+            <div class="dot" style="background: rgba(148, 163, 184, 0.9);"></div>
+            <div style="min-width:0;">
+              <p class="mgr-item-title">${safeTitle}</p>
+              <p class="mgr-item-meta">${safeMeta}</p>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    function feriasStatusLabel(status) {
+      const st = String(status || '').trim().toLowerCase();
+      if (st === 'pendente_rh') return 'Pendente RH';
+      if (st === 'pendente_gestor') return 'Pendente gestor';
+      if (st === 'aguardando_assinatura') return 'Aguardando assinatura';
+      if (st === 'aprovado') return 'Aprovado';
+      if (st === 'reprovado') return 'Reprovado';
+      if (!st) return '—';
+      return st.replaceAll('_', ' ');
+    }
+
+    function dotByStatus(status) {
+      const st = String(status || '').trim().toLowerCase();
+      if (st.includes('reprov')) return 'var(--danger)';
+      if (st.includes('pendente') || st.includes('aguardando')) return 'var(--warning)';
+      if (st.includes('aprov')) return 'var(--success)';
+      return 'var(--accent)';
+    }
+
+    function getItemTimestamp(it) {
+      const dt = it && (it.updatedAt || it.updated_at || it.createdAt || it.created_at);
+      const d = dt ? new Date(dt) : null;
+      return d && !Number.isNaN(d.getTime()) ? d : null;
+    }
+
+    function pickLatestByTipo(items, tipo) {
+      const list = (Array.isArray(items) ? items : []).filter(a => String(a && a.tipo || '').toLowerCase() === String(tipo || '').toLowerCase());
+      let best = null;
+      for (const it of list) {
+        const d = getItemTimestamp(it);
+        if (!d) continue;
+        if (!best || d.getTime() > best.d.getTime()) best = { it, d };
+      }
+      return best ? best.it : null;
+    }
+
+    function renderFerias(ferias) {
+      const f = ferias || {};
+      setText('colabFeriasTotal', f.total ?? 0);
+      setText('colabFeriasPendentes', f.pendentes ?? 0);
+      setText('colabFeriasProximo', f.proximoInicio ? fmtMaybeDatePtBR(f.proximoInicio) : '—');
+
+      const recentes = Array.isArray(f.recentes) ? f.recentes : [];
+      if (recentes.length === 0) {
+        renderEmptyList('colabFeriasList', 'Sem solicitações de férias', 'Nenhuma solicitação encontrada para este colaborador.');
+        return;
+      }
+
+      const rows = recentes.map(s => {
+        const status = feriasStatusLabel(s && s.status);
+        const dot = dotByStatus(s && s.status);
+        const inicio = fmtMaybeDatePtBR(s && s.inicio);
+        const inicio2 = s && s.inicio2 ? fmtMaybeDatePtBR(s.inicio2) : '';
+        const periodo = inicio2 && inicio2 !== '—' ? `${inicio} • ${inicio2}` : inicio;
+        const tipo = s && s.tipoGozo ? String(s.tipoGozo) : '';
+        const created = s && s.createdAt ? fmtMaybeDatePtBR(s.createdAt) : '—';
+        return `
+          <div class="mgr-item">
+            <div class="dot" style="background: ${dot};"></div>
+            <div style="min-width:0;">
+              <p class="mgr-item-title">${escapeHtml(status)}${tipo ? (' • ' + escapeHtml(tipo)) : ''}</p>
+              <p class="mgr-item-meta">${escapeHtml(periodo)}${created !== '—' ? (' • ' + escapeHtml(created)) : ''}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      setListHtml('colabFeriasList', `<div class="mgr-list">${rows}</div>`);
+    }
+
+    function renderDisciplinar(disciplinar) {
+      const d = disciplinar || {};
+      setText('colabDiscTotal', d.total ?? 0);
+      setText('colabDiscAdv', d.advertencias ?? 0);
+      setText('colabDiscSusp', d.suspensoes ?? 0);
+
+      const recentes = Array.isArray(d.recentes) ? d.recentes : [];
+      if (recentes.length === 0) {
+        renderEmptyList('colabDiscList', 'Sem registros disciplinares', 'Nenhuma advertência ou suspensão registrada.');
+        return;
+      }
+
+      const rows = recentes.map(r => {
+        const tipoRaw = String(r && r.tipo || '').toLowerCase();
+        const tipo = tipoRaw === 'advertencia' ? 'Advertência' : (tipoRaw === 'suspensao' ? 'Suspensão' : (r && r.tipo ? String(r.tipo) : 'Registro'));
+        const dot = tipoRaw === 'suspensao' ? 'var(--warning)' : 'var(--accent)';
+        const ocorr = r && r.dataOcorrencia ? fmtMaybeDatePtBR(r.dataOcorrencia) : '—';
+        const motivo = r && r.motivo ? String(r.motivo) : '';
+        const desc = r && r.descricao ? String(r.descricao) : '';
+        const dias = r && r.diasSuspensao != null ? Number(r.diasSuspensao) : null;
+        const metaParts = [];
+        if (ocorr && ocorr !== '—') metaParts.push(ocorr);
+        if (dias && Number.isFinite(dias) && dias > 0) metaParts.push(`${dias} dia(s)`);
+        if (motivo) metaParts.push(motivo);
+        const meta = metaParts.join(' • ');
+        return `
+          <div class="mgr-item">
+            <div class="dot" style="background: ${dot};"></div>
+            <div style="min-width:0;">
+              <p class="mgr-item-title">${escapeHtml(tipo)}</p>
+              <p class="mgr-item-meta">${escapeHtml(meta || '—')}${desc ? (' • ' + escapeHtml(desc)) : ''}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      setListHtml('colabDiscList', `<div class="mgr-list">${rows}</div>`);
+    }
+
+    let __benefAll = [];
+    let __benefQuery = '';
+
+    function normalizeBenefKey(it) {
+      const when = it && it.when ? String(it.when) : '';
+      const tipo = it && it.tipo ? String(it.tipo) : '';
+      const desc = it && it.descricao ? String(it.descricao) : '';
+      const valor = it && it.valor != null ? String(it.valor) : '';
+      return `${when}__${tipo}__${desc}__${valor}`.trim().toLowerCase();
+    }
+
+    function prepareBeneficios(beneficios) {
+      const b = beneficios || {};
+      const timeline = Array.isArray(b.timeline) ? b.timeline : [];
+      const seen = new Set();
+      const out = [];
+      for (const it of timeline) {
+        const key = normalizeBenefKey(it);
+        if (key && seen.has(key)) continue;
+        if (key) seen.add(key);
+        out.push(it);
+      }
+      out.sort((a, b) => {
+        const da = a && a.when ? new Date(a.when) : null;
+        const db = b && b.when ? new Date(b.when) : null;
+        const ta = da && !Number.isNaN(da.getTime()) ? da.getTime() : 0;
+        const tb = db && !Number.isNaN(db.getTime()) ? db.getTime() : 0;
+        return tb - ta;
+      });
+      return out;
+    }
+
+    function applyBeneficiosView() {
+      const q = String(__benefQuery || '').trim().toLowerCase();
+      const base = Array.isArray(__benefAll) ? __benefAll : [];
+      if (!q) {
+        renderBeneficios(base);
+        return;
+      }
+      const filtered = base.filter(it => {
+        const tipo = it && it.tipo ? String(it.tipo) : '';
+        const desc = it && it.descricao ? String(it.descricao) : '';
+        const when = it && it.when ? fmtMaybeDatePtBR(it.when) : '';
+        const valor = it && it.valor != null ? formatMoneyBRL(it.valor) : '';
+        const hay = `${tipo} ${desc} ${when} ${valor}`.toLowerCase();
+        return hay.includes(q);
+      });
+      renderBeneficios(filtered);
+    }
+
+    function renderBeneficios(beneficios) {
+      const timeline = Array.isArray(beneficios) ? beneficios : (Array.isArray(beneficios && beneficios.timeline) ? beneficios.timeline : []);
+      if (timeline.length === 0) {
+        renderEmptyList('colabBenefList', 'Sem benefícios no histórico', 'Nenhum benefício/taxa aprovado encontrado para este CPF.');
+        return;
+      }
+
+      const rows = timeline.map(it => {
+        const when = it && it.when ? fmtMaybeDatePtBR(it.when) : '—';
+        const tipo = it && it.tipo ? String(it.tipo) : 'Benefício';
+        const desc = it && it.descricao ? String(it.descricao) : '';
+        const valor = it && it.valor != null ? formatMoneyBRL(it.valor) : '—';
+        return `
+          <div class="mgr-item">
+            <div class="dot" style="background: var(--success);"></div>
+            <div style="min-width:0;">
+              <p class="mgr-item-title">${escapeHtml(tipo)}${desc ? (' • ' + escapeHtml(desc)) : ''}</p>
+              <p class="mgr-item-meta">${escapeHtml(when)}${valor !== '—' ? (' • ' + escapeHtml(valor)) : ''}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      setListHtml('colabBenefList', `<div class="mgr-list">${rows}</div>`);
+    }
+
+    function renderEventos(eventos) {
+      const arr = Array.isArray(eventos) ? eventos : [];
+      if (arr.length === 0) {
+        renderEmptyList('colabEventsList', 'Sem eventos futuros', 'Nenhum evento ativo encontrado.');
+        return;
+      }
+
+      const rows = arr.map(e => {
+        const titulo = e && e.titulo ? String(e.titulo) : 'Evento';
+        const local = e && e.local ? String(e.local) : '';
+        const when = e && e.data_inicio ? fmtMaybeDatePtBR(e.data_inicio) : '—';
+        const desc = e && e.descricao ? String(e.descricao) : '';
+        return `
+          <div class="mgr-item">
+            <div class="dot" style="background: var(--accent);"></div>
+            <div style="min-width:0;">
+              <p class="mgr-item-title">${escapeHtml(titulo)}${local ? (' • ' + escapeHtml(local)) : ''}</p>
+              <p class="mgr-item-meta">${escapeHtml(when)}${desc ? (' • ' + escapeHtml(desc)) : ''}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      setListHtml('colabEventsList', `<div class="mgr-list">${rows}</div>`);
+    }
+
+    function renderDesempenho(desempenho) {
+      const d = desempenho || {};
+
+      const ultimas = Array.isArray(d.ultimas) ? d.ultimas : [];
+      if (ultimas.length === 0) {
+        renderEmptyList('colabDesempenhoList', 'Sem avaliações registradas', 'Nenhuma avaliação (ADM/Liderança/Operacional) encontrada.');
+        return;
+      }
+
+      const latestByTipo = new Map();
+      ultimas.forEach(a => {
+        const t = String(a && a.tipo || '').trim().toLowerCase();
+        if (!t) return;
+        const dts = getItemTimestamp(a);
+        if (!dts) return;
+        const cur = latestByTipo.get(t);
+        if (!cur || dts.getTime() > cur) latestByTipo.set(t, dts.getTime());
+      });
+
+      const rows = ultimas.slice(0, 6).map(a => {
+        const tipoRaw = String(a && a.tipo || '').trim();
+        const tipo = tipoRaw ? tipoRaw.toUpperCase() : 'AVALIAÇÃO';
+        const pct = a && typeof a.pct === 'number' ? `${a.pct}%` : '—';
+        const setor = a && a.setor ? String(a.setor) : '';
+        const avaliador = a && a.avaliador ? String(a.avaliador) : '';
+        const ts = getItemTimestamp(a);
+        const dt = ts ? fmtMaybeDatePtBR(ts) : (a && (a.updatedAt || a.createdAt) ? fmtMaybeDatePtBR(a.updatedAt || a.createdAt) : '—');
+        const metaParts = [];
+        if (setor) metaParts.push(setor);
+        if (avaliador) metaParts.push(avaliador);
+        if (dt && dt !== '—') metaParts.push(dt);
+
+        const tKey = tipoRaw.toLowerCase();
+        const latestTs = latestByTipo.get(tKey);
+        const isLatest = !latestTs || !ts ? true : ts.getTime() === latestTs;
+        const dot = isLatest ? 'var(--success)' : 'var(--warning)';
+        const bg = isLatest ? '' : 'background: rgba(245, 158, 11, 0.10); border: 1px solid rgba(245, 158, 11, 0.25);';
+
+        return `
+          <div class="mgr-item" style="${bg}">
+            <div class="dot" style="background: ${dot};"></div>
+            <div style="min-width:0;">
+              <p class="mgr-item-title">${escapeHtml(tipo)} • ${escapeHtml(pct)}</p>
+              <p class="mgr-item-meta">${escapeHtml(metaParts.join(' • ') || '—')}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      setListHtml('colabDesempenhoList', `<div class="mgr-list">${rows}</div>`);
+    }
+
+    let __colabAvalDisponiveisBase = [];
+    function renderAvalDisponiveis(items) {
+      const btn = document.getElementById('btnColabAvalDisponiveis');
+      const wrap = document.getElementById('colabAvalDisponiveisWrap');
+      const list = document.getElementById('colabAvalDisponiveisList');
+      const badge = document.getElementById('colabAvalDisponiveisCount');
+
+      if (items !== undefined) {
+        __colabAvalDisponiveisBase = Array.isArray(items) ? items : [];
+      }
+
+      const arr = __colabAvalDisponiveisBase;
+      const q = String(document.getElementById('avalDisponiveisSearch')?.value || '').trim().toLowerCase();
+
+      if (btn) btn.style.display = arr.length > 0 ? 'inline-flex' : 'none';
+      if (badge) {
+        badge.hidden = arr.length <= 0;
+        badge.textContent = String(arr.length);
+      }
+      if (!wrap || !list) return;
+
+      if (arr.length <= 0) {
+        wrap.style.display = 'none';
+        list.innerHTML = '';
+        return;
+      }
+
+      let filtered = arr;
+      if (q) {
+        filtered = arr.filter(it =>
+          String(it.title || '').toLowerCase().includes(q) ||
+          String(it.meta || '').toLowerCase().includes(q)
+        );
+      }
+
+      const rows = filtered.map(it => {
+        const dot = it && it.dot ? String(it.dot) : 'var(--accent)';
+        const title = it && it.title ? String(it.title) : 'Avaliação';
+        const meta = it && it.meta ? String(it.meta) : '';
+        const href = it && it.href ? String(it.href) : '';
+        const safeTitle = escapeHtml(title);
+        const safeMeta = escapeHtml(meta);
+        const safeHref = escapeHtml(href);
+        const card = `
+          <div class="mgr-item" style="background: rgba(2, 132, 199, 0.06); border: 1px solid rgba(2, 132, 199, 0.15);">
+            <div class="dot" style="background: ${dot};"></div>
+            <div style="min-width:0;">
+              <p class="mgr-item-title">${safeTitle}</p>
+              <p class="mgr-item-meta">${safeMeta || '—'}</p>
+            </div>
+          </div>
+        `;
+        if (!href) return card;
+        return `<a href="${safeHref}" style="text-decoration:none;" onclick="try{closeColabModal()}catch(_){}">${card}</a>`;
+      }).join('');
+
+      list.innerHTML = `<div class="mgr-list" style="margin-top: 10px;">${rows || '<div class="mgr-empty">Nenhuma avaliação encontrada.</div>'}</div>`;
+    }
+
+    function toggleAvalDisponiveis() {
+      const wrap = document.getElementById('colabAvalDisponiveisWrap');
+      if (!wrap) return;
+      const isOpen = wrap.style.display !== 'none' && wrap.innerHTML.trim() !== '';
+      if (isOpen) {
+        wrap.style.display = 'none';
+        return;
+      }
+      renderAvalDisponiveis(__colabAvalDisponiveis);
+    }
+
+    function dedupPendenciasPorPeriodo(items) {
+      const seen = new Set();
+      const out = [];
+      for (const p of (Array.isArray(items) ? items : [])) {
+        const key = `${String(p.avaliadoId || p.avaliado_id || '').trim().toLowerCase()}_${String(p.cicloTitulo || p.ciclo_titulo || '').trim().toLowerCase()}`;
+        if (!key || key === '_') continue;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(p);
+      }
+      return out;
+    }
+
+    function filtrarPendenciasDesempenhoGestor(items, role) {
+      const isRHRole = ['admin', 'rh', 'rh_geral', 'dp', 'td'].includes(String(role || '').trim().toLowerCase());
+      const isEquipeScoped = ['gestor', 'supervisor', 'gerente', 'lider'].includes(String(role || '').trim().toLowerCase());
+      const nearThreshold = 60;
+      const semExperiencia = (Array.isArray(items) ? items : []).filter(p => {
+        const titulo = String(p?.cicloTitulo || '').toLowerCase();
+        const tipo = String(p?.tipoFormulario || '').toLowerCase();
+        return !(tipo === 'experiencia'
+          || /experiência|experiencia|1º desempenho|1o desempenho/i.test(titulo));
+      });
+      const semDuplicatas = dedupPendenciasPorPeriodo(semExperiencia);
+      if (isRHRole || !isEquipeScoped) return semDuplicatas;
+      return semDuplicatas.filter(p =>
+        Number.isFinite(Number(p?.diasParaFim)) &&
+        Number(p.diasParaFim) >= 0 &&
+        Number(p.diasParaFim) <= nearThreshold
+      );
+    }
+
+    function buildPendenciasItems(pendencias, colabId, colabNome) {
+      const arr = Array.isArray(pendencias) ? pendencias : [];
+      const idKey = String(colabId || '').trim();
+      const nomeKey = String(colabNome || '').trim();
+      const filtered = dedupPendenciasPorPeriodo(arr.filter(p => {
+        const pid = String(p && (p.avaliadoId || p.avaliado_id) || '').trim();
+        const pnome = String(p && (p.avaliadoNome || p.avaliado_nome) || '').trim();
+        return (idKey && pid === idKey) || (nomeKey && pnome === nomeKey);
+      }));
+      return filtered.map(p => {
+        const tipo = String(p && p.tipoFormulario || '').trim().toLowerCase();
+        const titulo = String(p && p.cicloTitulo || '').trim();
+        const rel = String(p && p.relacao || '').trim();
+        const fim = p && p.cicloDataFim ? fmtMaybeDatePtBR(p.cicloDataFim) : '';
+        const dias = Number(p && p.diasParaFim);
+        const diasTxt = Number.isFinite(dias) ? `${dias} dia(s) para o fim` : '';
+        const title = `Desempenho • ${titulo || (tipo ? tipo.toUpperCase() : 'Ciclo')}`;
+        const metaParts = [];
+        if (rel) metaParts.push(`Relação: ${rel}`);
+        if (fim && fim !== '—') metaParts.push(`Fim: ${fim}`);
+        if (diasTxt) metaParts.push(diasTxt);
+        return { title, meta: metaParts.join(' • '), href: String(p && p.link || '').trim(), dot: 'var(--warning)' };
+      });
+    }
+
+    function buildExperienciaItems({ nome, dataAdmissao, evExp } = {}) {
+      const nomeKey = String(nome || '').trim();
+      const adm = String(dataAdmissao || '').trim();
+      if (!nomeKey || !adm) return [];
+
+      const admDate = new Date(adm);
+      const today = new Date();
+      const diffDaysTotal = Math.floor((today - admDate) / 86400000);
+
+      // Só mostra alertas de 44/89 dias se o colaborador tiver menos de 120 dias de casa
+      if (diffDaysTotal > 120) return [];
+
+      const status44 = evExp && evExp.status44 ? String(evExp.status44).trim() : '';
+      const status89 = evExp && evExp.status89 ? String(evExp.status89).trim() : '';
+
+      const info44 = getDeadlineInfo(adm, 44, !status44);
+      const info89 = getDeadlineInfo(adm, 89, !status89);
+
+      const items = [];
+      if (!status44 && info44 && info44.isAlert) {
+        const title = 'Experiência • 44 dias';
+        const meta = info44.isOverdue ? 'Avaliação em atraso' : 'Avaliação disponível';
+        const href = evExp && evExp.id ? `/form-avaliacao-experiencia.html?id=${encodeURIComponent(String(evExp.id))}` : `/form-avaliacao-experiencia.html?funcionario=${encodeURIComponent(nomeKey)}`;
+        items.push({ title, meta, href, dot: info44.isOverdue ? 'var(--danger)' : 'var(--warning)' });
+      }
+      if (!status89 && info89 && info89.isAlert) {
+        const title = 'Experiência • 89 dias';
+        const meta = info89.isOverdue ? 'Avaliação em atraso' : 'Avaliação disponível';
+        const href = evExp && evExp.id ? `/form-avaliacao-experiencia.html?id=${encodeURIComponent(String(evExp.id))}` : `/form-avaliacao-experiencia.html?funcionario=${encodeURIComponent(nomeKey)}`;
+        items.push({ title, meta, href, dot: info89.isOverdue ? 'var(--danger)' : 'var(--warning)' });
+      }
+      return items;
+    }
+
+    function renderContatos(funcionario, contatoEmergencia) {
+      const f = funcionario || {};
+      const blocks = [];
+
+      const banco = f && f.banco ? String(f.banco) : '';
+      const agencia = f && f.agencia ? String(f.agencia) : '';
+      const conta = f && f.conta ? String(f.conta) : '';
+      const tipoConta = f && f.tipo_conta ? String(f.tipo_conta) : '';
+      const pix = f && f.chave_pix ? String(f.chave_pix) : '';
+      if (banco) blocks.push({ title: 'Banco', meta: banco });
+      if (agencia) blocks.push({ title: 'Agência', meta: agencia });
+      if (conta) blocks.push({ title: 'Conta', meta: conta + (tipoConta ? ` (${tipoConta})` : '') });
+      if (pix) blocks.push({ title: 'Chave PIX', meta: pix });
+
+      const anot = f && f.anotacoes ? String(f.anotacoes).trim() : '';
+      if (anot) blocks.push({ title: 'Observações', meta: anot });
+
+      if (contatoEmergencia) {
+        const nome = contatoEmergencia && contatoEmergencia.nome ? String(contatoEmergencia.nome) : '';
+        const tel = contatoEmergencia && contatoEmergencia.telefone ? String(contatoEmergencia.telefone) : '';
+        const rel = contatoEmergencia && contatoEmergencia.relacao ? String(contatoEmergencia.relacao) : '';
+        const meta = [tel, rel].filter(Boolean).join(' • ');
+        if (nome || meta) blocks.push({ title: `Emergência: ${nome || 'Contato'}`, meta: meta || '—' });
+      } else {
+        blocks.push({ title: 'Contato de emergência', meta: 'Não cadastrado' });
+      }
+
+      if (blocks.length === 0) {
+        renderEmptyList('colabContatoList', 'Sem dados de contato', 'Nenhuma informação de contato/emergência cadastrada.');
+        return;
+      }
+
+      const rows = blocks.map(b => `
+        <div class="mgr-item">
+          <div class="dot" style="background: rgba(148, 163, 184, 0.9);"></div>
+          <div style="min-width:0;">
+            <p class="mgr-item-title">${escapeHtml(b.title)}</p>
+            <p class="mgr-item-meta">${escapeHtml(b.meta || '—')}</p>
+          </div>
+        </div>
+      `).join('');
+
+      setListHtml('colabContatoList', `<div class="mgr-list">${rows}</div>`);
+    }
+
+    function renderTreinamentos(treinamentos) {
+      const arr = Array.isArray(treinamentos) ? treinamentos : [];
+      if (arr.length === 0) {
+        renderEmptyList('colabTreinosList', 'Sem treinamentos', 'Nenhum treinamento cadastrado para este colaborador.');
+        return;
+      }
+
+      const rows = arr.slice(0, 10).map(t => {
+        const titulo = t && (t.titulo || t.nome) ? String(t.titulo || t.nome) : 'Treinamento';
+        const dt = t && (t.data || t.createdAt) ? fmtMaybeDatePtBR(t.data || t.createdAt) : '—';
+        const obs = t && (t.observacao || t.obs) ? String(t.observacao || t.obs) : '';
+        return `
+          <div class="mgr-item">
+            <div class="dot" style="background: var(--accent);"></div>
+            <div style="min-width:0;">
+              <p class="mgr-item-title">${escapeHtml(titulo)}</p>
+              <p class="mgr-item-meta">${escapeHtml(dt)}${obs ? (' • ' + escapeHtml(obs)) : ''}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      setListHtml('colabTreinosList', `<div class="mgr-list">${rows}</div>`);
+    }
+
+    function renderJornada(jornada, faltas) {
+      const lines = [];
+      if (jornada) lines.push({ title: 'Jornada', meta: JSON.stringify(jornada) });
+      if (faltas) lines.push({ title: 'Faltas', meta: JSON.stringify(faltas) });
+
+      if (lines.length === 0) {
+        renderEmptyList('colabJornadaList', 'Sem dados de jornada/faltas', 'Nenhuma informação cadastrada no sistema ainda.');
+        return;
+      }
+
+      const rows = lines.map(l => `
+        <div class="mgr-item">
+          <div class="dot" style="background: rgba(148, 163, 184, 0.9);"></div>
+          <div style="min-width:0;">
+            <p class="mgr-item-title">${escapeHtml(l.title)}</p>
+            <p class="mgr-item-meta">${escapeHtml(l.meta || '—')}</p>
+          </div>
+        </div>
+      `).join('');
+
+      setListHtml('colabJornadaList', `<div class="mgr-list">${rows}</div>`);
+    }
+
+    async function loadTeam() {
+      const res = await fetch('/api/gestor/equipe', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+      const data = await safeJson(res);
+      if (!res.ok) return [];
+      return Array.isArray(data) ? data : [];
+    }
+
+    function renderTeam(items) {
+      const sel = document.getElementById('teamSelect');
+      if (!sel) return;
+
+      if (items !== undefined) {
+        __teamBase = items;
+      }
+
+      const q = String(document.getElementById('teamSearch')?.value || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const prev = String(sel.value || '').trim();
+
+      let filtered = Array.isArray(__teamBase) ? __teamBase : [];
+      if (q) {
+        filtered = filtered.filter(f => {
+          const nome = String(f && f.nome || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          const cargo = String(f && f.cargo || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          const setor = String(f && f.setor || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          return nome.includes(q) || cargo.includes(q) || setor.includes(q);
+        });
+      }
+
+      if (filtered.length === 0 && q) {
+        sel.innerHTML = '<option value="">Nenhum colaborador encontrado</option>';
+        return;
+      }
+
+      if (filtered.length === 0 && !q) {
+        sel.innerHTML = '<option value="">Sem colaboradores vinculados</option>';
+        return;
+      }
+
+      const sorted = filtered.slice().sort((a, b) => String(a && a.nome || '').localeCompare(String(b && b.nome || ''), 'pt-BR'));
+      sel.innerHTML = `<option value="">Selecione um colaborador...</option>` + sorted.map(f => {
+        const id = String(f && f.id || '');
+        const nome = String(f && f.nome || '');
+        const cargo = String(f && f.cargo || '').trim();
+        const setor = String(f && f.setor || '').trim();
+        const label = `${nome}${cargo ? (' — ' + cargo) : ''}${setor ? (' • ' + setor) : ''}`;
+        return `<option value="${escapeHtml(id)}">${escapeHtml(label)}</option>`;
+      }).join('');
+
+      if (prev && sorted.some(f => String(f && f.id || '') === prev)) sel.value = prev;
+    }
+
+    // Event listeners para busca
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('teamSearch')?.addEventListener('input', () => renderTeam());
+      document.getElementById('formQuickSearch')?.addEventListener('input', () => renderQuickForms());
+      document.getElementById('avalDisponiveisSearch')?.addEventListener('input', () => renderAvalDisponiveis());
+    });
+
+    function setBadge(id, value) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const n = Number(value);
+      if (!Number.isFinite(n) || n <= 0) {
+        el.hidden = true;
+        return;
+      }
+      el.textContent = String(n);
+      el.hidden = false;
+    }
+
+    function updateQuickEmpty() {
+      const root = document.getElementById('mgrQuick');
+      const empty = document.getElementById('mgrQuickEmpty');
+      if (!root || !empty) return;
+      const links = Array.from(root.querySelectorAll('a[href]'));
+      const visible = links.some(a => a && a.style && a.style.display !== 'none');
+      empty.style.display = visible ? 'none' : '';
+    }
+
+    function updateQuickFormsEmpty() {
+      const root = document.getElementById('mgrQuickForms');
+      const empty = document.getElementById('mgrQuickFormsEmpty');
+      if (!root || !empty) return;
+      const links = Array.from(root.querySelectorAll('a[href]'));
+      empty.style.display = links.length ? 'none' : '';
+    }
+
+    let __quickFormsBase = { publicPaths: [], dynamicForms: [] };
+    let __teamBase = [];
+
+    function renderQuickForms(publicPaths, dynamicForms = []) {
+      const root = document.getElementById('mgrQuickForms');
+      if (!root) return;
+
+      if (publicPaths !== undefined) {
+        __quickFormsBase.publicPaths = publicPaths;
+        __quickFormsBase.dynamicForms = dynamicForms;
+      }
+
+      const q = String(document.getElementById('formQuickSearch')?.value || '').trim().toLowerCase();
+      const allowed = new Set((Array.isArray(__quickFormsBase.publicPaths) ? __quickFormsBase.publicPaths : []).map(s => String(s || '').trim()));
+
+      const staticItems = [
+        { href: '/ferias.html', icon: '🏖️', title: 'Solicitação de Férias', desc: 'Solicitar e programar férias' },
+        { href: '/vagas.html', icon: '👔', title: 'Abertura de Vaga', desc: 'Requisitar nova vaga' },
+        { href: '/taxas.html', icon: '💰', title: 'Pagamento de Taxas', desc: 'Solicitar pagamento / VT' },
+        { href: '/solicitacao-taxa.html', icon: '👷', title: 'Solicitação de Taxa', desc: 'Mão de obra extra' },
+        { href: '/recrutamentoInterno.html', icon: '📋', title: 'Recrutamento Interno', desc: 'Candidatura interna' },
+        { href: '/trabalheConosco.html', icon: '🤝', title: 'Trabalhe Conosco', desc: 'Cadastro / currículo' },
+        { href: '/avaliacao-lideranca.html', icon: '⭐', title: 'Avaliação (Liderança)', desc: 'Formulário de avaliação' },
+        { href: '/avaliacao-adm.html', icon: '🧩', title: 'Avaliação (ADM)', desc: 'Formulário de avaliação' },
+        { href: '/avaliacao-operacional.html', icon: '🛠️', title: 'Avaliação (Operacional)', desc: 'Formulário de avaliação' },
+        { href: '/form-avaliacao-experiencia.html', icon: '⏳', title: 'Avaliação (Experiência)', desc: 'Formulário de avaliação' }
+      ];
+
+      const dynamicItems = (Array.isArray(__quickFormsBase.dynamicForms) ? __quickFormsBase.dynamicForms : []).map(f => ({
+        href: f.href || f.link || f.url || f.path || '',
+        icon: f.icone || '📝',
+        title: f.titulo || f.title || 'Formulário',
+        desc: f.tipo || f.descricao || 'Personalizado'
+      })).filter(x => x.href);
+
+      const filteredStatics = staticItems.filter(x => {
+        if (!allowed.has(x.href)) return false;
+        return !dynamicItems.some(di => di.href === x.href);
+      });
+
+      let items = [...filteredStatics, ...dynamicItems];
+
+      if (q) {
+        items = items.filter(it =>
+          String(it.title || '').toLowerCase().includes(q) ||
+          String(it.desc || '').toLowerCase().includes(q)
+        );
+      }
+
+      root.innerHTML = items.map(x => `
+        <a href="${escapeHtml(x.href)}">
+          <div class="mgr-quick-btn">
+            <span class="mgr-quick-icon">${escapeHtml(x.icon)}</span>
+            <span class="mgr-quick-meta">
+              <span class="mgr-quick-title">${escapeHtml(x.title)}</span>
+              <span class="mgr-quick-desc">${escapeHtml(x.desc)}</span>
+            </span>
+          </div>
+        </a>
+      `).join('');
+
+      updateQuickFormsEmpty();
+    }
+
+    function openColabModal() {
+      const ov = document.getElementById('modalColab');
+      if (ov) ov.style.display = 'flex';
+    }
+
+    function closeColabModal() {
+      const ov = document.getElementById('modalColab');
+      if (ov) ov.style.display = 'none';
+    }
+
+    async function loadFuncionarioById(id) {
+      const res = await fetch(`/api/funcionarios/${encodeURIComponent(id)}`, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+      const data = await safeJson(res);
+      if (!res.ok || !data || !data.ok) throw new Error(data && data.erro ? String(data.erro) : `HTTP ${res.status}`);
+      return data.item;
+    }
+
+    async function loadRecentEval(nome, tipo) {
+      const qs = new URLSearchParams({ funcionario: String(nome || '').trim(), tipo: String(tipo || '').trim() });
+      const res = await fetch(`/api/avaliacao/buscar/recente?${qs.toString()}`, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+      const data = await safeJson(res);
+      if (!res.ok) return null;
+      return data;
+    }
+
+    function setText(id, v) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = v == null || String(v).trim() === '' ? '—' : String(v);
+    }
+
+    function setAvatar(el, nome, foto, id) {
+      if (!el) return;
+      if (foto) {
+        const safeId = encodeURIComponent(String(id || '').trim());
+        el.innerHTML = `<img src="/api/funcionarios/${safeId}/foto" alt="">`;
+      } else {
+        el.textContent = initials(nome) || '—';
+      }
+    }
+
+    async function showColaborador(id) {
+      setText('colabName', 'Carregando...');
+      setText('colabMeta', '—');
+      setText('colabCargo', '—');
+      setText('colabSetor', '—');
+      setText('colabVinculo', '—');
+      setText('colabContrato', '—');
+      setText('colabMatricula', '—');
+      setText('colabAdmissao', '—');
+      setText('colabNascimento', '—');
+      setText('colabSexo', '—');
+      setText('colabNacionalidade', '—');
+      setText('colabCpf', '—');
+      setText('colabEvalLideranca', '—');
+      setText('colabEvalAdm', '—');
+      setText('colabEvalOperacional', '—');
+      setText('colabEvalExperiencia', '—');
+      setText('colabEvalUpdated', '—');
+      setText('colabModalFoot', '—');
+      setText('colabFeriasTotal', '—');
+      setText('colabFeriasPendentes', '—');
+      setText('colabFeriasProximo', '—');
+      setText('colabDiscTotal', '—');
+      setText('colabDiscAdv', '—');
+      setText('colabDiscSusp', '—');
+      setListHtml('colabFeriasList', '');
+      setListHtml('colabDiscList', '');
+      setListHtml('colabBenefList', '');
+      setListHtml('colabEventsList', '');
+      setListHtml('colabContatoList', '');
+      setListHtml('colabTreinosList', '');
+      setListHtml('colabJornadaList', '');
+      setListHtml('colabDesempenhoList', '');
+      const btnAvalDisp = document.getElementById('btnColabAvalDisponiveis');
+      if (btnAvalDisp) btnAvalDisp.style.display = 'none';
+      const badgeAvalDisp = document.getElementById('colabAvalDisponiveisCount');
+      if (badgeAvalDisp) badgeAvalDisp.hidden = true;
+      const wrapAvalDisp = document.getElementById('colabAvalDisponiveisWrap');
+      if (wrapAvalDisp) { wrapAvalDisp.style.display = 'none'; wrapAvalDisp.innerHTML = ''; }
+      __colabAvalDisponiveis = [];
+      __benefAll = [];
+      __benefQuery = '';
+      const benefSearch = document.getElementById('colabBenefSearch');
+      if (benefSearch) benefSearch.value = '';
+      const avatar = document.getElementById('colabAvatar');
+      if (avatar) avatar.textContent = '—';
+
+      const btnDisp = document.getElementById('btnColabAvalDisponiveis');
+      if (btnDisp) btnDisp.onclick = () => toggleAvalDisponiveis();
+
+      openColabModal();
+
+      let perfil;
+      try {
+        perfil = await loadPerfilColaborador(id);
+      } catch (e) {
+        const msg = e && e.message ? String(e.message) : 'Erro ao carregar';
+        const isAccessError = msg.toLowerCase().includes('proibido') || msg.includes('403');
+        if (isAccessError) {
+          setText('colabName', 'Acesso restrito');
+          setText('colabMeta', 'Você não tem permissão para visualizar este colaborador.');
+        }
+        setText('colabName', 'Colaborador');
+        setText('colabMeta', msg);
+        try {
+          const basic = await loadFuncionarioById(id);
+          const nomeB = String(basic && basic.nome || '').trim();
+          const cargoB = String(basic && basic.cargo || '').trim();
+          const setorB = String(basic && basic.setor || '').trim();
+          const fotoB = basic && basic.foto ? String(basic.foto) : '';
+          const statusB = String(basic && basic.status || 'Ativo').trim();
+          const stColorB = statusB === 'Inativo' ? 'var(--danger)' : statusB === 'Afastado' ? 'var(--warning)' : statusB === 'Férias' ? 'var(--info)' : 'var(--success)';
+          const stBadgeB = `<span style="background: ${stColorB}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; vertical-align: middle; margin-right: 6px;">${escapeHtml(statusB)}</span>`;
+
+          setAvatar(avatar, nomeB, fotoB, id);
+          setText('colabName', nomeB || 'Colaborador');
+          document.getElementById('colabMeta').innerHTML = `${stBadgeB} ${escapeHtml(cargoB || '—')}${setorB ? (' • ' + escapeHtml(setorB)) : ''} • Perfil parcial`;
+          setText('colabCargo', cargoB || '—');
+          setText('colabSetor', setorB || '—');
+          setText('colabMatricula', normalizeNumericIdValue(basic && basic.matricula) || '—');
+          setText('colabAdmissao', fmtMaybeDatePtBR(basic && (basic.dataAdmissao || basic.data_admissao)));
+          renderEmptyList('colabFeriasList', 'Não foi possível carregar o perfil completo', msg);
+        } catch (_) { }
+        return;
+      }
+
+      const f = perfil && perfil.funcionario ? perfil.funcionario : null;
+      const nome = String(f && f.nome || '').trim();
+      const cargo = String(f && f.cargo || '').trim();
+      const setor = String(f && f.setor || '').trim();
+      const foto = f && f.foto ? String(f.foto) : '';
+      const status = String(f && f.status || 'Ativo').trim();
+      const stColor = status === 'Inativo' ? 'var(--danger)' : status === 'Afastado' ? 'var(--warning)' : status === 'Férias' ? 'var(--info)' : 'var(--success)';
+      const stBadge = `<span style="background: ${stColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; vertical-align: middle; margin-right: 6px;">${escapeHtml(status)}</span>`;
+
+      setAvatar(avatar, nome, foto, id);
+      setText('colabName', nome || 'Colaborador');
+      document.getElementById('colabMeta').innerHTML = `${stBadge} ${escapeHtml(cargo || '—')}${setor ? (' • ' + escapeHtml(setor)) : ''}`;
+      setText('colabCargo', cargo || '—');
+      setText('colabSetor', setor || '—');
+      const vinculoRaw = f && (f.tipo_vinculo || f.tipoVinculo);
+      const contratoRaw = f && f.contrato;
+      setText('colabVinculo', normalizeNumericIdValue(vinculoRaw) || String(vinculoRaw ?? '').trim() || '—');
+      setText('colabContrato', normalizeNumericIdValue(contratoRaw) || String(contratoRaw ?? '').trim() || '—');
+      setText('colabMatricula', normalizeNumericIdValue(f && f.matricula) || '—');
+      setText('colabAdmissao', fmtMaybeDatePtBR(f && (f.dataAdmissao || f.data_admissao)));
+      setText('colabNascimento', fmtMaybeDatePtBR(f && f.nascimento));
+      setText('colabSexo', String(f && f.sexo || '').trim() || '—');
+      setText('colabNacionalidade', String(f && f.nacionalidade || '').trim() || '—');
+      setText('colabCpf', formatCpfRBM(f && f.cpf));
+
+      const btnAval = document.getElementById('btnOpenAvaliacoes');
+      if (btnAval) {
+        const qs = new URLSearchParams();
+        if (nome) qs.set('funcionario', nome);
+        qs.set('tab', 'lista');
+        btnAval.href = `/protected/dashboard-avaliacao.html?${qs.toString()}`;
+      }
+      const btnEq = document.getElementById('btnOpenEquipe');
+      if (btnEq) btnEq.href = `/protected/dashboard-funcionarios.html`;
+
+      let newest = null;
+      const ultimas = perfil && perfil.desempenho && Array.isArray(perfil.desempenho.ultimas) ? perfil.desempenho.ultimas : [];
+      const evL = pickLatestByTipo(ultimas, 'lideranca');
+      const evA = pickLatestByTipo(ultimas, 'adm');
+      const evO = pickLatestByTipo(ultimas, 'operacional');
+
+      if (evL && typeof evL.pct === 'number') setText('colabEvalLideranca', `${evL.pct}%`);
+      if (evA && typeof evA.pct === 'number') setText('colabEvalAdm', `${evA.pct}%`);
+      if (evO && typeof evO.pct === 'number') setText('colabEvalOperacional', `${evO.pct}%`);
+
+      for (const ev of [evL, evA, evO]) {
+        const d = getItemTimestamp(ev);
+        if (d && (!newest || d.getTime() > newest.getTime())) newest = d;
+      }
+
+      let evExp = null;
+      try {
+        evExp = await loadRecentEval(nome, 'experiencia');
+        const pct = pctFromEval(evExp);
+        if (pct == null) setText('colabEvalExperiencia', '—');
+        else setText('colabEvalExperiencia', `${pct}%`);
+        const dt = evExp && (evExp.updatedAt || evExp.updated_at || evExp.createdAt || evExp.created_at);
+        const d = dt ? new Date(dt) : null;
+        if (d && !Number.isNaN(d.getTime())) {
+          if (!newest || d.getTime() > newest.getTime()) newest = d;
+        }
+      } catch (_) {
+        setText('colabEvalExperiencia', '—');
+      }
+
+      setText('colabEvalUpdated', newest ? fmtMaybeDateTimePtBR(newest) : '—');
+      renderDesempenho(perfil && perfil.desempenho);
+      renderFerias(perfil && perfil.ferias);
+      renderDisciplinar(perfil && perfil.disciplinar);
+      __benefAll = prepareBeneficios(perfil && perfil.beneficios);
+      __benefQuery = '';
+      if (benefSearch) benefSearch.value = '';
+      applyBeneficiosView();
+      renderEventos(perfil && perfil.eventos);
+      renderContatos(f, perfil && perfil.contatoEmergencia);
+      renderTreinamentos(perfil && perfil.treinamentos);
+      renderJornada(perfil && perfil.jornada, perfil && perfil.faltas);
+      setText('colabModalFoot', `${nome ? nome : 'Colaborador'} • ${setor ? setor : '—'}`);
+
+      try {
+        const pend = await getPendenciasCached();
+        const perfItems = buildPendenciasItems(pend, id, nome);
+
+        const admRaw = (f && (f.dataAdmissao || f.data_admissao)) || (evExp && evExp.dataAdmissao) || '';
+        const expItems = buildExperienciaItems({ nome, dataAdmissao: admRaw, evExp });
+
+        // Adiciona 6 meses se aplicável (pós-experiência)
+        const sixMonthsItems = [];
+        if (admRaw) {
+          const admDate = new Date(admRaw);
+          const today = new Date();
+          const diffDaysTotal = Math.floor((today - admDate) / 86400000);
+          // Só mostra 6 meses se tiver entre 91 e 240 dias de casa
+          if (diffDaysTotal > 91 && diffDaysTotal < 240) {
+            const status6m = evExp && evExp.status6months ? String(evExp.status6months).trim() : '';
+            const info6m = getDeadlineInfo(admRaw, 6, !status6m, 'months');
+            if (!status6m && info6m && info6m.isAlert) {
+              const title = 'Desempenho • 6 meses';
+              const meta = info6m.isOverdue ? 'Avaliação em atraso' : 'Avaliação disponível';
+              const href = evExp && evExp.id ? `/form-avaliacao-experiencia.html?id=${encodeURIComponent(String(evExp.id))}` : `/form-avaliacao-experiencia.html?funcionario=${encodeURIComponent(nome)}`;
+              sixMonthsItems.push({ title, meta, href, dot: info6m.isOverdue ? 'var(--danger)' : 'var(--warning)' });
+            }
+          }
+        }
+
+        const all = [...perfItems, ...expItems, ...sixMonthsItems];
+        const btn = document.getElementById('btnColabAvalDisponiveis');
+        const badge = document.getElementById('colabAvalDisponiveisCount');
+        if (btn) btn.style.display = all.length > 0 ? 'inline-flex' : 'none';
+        if (badge) {
+          badge.hidden = all.length <= 0;
+          badge.textContent = String(all.length);
+        }
+        __colabAvalDisponiveis = all;
+        const wrap = document.getElementById('colabAvalDisponiveisWrap');
+        if (wrap) { wrap.style.display = 'none'; wrap.innerHTML = ''; }
+      } catch (_) { }
+    }
+
+    function renderNotifications(items) {
+      const root = document.getElementById('notifList');
+      if (!root) return;
+      const arr = Array.isArray(items) ? items : [];
+      if (arr.length === 0) {
+        root.innerHTML = `
+          <div class="mgr-item">
+            <div class="dot" style="background: rgba(148, 163, 184, 0.9);"></div>
+            <div>
+              <p class="mgr-item-title">Sem atividades no momento</p>
+              <p class="mgr-item-meta">Nenhuma notificação recente.</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+      root.innerHTML = arr.map(it => {
+        const tipo = String(it && it.tipo || 'info').toLowerCase();
+        const dot = tipo === 'danger' ? 'var(--danger)' : (tipo === 'warning' ? 'var(--warning)' : (tipo === 'success' ? 'var(--success)' : 'var(--accent)'));
+        const titulo = escapeHtml(it && it.titulo || 'Notificação');
+        const msg = escapeHtml(it && it.mensagem || '');
+        const dt = formatDateTimePtBR(it && (it.created_at || it.createdAt));
+        return `
+          <div class="mgr-item">
+            <div class="dot" style="background: ${dot};"></div>
+            <div style="min-width:0;">
+              <p class="mgr-item-title">${titulo}</p>
+              <p class="mgr-item-meta">${msg ? (msg + ' • ') : ''}${dt}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function markAllRead() {
+      await fetch('/api/notifications/read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ all: true })
+      });
+    }
+
+    function startClock() {
+      const el = document.getElementById('mgrClock');
+      if (!el) return;
+      const tick = () => { el.textContent = formatDateTimePtBR(new Date()); };
+      tick();
+      setInterval(tick, 30_000);
+    }
+
+    (async function init() {
+      startClock();
+
+      let user;
+      try {
+        user = await loadMe();
+      } catch (_) {
+        window.location.href = '/login.html';
+        return;
+      }
+
+      const role = String(user && user.role || '').trim().toLowerCase();
+      if (!['admin', 'rh', 'rh_geral', 'gestor', 'lider', 'supervisor', 'gerente'].includes(role)) {
+        window.location.href = '/protected/index.html';
+        return;
+      }
+
+      const displayName = user && (user.name || user.username);
+      const h1 = document.getElementById('mgrGreeting');
+      if (h1) h1.textContent = greetingByTime(displayName);
+
+      try {
+        const access = await loadAccess();
+        const allowed = new Set(access.protectedPaths || []);
+        document.querySelectorAll('.mgr-quick a[href^="/protected/"]').forEach(a => {
+          const href = a.getAttribute('href');
+          if (!href) return;
+          if (!allowed.has(href)) a.style.display = 'none';
+        });
+        renderQuickForms(access.publicPaths || [], access.dynamicForms || []);
+        const linkEquipe = document.querySelector('[aria-label="Minha equipe"] a.backlink');
+        if (linkEquipe && !allowed.has('/protected/dashboard-funcionarios.html')) linkEquipe.style.display = 'none';
+        const btnEq = document.getElementById('btnOpenEquipe');
+        if (btnEq && !allowed.has('/protected/dashboard-funcionarios.html')) btnEq.style.display = 'none';
+        updateQuickEmpty();
+      } catch (_) { }
+
+      try {
+        const [ov, pend, exp] = await Promise.allSettled([
+          loadOverview(),
+          fetch('/api/avaliacao/pendencias?contexto=desempenho', { headers: { 'Accept': 'application/json' }, cache: 'no-store' })
+            .then(r => r.ok ? r.json() : []),
+          fetch('/api/avaliacao/pendencias?contexto=experiencia', { headers: { 'Accept': 'application/json' }, cache: 'no-store' })
+            .then(r => r.ok ? r.json() : [])
+        ]);
+
+        const overview = ov.status === 'fulfilled' ? ov.value : null;
+        const pendencias = pend.status === 'fulfilled' && Array.isArray(pend.value) ? pend.value : [];
+        const expList = exp.status === 'fulfilled' && Array.isArray(exp.value) ? exp.value : [];
+
+        const op = overview && overview.operacional ? overview.operacional : {};
+        const rec = overview && overview.recrutamento ? overview.recrutamento : {};
+        const perf = overview && overview.performance ? overview.performance : {};
+        const turn = overview && overview.turnover ? overview.turnover : {};
+
+        const pendenciasFiltradas = filtrarPendenciasDesempenhoGestor(pendencias, role);
+        const pendCount = pendenciasFiltradas.length;
+
+        // ── Experiência: mesmo agrupamento do dashboard-experiencia.html ──────────
+        const expAlerts = (() => {
+          const list = Array.isArray(expList) ? expList : [];
+          const byAvaliado = new Map();
+          list.forEach(p => {
+            const key = String(p?.avaliadoId || '').trim();
+            if (!key) return;
+            if (!byAvaliado.has(key)) byAvaliado.set(key, { p45: null, p90: null });
+            const item = byAvaliado.get(key);
+            const titulo = String(p.cicloTitulo || '').toLowerCase();
+            if (titulo.includes('45')) item.p45 = p;
+            else if (titulo.includes('90')) item.p90 = p;
+          });
+          let count = 0;
+          byAvaliado.forEach(item => {
+            const pend45 = item.p45 && item.p45.status !== 'concluido';
+            const pend90 = item.p90 && item.p90.status !== 'concluido';
+            if (pend45 || pend90) count++;
+          });
+          return count;
+        })();
+
+        document.getElementById('kpiFerias').textContent = String(op.feriasPendentesRh ?? 0);
+        document.getElementById('kpiTaxas').textContent = String(op.taxasPendentes ?? 0);
+        document.getElementById('kpiVagas').textContent = String(rec.vagasAbertas ?? 0);
+        document.getElementById('kpiAvalDesempenho').textContent = String(pendCount);
+        document.getElementById('kpiAvalExperiencia').textContent = String(expAlerts);
+        document.getElementById('kpiPerfAvg').textContent = (perf.avg == null ? '—' : String(perf.avg));
+        document.getElementById('kpiTurnover').textContent = String(turn.desligamentos30d ?? 0);
+
+        setBadge('badgeFerias', op.feriasPendentesRh ?? 0);
+        setBadge('badgeTaxas', op.taxasPendentes ?? 0);
+        setBadge('badgeVagas', rec.vagasAbertas ?? 0);
+        setBadge('badgeAval', pendCount);
+        setBadge('badgeExperiencia', expAlerts);
+      } catch (_) {
+        document.getElementById('kpiFerias').textContent = '—';
+        document.getElementById('kpiTaxas').textContent = '—';
+        document.getElementById('kpiVagas').textContent = '—';
+        document.getElementById('kpiAvalDesempenho').textContent = '—';
+        document.getElementById('kpiAvalExperiencia').textContent = '—';
+        document.getElementById('kpiPerfAvg').textContent = '—';
+        document.getElementById('kpiTurnover').textContent = '—';
+        setBadge('badgeFerias', 0);
+        setBadge('badgeTaxas', 0);
+        setBadge('badgeVagas', 0);
+        setBadge('badgeAval', 0);
+        setBadge('badgeExperiencia', 0);
+      }
+
+      try {
+        initFeedUI();
+        await refreshFeed();
+        setInterval(() => refreshFeed(), 60_000);
+      } catch (_) {
+        initFeedUI();
+      }
+
+      const btn = document.getElementById('btnMarkAllRead');
+      if (btn) {
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          try {
+            await markAllRead();
+            const n = await loadNotifications();
+            renderNotifications(n.items);
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      }
+
+      const n = await loadNotifications();
+      renderNotifications(n.items);
+
+      let teamAll = [];
+      try {
+        teamAll = await loadTeam();
+      } catch (_) {
+        teamAll = [];
+      }
+      renderTeam(teamAll);
+      setBadge('badgeEquipe', teamAll.length);
+
+      const teamSelect = document.getElementById('teamSelect');
+      if (teamSelect) {
+        teamSelect.addEventListener('change', () => {
+          const id = String(teamSelect.value || '').trim();
+          if (!id) return;
+          showColaborador(id);
+        });
+      }
+
+      const benefSearch = document.getElementById('colabBenefSearch');
+      if (benefSearch) {
+        benefSearch.addEventListener('input', () => {
+          __benefQuery = String(benefSearch.value || '');
+          applyBeneficiosView();
+        });
+      }
+    })();
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard RH - Vagas</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="/rh-styles.css">
+  <script src="/lang-switcher.js" defer></script>
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+</head>
+<body data-page="rh-vagas">
+  <div id="navbar-container"></div>
+  <script src="/rh-navbar.js"></script>
+  <script>renderRHNavbar('vagas');</script>
+
+  <main class="dashboard-container">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title" data-translate="rh_dash_vagas_title">Gestão de Vagas</h1>
+            <p class="page-subtitle" data-translate="rh_dash_vagas_subtitle">Controle as vagas abertas e candidatos inscritos</p>
+        </div>
+        <div class="last-update">
+            <span id="lastUpdate" data-translate="rh_dash_last_update_now">Atualizado agora</span>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card pending">
+            <div class="stat-header">
+                <div class="stat-title" data-translate="rh_dash_vagas_stat_open">Vagas Abertas</div>
+                <div class="stat-icon">📢</div>
+            </div>
+            <div class="stat-value" id="stat-abertas">0</div>
+        </div>
+        <div class="stat-card approved">
+            <div class="stat-header">
+                <div class="stat-title" data-translate="rh_dash_vagas_stat_candidates">Candidatos Total</div>
+                <div class="stat-icon">👥</div>
+            </div>
+            <div class="stat-value" id="stat-candidatos">0</div>
+        </div>
+        <div class="stat-card" style="border-left: 4px solid var(--text-secondary);">
+            <div class="stat-header">
+                <div class="stat-title" data-translate="rh_dash_vagas_stat_closed">Encerradas</div>
+                <div class="stat-icon">🔒</div>
+            </div>
+            <div class="stat-value" id="stat-encerradas">0</div>
+        </div>
+        <div class="stat-card rejected">
+            <div class="stat-header">
+                <div class="stat-title" data-translate="rh_dash_vagas_stat_cancelled">Canceladas</div>
+                <div class="stat-icon">🚫</div>
+            </div>
+            <div class="stat-value" id="stat-canceladas">0</div>
+        </div>
+    </div>
+
+    <div class="tabs-container">
+        <button class="tab-button active" onclick="switchTab('ativas')" id="btn-tab-ativas" data-translate="rh_dash_vagas_tab_open">Vagas Abertas</button>
+        <button class="tab-button" onclick="switchTab('encerradas')" id="btn-tab-encerradas" data-translate="rh_dash_vagas_tab_closed">Encerradas / Canceladas</button>
+    </div>
+
+    <div id="tab-ativas">
+        <div class="action-bar">
+            <h2 data-translate="rh_dash_vagas_active_title">Vagas Ativas</h2>
+            <div class="action-buttons">
+                <button class="btn btn-outline" onclick="downloadTemplateVagas()">
+                    📄 <span data-translate="rh_dash_vagas_tpl">Baixar Modelo</span>
+                </button>
+                <button class="btn btn-outline" onclick="document.getElementById('importVagasInput').click()">
+                    📥 <span data-translate="rh_dash_vagas_import">Importar Excel</span>
+                </button>
+                <input type="file" id="importVagasInput" accept=".xlsx, .xls" style="display: none;" onchange="handleImportVagas(this)">
+                <a href="/vagas.html" target="_blank" class="btn btn-primary">
+                    ➕ <span data-translate="rh_dash_vagas_new">Nova Vaga</span>
+                </a>
+                <button class="btn btn-outline" onclick="carregarVagas()">
+                    🔄 <span data-translate="rh_dash_refresh">Atualizar</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <div class="table-wrapper">
+                <table id="tabela-ativas">
+                    <thead>
+                        <tr>
+                            <th data-translate="rh_dash_vagas_th_titulo">Título da Vaga</th>
+                            <th data-translate="rh_dash_taxas_th_departamento">Departamento</th>
+                            <th data-translate="rh_dash_th_status">Status</th>
+                            <th data-translate="rh_dash_vagas_th_candidatos">Candidatos</th>
+                            <th data-translate="rh_dash_th_acao">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lista-ativas">
+                        <!-- Preenchido via JS -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="empty-ativas" class="empty-state" hidden>
+                <p style="font-size: 1.1rem; margin-bottom: 0.5rem;" data-translate="rh_dash_vagas_empty_active">Nenhuma vaga ativa no momento.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-encerradas" style="display: none;">
+        <div class="action-bar">
+            <h2 style="color: var(--text-secondary);" data-translate="rh_dash_vagas_history_title">Histórico de Vagas</h2>
+        </div>
+
+        <div class="table-container">
+            <div class="table-wrapper">
+                <table id="tabela-encerradas">
+                    <thead>
+                        <tr>
+                            <th data-translate="rh_dash_vagas_th_titulo">Título da Vaga</th>
+                            <th data-translate="rh_dash_taxas_th_departamento">Departamento</th>
+                            <th data-translate="rh_dash_th_status">Status</th>
+                            <th data-translate="rh_dash_vagas_th_candidatos">Candidatos</th>
+                            <th data-translate="rh_dash_th_acao">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lista-encerradas">
+                        <!-- Preenchido via JS -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="empty-encerradas" class="empty-state" hidden>
+                <p style="font-size: 1.1rem; margin-bottom: 0.5rem;" data-translate="rh_dash_vagas_empty_history">Nenhuma vaga encerrada.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Sugestões -->
+    <div id="modal-sugestoes" class="modal-overlay">
+      <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">
+                <h2 id="modal-sugestoes-titulo" data-translate="rh_dash_vagas_modal_suggestions">Candidatos Sugeridos</h2>
+            </div>
+            <button class="close-modal" onclick="fecharModalSugestoes()">&times;</button>
+        </div>
+        <div class="modal-content-wrapper" id="lista-sugestoes-conteudo">
+            <p>Carregando...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Detalhes Vaga -->
+    <div id="modal-detalhes" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <h2 id="detalhe-titulo">Detalhes da Vaga</h2>
+                    <div id="detalhe-meta" style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px;"></div>
+                </div>
+                <button class="close-modal" onclick="fecharModalDetalhes()">&times;</button>
+            </div>
+            <div class="modal-content-wrapper" id="detalhe-conteudo">
+                <!-- Preenchido via JS -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Detalhes Candidato -->
+    <div id="modal-candidato-detalhes" class="modal-overlay" style="z-index: 1001;">
+        <div class="modal" style="max-width: 800px; width: 90%;">
+            <button class="close-modal" onclick="fecharModalCandidato()" style="position: absolute; top: 16px; right: 16px;">&times;</button>
+            <div id="candidato-detalhes-conteudo"></div>
+        </div>
+    </div>
+  </main>
+
+  <footer style="text-align: center; padding: 40px; color: var(--text-secondary); font-size: 0.875rem;">
+    <p data-translate="rh_footer">&copy; 2026 Família Madalosso. Acesso Restrito ao RH.</p>
+  </footer>
+
+  <script>
+    let todasVagas = [];
+    let __userRole = '';
+    let __isGerente = false;
+
+    function switchTab(tab) {
+        // Update Buttons
+        document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+        document.getElementById(`btn-tab-${tab}`).classList.add('active');
+        
+        // Update Content
+        document.getElementById('tab-ativas').style.display = tab === 'ativas' ? 'block' : 'none';
+        document.getElementById('tab-encerradas').style.display = tab === 'encerradas' ? 'block' : 'none';
+    }
+
+    async function initUserRole() {
+        try {
+            const res = await fetch('/api/me', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+            if (!res.ok) throw new Error('Falha ao carregar usuário');
+            const data = await res.json();
+            __userRole = (data && data.user && data.user.role) ? String(data.user.role).trim().toLowerCase() : '';
+            __isGerente = __userRole === 'gerente';
+        } catch (e) {
+            __userRole = '';
+            __isGerente = false;
+        }
+
+        if (__isGerente) {
+            const title = document.querySelector('.page-title');
+            const subtitle = document.querySelector('.page-subtitle');
+            if (title) title.innerText = 'Aprovação de Vagas';
+            if (subtitle) subtitle.innerText = 'Aprove solicitações enviadas pelos supervisores';
+
+            const btnEncerradas = document.getElementById('btn-tab-encerradas');
+            const tabEncerradas = document.getElementById('tab-encerradas');
+            if (btnEncerradas) btnEncerradas.style.display = 'none';
+            if (tabEncerradas) tabEncerradas.style.display = 'none';
+
+            const btnAtivas = document.getElementById('btn-tab-ativas');
+            if (btnAtivas) btnAtivas.innerText = 'Pendentes';
+
+            const newVagaBtn = document.querySelector('a[href="/vagas.html"]');
+            if (newVagaBtn) newVagaBtn.style.display = 'none';
+
+            document.querySelectorAll('.stats-grid .stat-card:not(.pending)').forEach(el => {
+                el.style.display = 'none';
+            });
+            const pendingTitle = document.querySelector('.stats-grid .stat-card.pending .stat-title');
+            if (pendingTitle) pendingTitle.innerText = 'Pendentes';
+        }
+    }
+
+    async function carregarVagas() {
+        const tbodyAtivas = document.getElementById('lista-ativas');
+        const tbodyEncerradas = document.getElementById('lista-encerradas');
+        
+        tbodyAtivas.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem;">Carregando...</td></tr>';
+
+        try {
+            // Tenta carregar da API correta
+            const resVagas = await fetch(__isGerente ? '/api/gerente/vagas' : '/api/rh/vagas');
+            if (!resVagas.ok) throw new Error('Falha ao carregar vagas');
+            todasVagas = await resVagas.json();
+
+            // Stats
+            if (__isGerente) {
+                document.getElementById('stat-abertas').innerText = todasVagas.length;
+            } else {
+                document.getElementById('stat-abertas').innerText = todasVagas.filter(v => v.ativa !== false).length;
+                document.getElementById('stat-encerradas').innerText = todasVagas.filter(v => v.ativa === false && !['rejeitada', 'reprovada'].includes(String(v.status || '').trim().toLowerCase())).length;
+                document.getElementById('stat-canceladas').innerText = todasVagas.filter(v => v.ativa === false && ['rejeitada', 'reprovada'].includes(String(v.status || '').trim().toLowerCase())).length;
+            }
+            
+            // Render
+            renderTabelas();
+
+            // Tenta carregar contagem de candidatos em background
+            if (!__isGerente) atualizarContagemCandidatos();
+
+        } catch (error) {
+            console.error('Erro ao carregar:', error);
+            tbodyAtivas.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--danger);">Erro ao carregar dados.</td></tr>';
+            if (tbodyEncerradas) tbodyEncerradas.innerHTML = '';
+        }
+    }
+
+    function renderTabelas() {
+        if (__isGerente) {
+            renderLista(todasVagas, 'lista-ativas', 'empty-ativas', 'tabela-ativas');
+            return;
+        }
+        const ativas = todasVagas.filter(v => v.ativa !== false);
+        const encerradas = todasVagas.filter(v => v.ativa === false);
+
+        renderLista(ativas, 'lista-ativas', 'empty-ativas', 'tabela-ativas');
+        renderLista(encerradas, 'lista-encerradas', 'empty-encerradas', 'tabela-encerradas');
+    }
+
+    function renderLista(lista, tbodyId, emptyId, tableId) {
+        const tbody = document.getElementById(tbodyId);
+        const emptyState = document.getElementById(emptyId);
+        const table = document.getElementById(tableId);
+
+        tbody.innerHTML = '';
+
+        if (lista.length === 0) {
+            table.hidden = true;
+            emptyState.hidden = false;
+            return;
+        }
+
+        table.hidden = false;
+        emptyState.hidden = true;
+
+        lista.forEach(vaga => {
+            const tr = document.createElement('tr');
+            
+            let statusLabel = 'Ativa';
+            let statusClass = 'badge-success';
+            const statusNorm = String(vaga.status || '').trim().toLowerCase();
+
+            if (__isGerente && statusNorm === 'pendente_gerente') {
+                statusLabel = 'Pendente';
+                statusClass = 'badge-warning';
+            } else if (vaga.ativa === false) {
+                if (statusNorm === 'rejeitada' || statusNorm === 'reprovada') {
+                    statusLabel = 'Cancelada';
+                    statusClass = 'badge-danger';
+                } else {
+                    statusLabel = 'Encerrada';
+                    statusClass = 'badge-secondary';
+                }
+            } else {
+                if (statusNorm === 'pendente') {
+                    statusLabel = 'Pendente';
+                    statusClass = 'badge-warning';
+                } else if (statusNorm === 'aprovada') {
+                    statusLabel = 'Aberta';
+                    statusClass = 'badge-success';
+                }
+            }
+            
+            // Ações dependem do status
+            let actions = '';
+            if (__isGerente) {
+                actions = `
+                    <button onclick="aprovarVagaGerente('${vaga.id}')" class="btn btn-sm btn-primary">Aprovar</button>
+                `;
+            } else if (vaga.ativa !== false) {
+                const st = String(vaga.status || '').trim().toLowerCase();
+                const acoesAvaliacao = st === 'pendente'
+                    ? `
+                        <button onclick="avaliarVaga('${vaga.id}', 'aprovada')" class="btn btn-sm btn-primary">Aprovar</button>
+                        <button onclick="avaliarVaga('${vaga.id}', 'reprovada')" class="btn btn-sm btn-danger">Reprovar</button>
+                      `
+                    : '';
+                actions = `
+                    ${acoesAvaliacao}
+                    <button onclick="verSugestoes('${vaga.id}')" class="btn btn-sm btn-info" style="background: #0ea5e9; color: white; border: none; margin-right: 4px;" title="Ver Sugestões Inteligentes">💡 Sugestões</button>
+                    <button onclick="abrirBuscaExterna('${vaga.id}')" class="btn btn-sm btn-outline" style="margin-right: 4px;" title="Buscar em Plataformas Externas">🌐 Busca Ext.</button>
+                    <button onclick="verTodosCandidatos()" class="btn btn-sm btn-secondary" style="background: #64748b; color: white; border: none; margin-right: 4px;" title="Ver Todos os Candidatos">👥 Todos</button>
+                    <button onclick="fecharVaga('${vaga.id}')" class="btn btn-sm btn-outline">Encerrar</button>
+                    <button onclick="excluirVaga('${vaga.id}')" class="btn btn-sm btn-danger">Excluir</button>
+                `;
+            } else {
+                actions = `
+                    <button onclick="reabrirVaga('${vaga.id}')" class="btn btn-sm btn-primary">Reabrir</button>
+                    <button onclick="excluirVaga('${vaga.id}')" class="btn btn-sm btn-danger">Excluir</button>
+                `;
+            }
+
+            tr.innerHTML = `
+                <td>
+                    <div style="font-weight: 600; color: var(--primary); cursor: pointer; text-decoration: underline;" onclick="verDetalhesVaga('${vaga.id}')" title="Clique para ver detalhes">
+                        ${vaga.titulo || vaga.cargo || 'Sem Título'}
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary);">ID: ${vaga.id}</div>
+                </td>
+                <td>${vaga.departamento || vaga.setor || '-'}</td>
+                <td><span class="badge ${statusClass}">${statusLabel}</span></td>
+                <td id="count-${vaga.id}">-</td>
+                <td>
+                    <div style="display: flex; gap: 6px;">
+                        ${actions}
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function atualizarContagemCandidatos() {
+        try {
+            const res = await fetch('/api/rh/candidatos');
+            if (res.ok) {
+                const candidatos = await res.json();
+                document.getElementById('stat-candidatos').innerText = candidatos.length;
+                
+                // Tenta contar por vaga se possível
+                // Assumindo que o candidato tem vagaId ou cargo
+                // Se não tiver, não conseguimos linkar
+            }
+        } catch(e) { console.log('Erro stats candidatos'); }
+    }
+
+    async function aprovarVagaGerente(id) {
+        if (!confirm('Aprovar esta solicitação e enviar para o RH avaliar?')) return;
+        try {
+            const res = await fetch(`/api/gerente/vagas/${id}/aprovar`, { method: 'POST' });
+            if (res.ok) {
+                carregarVagas();
+                return;
+            }
+            let msg = 'Erro ao aprovar.';
+            try {
+                const data = await res.json();
+                if (data && data.erro) msg = data.erro;
+            } catch (_) {}
+            alert(msg);
+        } catch (e) {
+            console.error(e);
+            alert('Erro ao aprovar.');
+        }
+    }
+
+    async function avaliarVaga(id, status) {
+        const st = String(status || '').trim().toLowerCase();
+        const isNegativa = st === 'rejeitada' || st === 'reprovada';
+        const justificativa = isNegativa ? (prompt('Justificativa (opcional):', '') || '') : '';
+        if (!confirm(`Confirmar avaliação: ${st}?`)) return;
+        try {
+            const res = await fetch('/api/vagas/avaliar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, status: st, justificativa })
+            });
+            if (res.ok) {
+                carregarVagas();
+                return;
+            }
+            let msg = 'Erro ao avaliar vaga.';
+            try {
+                const data = await res.json();
+                if (data && data.erro) msg = data.erro;
+            } catch (_) {}
+            alert(msg);
+        } catch (e) {
+            console.error(e);
+            alert('Erro ao avaliar vaga.');
+        }
+    }
+
+    async function fecharVaga(id) {
+        if (!confirm('Deseja encerrar esta vaga? Ela sairá da lista de abertas.')) return;
+        await atualizarStatusVaga(id, false);
+    }
+
+    async function reabrirVaga(id) {
+        if (!confirm('Deseja reabrir esta vaga?')) return;
+        // Ao reabrir, define como ativa e aprovada
+        await atualizarStatusVaga(id, true, 'aprovada');
+    }
+
+    async function atualizarStatusVaga(id, ativa, status = null) {
+        try {
+            const body = { ativa };
+            if (status) body.status = status;
+
+            const res = await fetch(`/api/vagas/${id}`, { 
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (res.ok) carregarVagas();
+            else alert('Erro ao atualizar status.');
+        } catch (e) { console.error(e); }
+    }
+
+    async function excluirVaga(id) {
+        if (!confirm('Deseja excluir permanentemente esta vaga?')) return;
+        try {
+            const res = await fetch(`/api/vagas/${id}`, { method: 'DELETE' });
+            if (res.ok) carregarVagas();
+            else alert('Erro ao excluir.');
+        } catch (e) { console.error(e); }
+    }
+
+    function downloadTemplateVagas() {
+        const data = [
+            {
+                "titulo": "Exemplo de Vaga",
+                "setor": "Tecnologia",
+                "quantidade": 1,
+                "descricao": "Descrição detalhada da vaga...",
+                "requisitos": "Conhecimentos em...",
+                "beneficios": "Vale transporte, Plano de saúde...",
+                "salario": "R$ 3.000,00",
+                "horario": "08:00 às 18:00",
+                "local": "Unidade Centro",
+                "gestor": "Nome do Gestor"
+            }
+        ];
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Vagas");
+        XLSX.writeFile(wb, "Modelo_Importacao_Vagas.xlsx");
+    }
+
+    async function handleImportVagas(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                if (!jsonData || jsonData.length === 0) {
+                    alert('O arquivo Excel está vazio ou não pôde ser lido.');
+                    return;
+                }
+
+                if (!confirm(`Deseja importar ${jsonData.length} vagas do arquivo?`)) {
+                    input.value = '';
+                    return;
+                }
+
+                const res = await fetch('/api/rh/vagas/importar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items: jsonData })
+                });
+
+                const result = await res.json();
+                if (result.ok) {
+                    alert(`Importação concluída! ${result.importados} vagas foram adicionadas.`);
+                    carregarVagas();
+                } else {
+                    alert('Erro na importação: ' + (result.erro || 'Erro desconhecido'));
+                }
+            } catch (err) {
+                console.error('Erro ao processar Excel:', err);
+                alert('Erro ao processar o arquivo Excel. Verifique o formato.');
+            } finally {
+                input.value = '';
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function exportarExcel() {
+        if (todasVagas.length === 0) {
+            alert('Não há dados para exportar.');
+            return;
+        }
+
+        const dadosExportacao = todasVagas.map(v => ({
+            ID: v.id,
+            Titulo: v.titulo || v.cargo,
+            Departamento: v.departamento || v.setor,
+            Status: v.ativa === false ? (v.status === 'rejeitada' || v.status === 'reprovada' ? 'Cancelada' : 'Encerrada') : (v.status === 'aprovada' ? 'Aberta' : 'Pendente'),
+            CriadoEm: v.createdAt ? new Date(v.createdAt).toLocaleDateString('pt-BR') : '-',
+            AtualizadoEm: v.updatedAt ? new Date(v.updatedAt).toLocaleDateString('pt-BR') : '-'
+        }));
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(dadosExportacao);
+        XLSX.utils.book_append_sheet(wb, ws, "Vagas");
+        XLSX.writeFile(wb, "Relatorio_Vagas.xlsx");
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        await initUserRole();
+        carregarVagas();
+    });
+
+    function fecharModalDetalhes() {
+        document.getElementById('modal-detalhes').style.display = 'none';
+    }
+
+    function verDetalhesVaga(id) {
+        const vaga = todasVagas.find(v => v.id == id);
+        if (!vaga) return;
+
+        const modal = document.getElementById('modal-detalhes');
+        const titulo = document.getElementById('detalhe-titulo');
+        const meta = document.getElementById('detalhe-meta');
+        const conteudo = document.getElementById('detalhe-conteudo');
+
+        const dataCriacao = vaga.createdAt ? new Date(vaga.createdAt).toLocaleDateString('pt-BR') : 'N/A';
+        const dataAbertura = vaga.data_abertura ? new Date(vaga.data_abertura).toLocaleDateString('pt-BR') : 'N/A';
+
+        titulo.innerText = vaga.cargo || vaga.titulo || 'Sem Título';
+        meta.innerText = `${vaga.setor || vaga.departamento || '-'} • Solicitado em ${dataCriacao}`;
+
+        const formatText = (text) => text ? text.replace(/\n/g, '<br>') : '<span style="color:#999">Não informado</span>';
+
+        conteudo.innerHTML = `
+            <div style="padding: 20px; max-height: 70vh; overflow-y: auto;">
+                
+                <!-- Status Banner -->
+                <div style="margin-bottom: 20px; padding: 10px; border-radius: 6px; background: ${vaga.ativa ? '#ecfdf5' : '#f1f5f9'}; border: 1px solid ${vaga.ativa ? '#a7f3d0' : '#e2e8f0'}; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 600; color: ${vaga.ativa ? '#059669' : '#64748b'};">
+                        STATUS: ${vaga.ativa ? 'ABERTA' : 'ENCERRADA'} (${vaga.status || 'Indefinido'})
+                    </span>
+                    <span style="font-size: 0.85rem; color: #64748b;">ID: ${vaga.id}</span>
+                </div>
+
+                <!-- Info Grid -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div class="info-box">
+                        <strong>Nº Vagas</strong>
+                        <div>${vaga.numero_vagas || '1'}</div>
+                    </div>
+                    <div class="info-box">
+                        <strong>Data Abertura (Desejada)</strong>
+                        <div>${dataAbertura}</div>
+                    </div>
+                    <div class="info-box">
+                        <strong>Tipo Contratação</strong>
+                        <div>${vaga.tipo_contratacao || vaga.tipo || '-'}</div>
+                    </div>
+                    <div class="info-box">
+                        <strong>Gestor Solicitante</strong>
+                        <div>${vaga.email_gestor || '-'}</div>
+                    </div>
+                    <div class="info-box">
+                        <strong>Reporta a</strong>
+                        <div>${vaga.reportara_a || '-'}</div>
+                    </div>
+                    <div class="info-box">
+                        <strong>Motivo</strong>
+                        <div>${vaga.motivo || '-'}</div>
+                    </div>
+                </div>
+
+                ${vaga.motivo === 'substituicao' ? `
+                <div style="background: #fff7ed; padding: 10px; border-radius: 6px; border: 1px solid #ffedd5; margin-bottom: 20px;">
+                    <strong style="color: #c2410c; font-size: 0.85rem;">DETALHES DA SUBSTITUIÇÃO</strong>
+                    <div style="margin-top: 5px;">
+                        Substituindo: <strong>${vaga.substituicao_nome || '-'}</strong> <br>
+                        Será desligado? ${vaga.sera_desligado === 'sim' ? 'Sim' : 'Não'} <br>
+                        Data de desligamento: <strong>${vaga.data_desligamento ? new Date(vaga.data_desligamento).toLocaleDateString('pt-BR') : '-'}</strong>
+                    </div>
+                </div>
+                ` : ''}
+
+                <div style="margin-bottom: 20px;">
+                    <h3 class="section-header">Detalhes da Posição</h3>
+                    <div class="detail-row">
+                        <strong>Nível:</strong>
+                        <div>${formatText(vaga.salario_beneficios || vaga.salario)}</div>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Escala / Horário:</strong>
+                        <div>${formatText(vaga.escala_horario || vaga.horario)}</div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h3 class="section-header">Perfil do Candidato</h3>
+                    <div class="detail-row">
+                        <strong>Formação Acadêmica:</strong>
+                        <div>${formatText(vaga.formacao)}</div>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Experiência Exigida:</strong>
+                        <div>${formatText(vaga.experiencia)}</div>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Requisitos Técnicos:</strong>
+                        <div>${formatText(vaga.requisitos)}</div>
+                    </div>
+                    <div style="display: flex; gap: 20px; margin-top: 10px;">
+                        <div><strong>Faixa Etária:</strong> ${vaga.faixa_etaria || '-'}</div>
+                        <div><strong>Sexo Preferencial:</strong> ${vaga.sexo || 'Indiferente'}</div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h3 class="section-header">Atividades</h3>
+                    <div style="background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; line-height: 1.6;">
+                        ${formatText(vaga.detalhamento_atividades || vaga.descricao)}
+                    </div>
+                </div>
+
+                ${vaga.observacao ? `
+                <div style="margin-bottom: 20px;">
+                    <h3 class="section-header">Observações</h3>
+                    <div style="font-style: italic; color: #475569;">
+                        ${formatText(vaga.observacao)}
+                    </div>
+                </div>
+                ` : ''}
+
+                ${vaga.justificativa_rh ? `
+                <div style="margin-bottom: 20px; background: #fff1f2; padding: 15px; border-radius: 6px; border: 1px solid #fda4af;">
+                    <h3 class="section-header" style="color: #be123c; border-color: #fda4af;">Parecer RH</h3>
+                    <div style="color: #881337;">
+                        ${formatText(vaga.justificativa_rh)}
+                    </div>
+                </div>
+                ` : ''}
+
+                ${vaga.assinatura ? `
+                <div style="margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+                    <strong style="display: block; color: var(--text-secondary); margin-bottom: 10px; font-size: 0.85rem; text-transform: uppercase;">Assinatura do Solicitante</strong>
+                    <div style="border: 1px dashed #cbd5e1; display: inline-block; padding: 10px; background: #fff; border-radius: 4px;">
+                        <img src="${vaga.assinatura}" alt="Assinatura" style="max-height: 100px; max-width: 100%;">
+                    </div>
+                </div>
+                ` : ''}
+
+            </div>
+            
+            <style>
+                .info-box { background: #fff; border: 1px solid #e2e8f0; padding: 10px; border-radius: 6px; }
+                .info-box strong { display: block; color: #64748b; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 4px; }
+                .section-header { font-size: 1rem; color: var(--primary); border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px; margin-top: 0; }
+                .detail-row { margin-bottom: 10px; }
+                .detail-row strong { color: #334155; margin-right: 5px; }
+            </style>
+        `;
+
+        modal.style.display = 'flex';
+    }
+
+    // --- Sugestões Logic ---
+    function renderCandidatosList(candidatos, container) {
+        if (candidatos.length === 0) {
+            container.innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;"><p>Nenhum candidato encontrado.</p></div>';
+            return;
+        }
+        
+        let html = '<div style="display: grid; gap: 10px; max-height: 60vh; overflow-y: auto;">';
+        candidatos.forEach(c => {
+            const scoreColor = c.score >= 80 ? '#10b981' : (c.score >= 50 ? '#f59e0b' : '#64748b');
+            html += `
+                <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                        <div>
+                            <h3 style="margin: 0; color: var(--primary); font-size: 1.1rem;">${c.nome}</h3>
+                            <div style="font-size: 0.85rem; color: #64748b;">${c.email} • ${c.telefone}</div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                            <span style="font-size: 0.75rem; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; color: #64748b;">
+                                ${new Date(c.createdAt).toLocaleDateString('pt-BR')}
+                            </span>
+                            ${c.score !== undefined ? `
+                            <span style="background: ${scoreColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">
+                                ${c.score}% Match
+                            </span>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9rem;">
+                        <div style="background: #f8fafc; padding: 8px; border-radius: 4px;">
+                            <strong style="display: block; color: #475569; font-size: 0.75rem; text-transform: uppercase;">Experiência Recente</strong>
+                            ${c.cargo1 || '-'}
+                        </div>
+                        <div style="background: #f8fafc; padding: 8px; border-radius: 4px;">
+                            <strong style="display: block; color: #475569; font-size: 0.75rem; text-transform: uppercase;">Experiência Anterior</strong>
+                            ${c.cargo2 || '-'}
+                        </div>
+                    </div>
+
+                    ${c.matchReason ? `
+                    <div style="margin-top: 8px; font-size: 0.8rem; color: #475569; border-top: 1px solid #f1f5f9; padding-top: 8px;">
+                        <strong>Motivo do Match:</strong> ${c.matchReason}
+                    </div>
+                    ` : ''}
+
+                    <div style="margin-top: 12px; display: flex; justify-content: flex-end; align-items: center; gap: 10px;">
+                        ${c.curriculo ? `
+                        <a href="/uploads/${c.curriculo}" target="_blank" class="btn btn-sm btn-outline" style="text-decoration: none; font-size: 0.8rem; padding: 6px 12px;">
+                            📎 Baixar CV
+                        </a>
+                        ` : ''}
+                        <button onclick="verDetalhesCandidato('${c.id}')" class="btn btn-sm btn-primary" style="font-size: 0.8rem; padding: 6px 12px; background-color: #007bff; color: white; border: none; cursor: pointer;">
+                            📄 Visualizar Formulário
+                        </button>
+                    </div>
+                    ${c.periodoFuncao ? `
+                        <div style="margin-top: 8px; font-size: 0.85rem; color: #059669; background: #ecfdf5; padding: 8px; border-radius: 4px;">
+                            <strong>Já trabalhou no Madalosso:</strong> ${c.periodoFuncao}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    async function abrirBuscaExterna(id) {
+        const modal = document.getElementById('modal-sugestoes');
+        const conteudo = document.getElementById('lista-sugestoes-conteudo');
+        const titulo = document.getElementById('modal-sugestoes-titulo');
+
+        modal.style.display = 'flex';
+        if(titulo) titulo.innerText = 'Busca Externa (LinkedIn/Indeed/Catho)';
+        conteudo.innerHTML = '<div style="text-align: center; padding: 2rem;"><p>Preparando consultas externas...</p></div>';
+
+        try {
+            const res = await fetch(`/api/rh/vagas/${id}/busca-externa`);
+            const data = await res.json();
+            
+            if (data.ok) {
+                let html = `
+                    <div style="padding: 15px; background: #f8fafc; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #0ea5e9;">
+                        <p style="margin:0; font-size: 0.9rem; color: #475569;">
+                            <strong>Termo de busca sugerido:</strong> <code>${data.query}</code>
+                        </p>
+                    </div>
+                    <div style="display: grid; gap: 12px;">
+                `;
+
+                data.sugestoesExternas.forEach(s => {
+                    const color = s.plataforma === 'LinkedIn' ? '#0077b5' : (s.plataforma === 'Indeed' ? '#2557a7' : '#ff6600');
+                    html += `
+                        <div style="border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; background: white;">
+                            <div>
+                                <h4 style="margin:0; color: ${color};">${s.plataforma}</h4>
+                                <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #64748b;">${s.descricao}</p>
+                            </div>
+                            <a href="${s.link}" target="_blank" class="btn btn-sm btn-primary" style="background: ${color}; border: none; padding: 8px 16px;">
+                                Abrir Pesquisa ↗
+                            </a>
+                        </div>
+                    `;
+                });
+
+                html += `
+                    </div>
+                    <div style="margin-top: 25px; padding: 15px; background: #f1f5f9; border-radius: 8px; font-size: 0.85rem; color: #475569;">
+                        <p style="margin: 0;"><strong>Dica:</strong> Após encontrar perfis interessantes, você pode copiar os dados e importar via <strong>"Importar Excel"</strong> ou usar o formulário de <strong>"Nova Candidatura"</strong> para salvar no banco local.</p>
+                    </div>
+                `;
+                conteudo.innerHTML = html;
+            }
+        } catch (e) {
+            console.error(e);
+            conteudo.innerHTML = '<p style="color:red; text-align:center;">Erro ao carregar links de busca externa.</p>';
+        }
+    }
+
+    async function verSugestoes(id) {
+        const modal = document.getElementById('modal-sugestoes');
+        const conteudo = document.getElementById('lista-sugestoes-conteudo');
+        const titulo = document.getElementById('modal-sugestoes-titulo');
+        
+        modal.style.display = 'flex';
+        if(titulo) titulo.innerText = 'Candidatos Sugeridos (IA)';
+        conteudo.innerHTML = '<div style="text-align: center; padding: 2rem;"><p>Buscando candidatos compatíveis...</p></div>';
+        
+        try {
+            const res = await fetch(`/api/rh/vagas/${id}/sugestoes`);
+            if (!res.ok) throw new Error('Erro ao buscar sugestões');
+            const data = await res.json();
+            const candidatos = Array.isArray(data) ? data : (data.sugestoes || []);
+            renderCandidatosList(candidatos, conteudo);
+        } catch (e) {
+            console.error(e);
+            conteudo.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--danger);"><p>Erro ao carregar sugestões.</p></div>';
+        }
+    }
+
+    async function verTodosCandidatos() {
+        const modal = document.getElementById('modal-sugestoes');
+        const conteudo = document.getElementById('lista-sugestoes-conteudo');
+        const titulo = document.getElementById('modal-sugestoes-titulo');
+
+        modal.style.display = 'flex';
+        if(titulo) titulo.innerText = 'Todos os Candidatos';
+        conteudo.innerHTML = '<div style="text-align: center; padding: 2rem;"><p>Carregando todos os candidatos...</p></div>';
+
+        try {
+            const res = await fetch(`/api/rh/candidatos`);
+            if (!res.ok) throw new Error('Erro ao buscar candidatos');
+            const candidatos = await res.json();
+            renderCandidatosList(candidatos, conteudo);
+        } catch (e) {
+            console.error(e);
+            conteudo.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--danger);"><p>Erro ao carregar candidatos.</p></div>';
+        }
+    }
+
+    function fecharModalSugestoes() {
+        document.getElementById('modal-sugestoes').style.display = 'none';
+    }
+
+    // Close when clicking outside
+    window.onclick = function(event) {
+        const modalSugestoes = document.getElementById('modal-sugestoes');
+        const modalDetalhes = document.getElementById('modal-detalhes');
+        if (event.target == modalSugestoes) {
+            modalSugestoes.style.display = "none";
+        }
+        if (event.target == modalDetalhes) {
+            modalDetalhes.style.display = "none";
+        }
+        const modalCandidato = document.getElementById('modal-candidato-detalhes');
+        if (event.target == modalCandidato) {
+            modalCandidato.style.display = "none";
+        }
+    }
+
+    async function verDetalhesCandidato(id) {
+        const modal = document.getElementById('modal-candidato-detalhes');
+        const content = document.getElementById('candidato-detalhes-conteudo');
+        modal.style.display = 'flex';
+        content.innerHTML = '<div style="padding:40px; text-align:center;">Carregando...</div>';
+
+        try {
+            const res = await fetch(`/api/rh/candidatos/${id}`);
+            if (!res.ok) throw new Error('Erro ao carregar');
+            const c = await res.json();
+            
+            // Render content
+            content.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 15px;">
+                    <div>
+                        <h2 style="margin: 0; color: var(--primary);">${c.nome}</h2>
+                        <div style="color: #64748b; margin-top: 5px;">Candidatura: ${new Date(c.createdAt).toLocaleDateString('pt-BR')}</div>
+                    </div>
+                    <span class="badge ${c.status === 'recebido' ? 'badge-primary' : 'badge-secondary'}">${c.status}</span>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
+                    <div style="background: #fff; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px;">
+                        <strong style="display: block; color: #64748b; font-size: 0.85rem; margin-bottom: 5px;">CONTATO</strong>
+                        <div style="margin-bottom: 8px;">📧 ${c.email}</div>
+                        <div>📱 ${c.telefone}</div>
+                        ${c.cidade ? `<div>📍 ${c.cidade}</div>` : ''}
+                    </div>
+                    <div style="background: #fff; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px;">
+                        <strong style="display: block; color: #64748b; font-size: 0.85rem; margin-bottom: 5px;">PREFERÊNCIAS</strong>
+                        <div style="margin-bottom: 8px;">💰 ${c.salarioPretendido || 'N/A'}</div>
+                        <div>⏰ ${c.horario || 'N/A'}</div>
+                        ${c.sapato ? `<div>👟 Nº ${c.sapato}</div>` : ''}
+                    </div>
+                </div>
+
+                <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                    <h3 style="margin-top: 0; margin-bottom: 15px; color: var(--secondary); font-size: 1rem; display: flex; align-items: center; gap: 8px;">
+                        💼 EXPERIÊNCIA PROFISSIONAL
+                    </h3>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <div style="font-weight: 700; color: var(--primary); font-size: 1.05rem;">${c.empresa1 || 'Empresa não informada'}</div>
+                        <div style="color: #475569; font-weight: 500;">${c.cargo1 || 'Cargo não informado'}</div>
+                        ${c.salario1 ? `<div style="font-size: 0.9rem; color: #64748b; margin-top: 2px;">💰 Último Salário: ${c.salario1}</div>` : ''}
+                        <div style="font-size: 0.9rem; color: #64748b; margin: 4px 0;">
+                            ${c.admissao1 ? new Date(c.admissao1).toLocaleDateString('pt-BR') : ''} 
+                            ${c.saida1 ? ' até ' + new Date(c.saida1).toLocaleDateString('pt-BR') : ' (Atual)'}
+                        </div>
+                        ${c.motivo1 ? `<div style="font-size: 0.9rem; background: #fff; padding: 8px; border-radius: 4px; border: 1px solid #e2e8f0; margin-top: 8px;">Motivo Saída: ${c.motivo1}</div>` : ''}
+                    </div>
+
+                    ${c.empresa2 ? `
+                    <div style="border-top: 1px solid #e2e8f0; padding-top: 20px;">
+                        <div style="font-weight: 700; color: var(--primary); font-size: 1.05rem;">${c.empresa2}</div>
+                        <div style="color: #475569; font-weight: 500;">${c.cargo2}</div>
+                        ${c.salario2 ? `<div style="font-size: 0.9rem; color: #64748b; margin-top: 2px;">💰 Último Salário: ${c.salario2}</div>` : ''}
+                        <div style="font-size: 0.9rem; color: #64748b; margin: 4px 0;">
+                            ${c.admissao2 ? new Date(c.admissao2).toLocaleDateString('pt-BR') : ''} 
+                            ${c.saida2 ? ' até ' + new Date(c.saida2).toLocaleDateString('pt-BR') : ''}
+                        </div>
+                        ${c.motivo2 ? `<div style="font-size: 0.9rem; background: #fff; padding: 8px; border-radius: 4px; border: 1px solid #e2e8f0; margin-top: 8px;">Motivo Saída: ${c.motivo2}</div>` : ''}
+                    </div>
+                    ` : ''}
+                </div>
+                
+                ${c.curriculo ? `
+                <div style="margin-top: 20px; text-align: center;">
+                    <a href="/uploads/${c.curriculo}" target="_blank" class="btn btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px;">
+                        📎 Baixar Currículo Original (PDF/Img)
+                    </a>
+                </div>
+                ` : '<div style="text-align: center; color: #94a3b8; padding: 20px;">Nenhum currículo anexo.</div>'}
+            `;
+
+        } catch (e) {
+            console.error(e);
+            content.innerHTML = '<div style="color:red; text-align:center;">Erro ao carregar detalhes.</div>';
+        }
+    }
+
+    function fecharModalCandidato() {
+        document.getElementById('modal-candidato-detalhes').style.display = 'none';
+    }
+  </script>
+</body>
+</html>

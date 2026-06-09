@@ -1,0 +1,40 @@
+{
+  "name": "form-ferias",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sistema de Solicitação de Férias – FORM.03.RH",
+  "scripts": {
+    "start": "node portalFormularios.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "postinstall": "npm rebuild sqlite3"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "basic-auth": "^2.0.1",
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "crypto-js": "^4.2.0",
+    "dotenv": "^16.6.1",
+    "express": "^4.19.2",
+    "express-basic-auth": "^1.2.1",
+    "express-rate-limit": "^8.5.2",
+    "form-data": "^4.0.0",
+    "helmet": "^8.2.0",
+    "jsonwebtoken": "^9.0.3",
+    "ldapjs": "^3.0.7",
+    "multer": "^2.1.1",
+    "mysql": "^2.18.1",
+    "mysql2": "^3.22.4",
+    "nodemailer": "^6.9.16",
+    "pdfkit": "^0.13.0",
+    "sqlite3": "^5.1.7",
+    "xlsx": "^0.18.5",
+    "xss-clean": "^0.1.4"
+  },
+  "devDependencies": {
+    "jest": "^30.4.2",
+    "supertest": "^7.2.2"
+  }
+}

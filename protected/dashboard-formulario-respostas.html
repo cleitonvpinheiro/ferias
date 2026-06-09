@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard RH - Respostas do Formulário</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="/rh-styles.css">
+  <script src="/lang-switcher.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    .resp-toolbar {
+      display: grid;
+      grid-template-columns: minmax(240px, 1fr) minmax(240px, 1fr) auto;
+      gap: 12px;
+      align-items: end;
+    }
+    .resp-toolbar .field input,
+    .resp-toolbar .field select {
+      width: 100%;
+    }
+    .resp-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+    @media (max-width: 900px) {
+      .resp-toolbar { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body data-page="rh-formularios">
+  <div id="navbar-container"></div>
+  <script src="/rh-navbar.js"></script>
+  <script>renderRHNavbar('formularios');</script>
+
+  <main class="dashboard-container">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title" id="pageTitle">Respostas do Formulário</h1>
+        <p class="page-subtitle" id="pageSub">Carregando...</p>
+      </div>
+      <div class="last-update">
+        <span id="lastUpdate">-</span>
+      </div>
+    </div>
+
+    <div class="toolbar resp-toolbar">
+      <div class="field">
+        <label>Buscar</label>
+        <input id="filterText" placeholder="Filtrar por funcionário ou conteúdo">
+      </div>
+      <div class="field">
+        <label>Funcionário</label>
+        <input id="filterFuncionario" placeholder="ID do funcionário">
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <div class="resp-actions">
+          <button class="btn btn-primary" id="btnRefresh">Atualizar</button>
+          <button class="btn btn-outline" id="btnExportCsv">Exportar CSV</button>
+          <button class="btn btn-outline" id="btnIA">Analisar com IA</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-grid" style="margin-top: 14px;">
+      <div class="stat-card approved">
+        <div class="stat-header">
+          <div class="stat-title">Total de Respostas</div>
+          <div class="stat-icon">🧾</div>
+        </div>
+        <div class="stat-value" id="statTotal">-</div>
+      </div>
+      <div class="stat-card pending">
+        <div class="stat-header">
+          <div class="stat-title">Última Resposta</div>
+          <div class="stat-icon">🕒</div>
+        </div>
+        <div class="stat-value" id="statLast">-</div>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width: 180px;">Data</th>
+              <th style="width: 220px;">Formulário</th>
+              <th style="width: 160px;">Funcionário</th>
+              <th>Respostas</th>
+              <th style="width: 120px;">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="rowsBody">
+            <tr><td colspan="5" style="text-align:center; color: var(--text-secondary); padding: 22px;">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const formId = urlParams.get('id');
+    const dashId = urlParams.get('dash');
+    let formDef = null;
+    let allRespostas = [];
+
+    function escapeHtml(input) {
+      return String(input ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+    function normalizeText(value) {
+      return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+    }
+    function fmtDateTime(iso) {
+      if (!iso) return '-';
+      const d = new Date(iso);
+      return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleString('pt-BR');
+    }
+    function getAnswerValueForIndex(respostasObj, idx) {
+      if (!respostasObj || typeof respostasObj !== 'object') return '';
+      const r = respostasObj[String(idx)] ?? respostasObj[idx];
+      if (r && typeof r === 'object') return String(r.answer ?? '');
+      return String(r ?? '');
+    }
+    function buildRespostaHtmlItem(q, answer) {
+      const cat = escapeHtml(String(q.category || '').trim());
+      const question = escapeHtml(String(q.question || q.text || '').trim());
+      const ans = escapeHtml(String(answer || '').trim());
+      return `<div style="margin:2px 0;"><strong>${cat ? `[${cat}] ` : ''}${question}:</strong> ${ans || '<em>-</em>'}</div>`;
+    }
+    function buildRespostaHtml(respostasObj) {
+      const qs = (formDef && Array.isArray(formDef.questoes)) ? formDef.questoes : [];
+      if (!qs.length) return '<em>Sem questões</em>';
+      return qs.map((q, idx) => buildRespostaHtmlItem(q, getAnswerValueForIndex(respostasObj, idx))).join('');
+    }
+
+    function applyFilters(items) {
+      const q = normalizeText(document.getElementById('filterText')?.value);
+      const funcionario = normalizeText(document.getElementById('filterFuncionario')?.value);
+      return (items || []).filter(it => {
+        const created = String(it.created_at || it.createdAt || '');
+        const form = String(it.formulario_titulo || it.formulario_id || it.formularioId || '');
+        const func = String(it.funcionario_id || it.funcionarioId || '');
+        const respostas = (it && it.respostas && typeof it.respostas === 'object') ? it.respostas : {};
+        const hay = normalizeText(`${created} ${form} ${func} ${JSON.stringify(respostas)}`);
+        if (funcionario && normalizeText(func) !== funcionario) return false;
+        if (q && !hay.includes(q)) return false;
+        return true;
+      });
+    }
+
+    function renderStats(items) {
+      const total = document.getElementById('statTotal');
+      const last = document.getElementById('statLast');
+      total.textContent = String((items || []).length);
+      const dates = (items || [])
+        .map(it => String(it.created_at || it.createdAt || ''))
+        .filter(Boolean)
+        .map(v => new Date(v))
+        .filter(d => !Number.isNaN(d.getTime()))
+        .sort((a,b) => b.getTime() - a.getTime());
+      last.textContent = dates.length ? dates[0].toLocaleString('pt-BR') : '-';
+      document.getElementById('lastUpdate').textContent = 'Atualizado ' + new Date().toLocaleString('pt-BR');
+    }
+
+    function renderTable(items) {
+      const tbody = document.getElementById('rowsBody');
+      tbody.innerHTML = '';
+      if (!items.length) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--text-secondary); padding: 22px;">Nenhuma resposta encontrada.</td></tr>`;
+        renderStats(items);
+        return;
+      }
+      items
+        .slice()
+        .sort((a,b) => String(b.created_at || b.createdAt || '').localeCompare(String(a.created_at || a.createdAt || '')))
+        .forEach(it => {
+          const created = fmtDateTime(it.created_at || it.createdAt);
+          const form = escapeHtml(String(it.formulario_titulo || it.formulario_id || it.formularioId || ''));
+          const func = escapeHtml(String(it.funcionario_id || it.funcionarioId || ''));
+          const html = buildRespostaHtml(it.respostas);
+          const idJson = JSON.stringify(String(it.id || ''));
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td style="white-space:nowrap;">${escapeHtml(created)}</td>
+            <td style="white-space:nowrap;">${form || '-'}</td>
+            <td style="white-space:nowrap;">${func || '-'}</td>
+            <td>${html}</td>
+            <td>
+              <div class="table-actions">
+                <button class="btn-icon" data-action="view" data-id=${idJson} title="Ver em tela cheia">
+                  <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14L21 3"/><path d="M9 21H3v-6"/><path d="M3 21l11-11"/></svg>
+                </button>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      renderStats(items);
+    }
+
+    function exportCsv(items) {
+      const qs = (formDef && Array.isArray(formDef.questoes)) ? formDef.questoes : [];
+      const cols = ['Data', 'Formulario', 'Funcionario'].concat(qs.map((q, idx) => {
+        const cat = String(q.category || '').trim();
+        const qt = String(q.question || q.text || '').trim();
+        const base = `${cat ? cat + ' - ' : ''}${qt || ('Q' + (idx + 1))}`.trim();
+        return base || ('Q' + (idx + 1));
+      }));
+      const esc = (v) => `"${String(v ?? '').replaceAll('"', '""')}"`;
+      const rows = (items || []).map(it => {
+        const created = String(it.created_at || it.createdAt || '');
+        const form = String(it.formulario_titulo || it.formulario_id || it.formularioId || '');
+        const func = String(it.funcionario_id || it.funcionarioId || '');
+        const respostas = (it && it.respostas && typeof it.respostas === 'object') ? it.respostas : {};
+        const qVals = qs.map((q, idx) => getAnswerValueForIndex(respostas, idx));
+        return [created, form, func, ...qVals];
+      });
+      const csv = [cols.map(esc).join(','), ...rows.map(r => r.map(esc).join(','))].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${String(dashId || formId || 'formulario')}_respostas.csv`;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      a.remove();
+    }
+
+    async function load() {
+      if (!formId && !dashId) {
+        document.getElementById('rowsBody').innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--text-secondary); padding: 22px;">ID não informado na URL.</td></tr>`;
+        document.getElementById('pageSub').textContent = 'Use ?dash=MODELO_ID ou ?id=FORM_ID';
+        return;
+      }
+      try {
+        if (dashId) {
+          const [dRes, rRes] = await Promise.all([
+            fetch(`/api/rh/formularios/dashboards/${encodeURIComponent(dashId)}`, { cache: 'no-store' }),
+            fetch(`/api/rh/formularios/dashboards/${encodeURIComponent(dashId)}/respostas`, { cache: 'no-store' })
+          ]);
+          if (!dRes.ok) {
+            const err = await dRes.json().catch(() => ({}));
+            throw new Error(err.error || 'Erro ao carregar dashboard');
+          }
+          const dash = await dRes.json();
+          const forms = (dash && Array.isArray(dash.forms)) ? dash.forms : [];
+          formDef = forms[0] || { questoes: [] };
+          if (!rRes.ok) {
+            const err = await rRes.json().catch(() => ({}));
+            throw new Error(err.error || 'Erro ao carregar respostas');
+          }
+          allRespostas = await rRes.json();
+
+          const dashInfo = dash && dash.dashboard ? dash.dashboard : null;
+          document.getElementById('pageTitle').textContent = escapeHtml((dashInfo && dashInfo.titulo) || (dashInfo && dashInfo.id) || 'Dashboard de Respostas');
+          document.getElementById('pageSub').textContent = `Modelo: ${escapeHtml(String(dashId))} • Formulários: ${forms.length} • Respostas: ${(Array.isArray(allRespostas) ? allRespostas.length : 0)}`;
+        } else {
+          const [fRes, rRes] = await Promise.all([
+            fetch(`/api/rh/formularios/${encodeURIComponent(formId)}`, { cache: 'no-store' }),
+            fetch(`/api/rh/formularios/${encodeURIComponent(formId)}/respostas`, { cache: 'no-store' })
+          ]);
+          if (!fRes.ok) {
+            const err = await fRes.json().catch(() => ({}));
+            throw new Error(err.error || 'Erro ao carregar formulário');
+          }
+          formDef = await fRes.json();
+          if (!rRes.ok) {
+            const err = await rRes.json().catch(() => ({}));
+            throw new Error(err.error || 'Erro ao carregar respostas');
+          }
+          allRespostas = await rRes.json();
+
+          document.getElementById('pageTitle').textContent = escapeHtml(formDef.titulo || 'Respostas do Formulário');
+          document.getElementById('pageSub').textContent = `ID: ${escapeHtml(formDef.id)} • Tipo: ${escapeHtml(formDef.tipo)} • Status: ${formDef.ativo ? 'Ativo' : 'Inativo'}`;
+        }
+
+        const filtered = applyFilters(allRespostas);
+        renderTable(filtered);
+      } catch (e) {
+        document.getElementById('rowsBody').innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--text-secondary); padding: 22px;">${escapeHtml(e.message || 'Erro ao carregar')}</td></tr>`;
+        document.getElementById('pageSub').textContent = 'Falha ao carregar dados do formulário.';
+      }
+    }
+
+    async function analisarIA() {
+      if (!formId && !dashId) return;
+      try {
+        const btn = document.getElementById('btnIA');
+        if (btn) { btn.disabled = true; btn.textContent = 'Analisando...'; }
+        const endpoint = dashId
+          ? `/api/rh/formularios/dashboards/${encodeURIComponent(dashId)}/ai-resumo`
+          : `/api/rh/formularios/${encodeURIComponent(formId)}/ai-resumo`;
+        const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'IA indisponível');
+        Swal.fire({
+          title: 'Resumo com IA',
+          html: `<div style="text-align:left; line-height:1.45; font-size:0.95rem; color: var(--text-primary); white-space:pre-wrap;">${escapeHtml(String(data.content || ''))}</div>`,
+          width: 900,
+          showCloseButton: true,
+          showConfirmButton: false
+        });
+      } catch (e) {
+        Swal.fire('IA', e.message || 'Não foi possível analisar com IA.', 'info');
+      } finally {
+        const btn = document.getElementById('btnIA');
+        if (btn) { btn.disabled = false; btn.textContent = 'Analisar com IA'; }
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('btnRefresh')?.addEventListener('click', load);
+      document.getElementById('btnExportCsv')?.addEventListener('click', () => exportCsv(applyFilters(allRespostas)));
+      document.getElementById('btnIA')?.addEventListener('click', analisarIA);
+      document.getElementById('filterText')?.addEventListener('input', () => renderTable(applyFilters(allRespostas)));
+      document.getElementById('filterFuncionario')?.addEventListener('input', () => renderTable(applyFilters(allRespostas)));
+      document.getElementById('rowsBody')?.addEventListener('click', (e) => {
+        const btn = e.target && e.target.closest ? e.target.closest('button[data-action]') : null;
+        if (!btn) return;
+        if (btn.getAttribute('data-action') !== 'view') return;
+        const id = btn.getAttribute('data-id');
+        const item = (allRespostas || []).find(r => String(r.id || '') === String(id));
+        if (!item) return;
+        Swal.fire({
+          title: 'Resposta',
+          html: `<div style="text-align:left; line-height:1.45; font-size:0.95rem;">${buildRespostaHtml(item.respostas)}</div>`,
+          width: 900,
+          showCloseButton: true,
+          showConfirmButton: false
+        });
+      });
+      load();
+    });
+  </script>
+</body>
+</html>

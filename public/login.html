@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Portal RH</title>
+    <script src="/lang-switcher.js" defer></script>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body data-page="login">
+    <div class="auth-card">
+        <div class="auth-brand">
+            <img src="/assets/logo.png" alt="Logo">
+        </div>
+        <h2 class="auth-title" data-translate="login_title">Acesso Restrito</h2>
+        <p class="auth-meta">Entre com seu usuário e senha para acessar o portal.</p>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username" data-translate="login_username">Usuário</label>
+                <input class="input" type="text" id="username" name="username" required autofocus autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label for="password" data-translate="login_password">Senha</label>
+                <input class="input" type="password" id="password" name="password" required autocomplete="current-password">
+            </div>
+            <button class="btn btn-primary btn-block" type="submit" data-translate="login_submit">Entrar</button>
+            <div id="errorMsg" class="error-message"></div>
+            <div id="forbiddenActions" style="margin-top: 12px; display: none; text-align: center;">
+                <a href="../protected/dashboard-gestor.html" class="btn btn-outline btn-block" data-translate="login_go_portal">Ir para o Portal</a>
+            </div>
+            <div id="pendingActions" style="margin-top: 12px; display: none; text-align: center;">
+                <a href="#" id="logoutLink" class="btn btn-outline btn-block" data-translate="rh_nav_sair">Sair</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            const errorMsg = document.getElementById('errorMsg');
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.ok) {
+                    window.location.href = result.redirect;
+                } else {
+                    errorMsg.textContent = result.erro || 'Erro ao fazer login';
+                    errorMsg.style.display = 'block';
+                }
+            } catch (err) {
+                errorMsg.textContent = 'Erro de conexão com o servidor';
+                errorMsg.style.display = 'block';
+            }
+        });
+
+        // Check for URL parameters (e.g., redirect from protected route)
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('error') === 'forbidden') {
+            const errorMsg = document.getElementById('errorMsg');
+            const forbiddenActions = document.getElementById('forbiddenActions');
+            errorMsg.style.display = 'block';
+            forbiddenActions.style.display = 'block';
+
+            (async () => {
+                try {
+                    const res = await fetch('/api/me');
+                    if (!res.ok) throw new Error('unauth');
+                    const data = await res.json();
+                    const label = data?.user?.username ? `Você está logado como ${data.user.username}.` : 'Você já está logado.';
+                    errorMsg.textContent = `${label} Seu perfil não tem permissão para acessar esta página.`;
+                } catch (_) {
+                    errorMsg.textContent = 'Acesso negado. Faça login com uma conta autorizada.';
+                }
+            })();
+        }
+
+        if (urlParams.get('error') === 'pendente') {
+            const errorMsg = document.getElementById('errorMsg');
+            const pendingActions = document.getElementById('pendingActions');
+            const logoutLink = document.getElementById('logoutLink');
+            errorMsg.style.display = 'block';
+            pendingActions.style.display = 'block';
+
+            logoutLink.addEventListener('click', async (e) => {
+                e.preventDefault();
+                try {
+                    await fetch('/api/logout', { method: 'POST' });
+                } finally {
+                    window.location.href = '/login.html';
+                }
+            });
+
+            (async () => {
+                try {
+                    const res = await fetch('/api/me');
+                    if (!res.ok) throw new Error('unauth');
+                    const data = await res.json();
+                    const label = data?.user?.username ? `Você está logado como ${data.user.username}.` : 'Você já está logado.';
+                    errorMsg.textContent = `${label} Seu acesso está pendente de liberação pelo RH/Administrador.`;
+                } catch (_) {
+                    errorMsg.textContent = 'Seu acesso está pendente de liberação pelo RH/Administrador.';
+                }
+            })();
+        }
+    </script>
+</body>
+</html>

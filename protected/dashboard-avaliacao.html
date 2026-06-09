@@ -1,0 +1,2895 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard RH - Avaliações de Desempenho</title>
+    <link rel="icon" href="/assets/logo.png" type="image/png">
+    <link rel="stylesheet" href="/rh-styles.css">
+    <script src="/lang-switcher.js" defer></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .score-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            color: var(--brand-text);
+        }
+
+        .score-high {
+            background-color: var(--success);
+        }
+
+        .score-medium {
+            background-color: var(--warning);
+            color: var(--text-primary);
+        }
+
+        .score-low {
+            background-color: var(--danger);
+        }
+
+        .modal-body {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .detail-question {
+            flex: 1;
+            padding-right: 20px;
+        }
+
+        .detail-score {
+            font-weight: bold;
+        }
+
+        .score-val-high {
+            color: var(--success);
+        }
+
+        .score-val-med {
+            color: var(--warning);
+        }
+
+        .score-val-low {
+            color: var(--danger);
+        }
+
+        #modalDetalhes .modal {
+            overflow: hidden;
+        }
+
+        #modalDetalhes.modal-overlay {
+            padding: 28px;
+        }
+
+        #modalDetalhes .modal {
+            width: 100%;
+            max-width: 1100px;
+            max-height: calc(100vh - 56px);
+        }
+
+        #modalDetalhes .modal-body {
+            padding: 22px 24px 26px;
+            max-height: 78vh;
+        }
+
+        @media (max-width: 720px) {
+            #modalDetalhes.modal-overlay {
+                padding: 12px;
+            }
+
+            #modalDetalhes .modal-body {
+                padding: 14px;
+                max-height: 80vh;
+            }
+        }
+
+        .filters-bar {
+            background: var(--bg-surface);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            display: flex;
+            gap: 16px;
+            align-items: flex-end;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        #ciclosAdminBar {
+            align-items: flex-start;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .filter-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+
+            min-width: 200px;
+        }
+
+        .btn-action {
+            background: none;
+            border: 1px solid var(--border);
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-secondary);
+        }
+
+        .btn-action:hover {
+            background: var(--bg-body);
+            border-color: var(--text-secondary);
+            color: var(--text-primary);
+        }
+
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .info-card {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px 18px;
+            padding: 14px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg-body);
+            margin-bottom: 14px;
+        }
+
+        @media (max-width: 720px) {
+            .info-card {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .info-item label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 800;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 6px;
+        }
+
+        .info-item span {
+            display: block;
+            color: var(--text-primary);
+            line-height: 1.25;
+        }
+
+        .modal-section-title {
+            margin: 6px 0 12px;
+            color: var(--text-primary);
+        }
+
+        .answers-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .answer-item {
+            display: flex;
+            gap: 14px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg-surface);
+            align-items: flex-start;
+        }
+
+        .answer-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .answer-category {
+            font-size: 0.8rem;
+            font-weight: 900;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .answer-text {
+            color: var(--text-primary);
+            line-height: 1.35;
+            word-break: break-word;
+        }
+
+        .answer-response {
+            color: var(--text-primary);
+            background: var(--bg-body);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 12px;
+            line-height: 1.35;
+            word-break: break-word;
+        }
+
+        .answer-score {
+            min-width: 86px;
+            text-align: right;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .overview-card {
+            background: var(--bg-surface);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-xs);
+            text-align: center;
+        }
+
+        .overview-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin: 8px 0;
+        }
+
+        .overview-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .chart-card {
+            background: var(--bg-surface);
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-xs);
+        }
+
+        .chart-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .pendencias-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 12px;
+            width: 100%;
+        }
+
+        .pendencia-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            box-shadow: var(--shadow-xs);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .pendencia-title {
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .pendencia-meta {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            line-height: 1.4;
+        }
+
+        .pendencia-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .tabs-bar {
+            position: block;
+            top: 70px;
+            z-index: 10;
+            background: var(--bg-body);
+            padding: 12px 0 16px;
+            margin-bottom: 8px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 10px 12px;
+            border-radius: 999px;
+            font-weight: 800;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .tab-btn:hover {
+            border-color: var(--text-secondary);
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            background: var(--accent-soft);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .tab-pill {
+            min-width: 22px;
+            height: 22px;
+            padding: 0 7px;
+            border-radius: 999px;
+            background: var(--border);
+            color: var(--text-secondary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 900;
+        }
+
+        .tab-btn.active .tab-pill {
+            background: var(--accent);
+            color: white;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: var(--bg-surface);
+            color: var(--text-secondary);
+            font-weight: 800;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+
+        .chip-success {
+            background: var(--success-bg);
+            color: var(--success-text);
+            border-color: var(--success-border);
+        }
+
+        .chip-warning {
+            background: var(--warning-bg);
+            color: var(--warning-text);
+            border-color: var(--warning-border);
+        }
+
+        .chip-danger {
+            background: var(--danger-bg);
+            color: var(--danger-text);
+            border-color: var(--danger-border);
+        }
+
+        .mono-input {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            line-height: 1.4;
+        }
+
+        .weights-help {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            margin-top: 6px;
+        }
+
+        .weights-editor {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .weights-row {
+            display: grid;
+            grid-template-columns: 1fr 120px 64px 36px;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .weights-row.weights-row-rel {
+            grid-template-columns: 1fr 120px 64px;
+        }
+
+        .weights-row.weights-header {
+            padding: 8px 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            background: #f8fafc;
+            color: var(--text-secondary);
+            font-weight: 800;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .weights-row.weights-header>div {
+            line-height: 1;
+        }
+
+        .weights-row input[type="text"],
+        .weights-row input[type="number"],
+        .weights-row select {
+            width: 100%;
+            padding: 0.625rem 0.875rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            background: #fff;
+            color: var(--text-primary);
+            box-sizing: border-box;
+        }
+
+        .weights-row .weight-label {
+            padding: 0.625rem 0.875rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #fff;
+            color: var(--text-primary);
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .weights-row .weight-mult {
+            color: var(--text-secondary);
+            font-weight: 800;
+            font-size: 0.85rem;
+            text-align: right;
+            padding-right: 2px;
+            white-space: nowrap;
+        }
+
+        .weights-row .btn-remove {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            cursor: pointer;
+            font-weight: 900;
+            color: var(--text-secondary);
+        }
+
+        .weights-row .btn-remove:hover {
+            border-color: #cbd5e1;
+            color: var(--text-primary);
+        }
+
+        .weights-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 920px) {
+            .weights-row {
+                grid-template-columns: 1fr 120px 64px 36px;
+            }
+
+            .weights-row.weights-row-rel {
+                grid-template-columns: 1fr 120px 64px;
+            }
+        }
+
+        @media (max-width: 680px) {
+
+            .weights-row,
+            .weights-row.weights-row-rel {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .weights-row .weight-mult {
+                text-align: left;
+                padding-right: 0;
+            }
+
+            .weights-row .btn-remove {
+                grid-column: 2 / 3;
+                justify-self: end;
+            }
+        }
+
+        .modal .table-container {
+            margin-top: 12px;
+        }
+
+        /* ── FILTROS DE PENDÊNCIAS ─────────────────────────────────────────── */
+        .pendencias-filtros {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .pendencias-filtros .filter-group {
+            flex: 1;
+            min-width: 160px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .pendencias-filtros .filter-group label {
+            font-size: 0.78rem;
+            font-weight: 800;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            min-width: unset;
+        }
+
+        .pendencias-filtros .filter-input,
+        .pendencias-filtros .filter-select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            background: var(--bg-body);
+            color: var(--text-primary);
+            box-sizing: border-box;
+            transition: border-color 0.15s;
+        }
+
+        .pendencias-filtros .filter-input:focus,
+        .pendencias-filtros .filter-select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .pendencias-filtros-resumo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+            min-height: 24px;
+        }
+
+        .pendencias-filtros-resumo .resumo-texto {
+            font-size: 0.83rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .btn-clear-filtros {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            border-radius: 20px;
+            padding: 3px 10px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-clear-filtros:hover {
+            background: var(--bg-body);
+            border-color: var(--text-secondary);
+            color: var(--text-primary);
+        }
+
+        .chip-vencido {
+            background: var(--danger-bg, #fef2f2);
+            color: var(--danger-text, #dc2626);
+            border-color: var(--danger-border, #fca5a5);
+        }
+
+        .chip-urgente {
+            background: #fff7ed;
+            color: #ea580c;
+            border-color: #fed7aa;
+        }
+
+        .pendencias-empty {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px 24px;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+
+<body data-page="rh-avaliacoes">
+    <div id="navbar-container"></div>
+    <script src="/rh-navbar.js"></script>
+    <script>renderRHNavbar('avaliacoes');</script>
+
+    <div class="dashboard-container">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title" data-translate="rh_dash_avaliacoes_title">Avaliações de Desempenho</h1>
+                <p class="page-subtitle" data-translate="rh_dash_avaliacoes_subtitle">Acompanhe as avaliações de
+                    Liderança, Administrativo, Operacional e Atendimento.</p>
+            </div>
+            <div class="last-update">
+                <span id="lastUpdate" data-translate="rh_dash_last_update_now">Atualizado agora</span>
+            </div>
+        </div>
+
+        <div class="tabs-bar" id="avaliacoesTabsBar" style="display:none;">
+            <div class="tabs" id="avaliacoesTabs">
+                <button class="tab-btn" data-tab="pendencias">Pendências <span class="tab-pill"
+                        id="tabPendenciasCount">0</span></button>
+                <button class="tab-btn" data-tab="nova">Nova avaliação</button>
+                <button class="tab-btn" data-tab="ciclos" id="tabCiclosBtn" style="display:none;">Ciclos</button>
+                <button class="tab-btn" data-tab="lista">Lista</button>
+            </div>
+        </div>
+
+        <!-- PARA: -->
+        <div class="section" id="secPendencias">
+            <div id="pendenciasBar" style="display:none;">
+
+                <div class="pendencias-filtros">
+                    <div class="filter-group" style="flex: 2; min-width: 200px;">
+                        <label>Buscar colaborador</label>
+                        <input type="text" id="filtPendNome" class="filter-input" placeholder="Digite o nome..."
+                            oninput="aplicarFiltrosPendencias()">
+                    </div>
+                    <div class="filter-group">
+                        <label>Setor</label>
+                        <select id="filtPendSetor" class="filter-select" onchange="aplicarFiltrosPendencias()">
+                            <option value="">Todos os setores</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Prazo</label>
+                        <select id="filtPendPrazo" class="filter-select" onchange="aplicarFiltrosPendencias()">
+                            <option value="">Todos</option>
+                            <option value="vencido">⛔ Vencidos</option>
+                            <option value="hoje">🔴 Vence hoje</option>
+                            <option value="urgente">🟠 Próximos 7 dias</option>
+                            <option value="proximo">🟡 Próximos 30 dias</option>
+                            <option value="futuro">🟢 Mais de 30 dias</option>
+                        </select>
+                    </div>
+                    <div style="display:flex; align-items:flex-end; padding-bottom:1px;">
+                        <button class="btn-action" onclick="carregarPendencias()">↻ Atualizar</button>
+                    </div>
+                </div>
+
+                <div class="pendencias-filtros-resumo" id="pendenciasResumoFiltros"></div>
+                <div id="pendenciasGrid" class="pendencias-grid"></div>
+            </div>
+        </div>
+
+        <div class="section" id="secCiclos">
+            <div class="filters-bar" id="ciclosAdminBar" style="display:none;">
+                <div class="filter-group">
+                    <label>Novo ciclo</label>
+                    <input type="text" id="cicloTitulo" class="filter-input" placeholder="Ex: 1º Semestre">
+                </div>
+                <div class="filter-group">
+                    <label>Tipo</label>
+                    <select id="cicloTipo" class="filter-select">
+                        <option value="lideranca">Liderança</option>
+                        <option value="adm">Administrativo</option>
+                        <option value="atendimento">Atendimento</option>
+                        <option value="operacional">Operacional</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Modelo</label>
+                    <select id="cicloModelo" class="filter-select">
+                        <option value="90">90</option>
+                        <option value="180" selected>180</option>
+                        <option value="360">360</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Início</label>
+                    <input type="date" id="cicloInicio" class="filter-input">
+                </div>
+                <div class="filter-group">
+                    <label>Fim</label>
+                    <input type="date" id="cicloFim" class="filter-input">
+                </div>
+                <div class="filter-group" style="flex: 2; min-width: 440px;">
+                    <label>Pesos por categoria</label>
+                    <div class="weights-help">Defina a importância de cada categoria (100% = padrão). Ex.: 120% aumenta
+                        o peso da categoria.</div>
+                    <div class="weights-row weights-header">
+                        <div>Categoria</div>
+                        <div>Peso (%)</div>
+                        <div></div>
+                        <div></div>
+                    </div>
+                    <div id="pesosCategoriaEditor" class="weights-editor" aria-label="Pesos por categoria"></div>
+                    <div class="weights-actions">
+                        <button class="btn-action" type="button" onclick="addPesoCategoriaRow()">+ Categoria</button>
+                        <button class="btn-action" type="button" onclick="resetPesosCategoria()">Reset</button>
+                    </div>
+                    <textarea id="cicloPesosCategoria" class="filter-input mono-input" rows="3" hidden></textarea>
+                </div>
+                <div class="filter-group" style="min-width: 340px;">
+                    <label>Pesos por relação</label>
+                    <div class="weights-help">Defina a importância por relação (100% = padrão).</div>
+                    <div class="weights-row weights-header weights-row-rel">
+                        <div>Relação</div>
+                        <div>Peso (%)</div>
+                        <div></div>
+                    </div>
+                    <div class="weights-editor" aria-label="Pesos por relação">
+                        <div class="weights-row weights-row-rel">
+                            <select id="pesosRelacaoSelect" aria-label="Selecionar relação">
+                                <option value="gestor">Gestor</option>
+                                <option value="par">Par</option>
+                                <option value="subordinado">Subordinado</option>
+                                <option value="auto">Autoavaliação</option>
+                            </select>
+                            <input type="number" id="pesosRelacaoPercent" min="0" step="10" value="100"
+                                aria-label="Peso da relação em porcentagem">
+                            <div class="weight-mult" id="pesosRelacaoMult">x1.00</div>
+                        </div>
+                    </div>
+                    <div class="weights-actions">
+                        <button class="btn-action" type="button" onclick="resetPesosRelacao()">Reset</button>
+                    </div>
+                    <textarea id="cicloPesosRelacao" class="filter-input mono-input" rows="3" hidden></textarea>
+                </div>
+                <div class="filter-group">
+                    <label>Max por item</label>
+                    <input type="number" id="cicloMaxScoreItem" class="filter-input" step="0.1" min="0" value="7.7">
+                </div>
+                <div class="filter-group" style="min-width: 220px;">
+                    <label>Ações</label>
+                    <div style="display:flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn-action" type="button" onclick="formatarJsonCiclo()">Aplicar pesos</button>
+                        <button class="btn-action" type="button" onclick="criarCicloExemplo()">Criar exemplo</button>
+                        <button class="btn-primary" type="button" onclick="criarCiclo()">Criar ciclo</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filters-bar" id="participantesAdminBar" style="display:none;">
+                <div class="filter-group">
+                    <label>Ciclo</label>
+                    <select id="participanteCiclo" class="filter-select"></select>
+                </div>
+                <div class="filter-group">
+                    <label>Colaborador</label>
+                    <select id="participanteAvaliado" class="filter-select"></select>
+                </div>
+                <div class="filter-group">
+                    <label>Avaliador (username)</label>
+                    <input type="text" id="participanteAvaliador" class="filter-input" placeholder="ex: joao.silva"
+                        list="usersDatalist">
+                    <datalist id="usersDatalist"></datalist>
+                </div>
+                <div class="filter-group">
+                    <label>Relação</label>
+                    <select id="participanteRelacao" class="filter-select">
+                        <option value="gestor">Gestor</option>
+                        <option value="par">Par</option>
+                        <option value="subordinado">Subordinado</option>
+                        <option value="auto">Auto</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Peso</label>
+                    <input type="number" id="participantePeso" class="filter-input" step="0.1" min="0" value="1">
+                </div>
+                <button class="btn-primary" onclick="adicionarParticipante()">Adicionar</button>
+                <button class="btn-action" onclick="abrirResumoCiclo()">Resumo</button>
+                <button class="btn-action" onclick="abrirConsolidadoCiclo()">Consolidado</button>
+                <button class="btn-primary" onclick="encerrarCiclo()">Encerrar ciclo</button>
+            </div>
+
+            <div class="filter-group">
+                <label>Ciclos Padrão</label>
+                <div style="display:flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn-primary" type="button" onclick="gerarCiclosEmLote()">
+                        ⚙️ Gerar ciclos para todos
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" id="secNova">
+            <div class="filters-bar" id="novaAvaliacaoBar">
+                <div class="filter-group">
+                    <label>Nova avaliação</label>
+                    <select id="newEvalFuncionario" class="filter-select">
+                        <option value="">Selecione um colaborador...</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Tipo</label>
+                    <select id="newEvalTipo" class="filter-select">
+                        <option value="lideranca">Liderança</option>
+                        <option value="adm">Administrativo</option>
+                        <option value="atendimento">Atendimento</option>
+                        <option value="operacional">Operacional</option>
+                    </select>
+                </div>
+                <button class="btn-primary" id="btnAbrirAvaliacao" onclick="abrirAvaliacaoNova()" disabled>Abrir
+                    formulário</button>
+            </div>
+        </div>
+
+        <div class="section" id="secLista">
+            <div class="filters-bar">
+                <div class="filter-group">
+                    <label data-translate="rh_dash_avaliacoes_search_label">Buscar Setor</label>
+                    <select id="sectorFilter" class="filter-select" onchange="filtrarAvaliacoes()">
+                        <option value="" data-translate="rh_dash_filter_all">Todos</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label data-translate="rh_dash_avaliacoes_type_label">Tipo de Avaliação</label>
+                    <select id="typeFilter" class="filter-select" onchange="filtrarAvaliacoes()">
+                        <option value="" data-translate="rh_dash_filter_all">Todos</option>
+                        <option value="lideranca" data-translate="rh_dash_avaliacoes_type_leadership">Liderança</option>
+                        <option value="adm" data-translate="rh_dash_avaliacoes_type_admin">Administrativo</option>
+                        <option value="atendimento">Atendimento</option>
+                        <option value="operacional" data-translate="rh_dash_avaliacoes_type_operational">Operacional
+                        </option>
+                    </select>
+                </div>
+                <button class="btn-primary" onclick="exportarExcel()">📥 <span
+                        data-translate="rh_dash_export_excel">Exportar Excel</span></button>
+            </div>
+
+            <!-- KPI Cards -->
+            <div class="stats-overview">
+                <div class="overview-card">
+                    <div class="overview-label" data-translate="rh_dash_avaliacoes_kpi_total">Total de Avaliações</div>
+                    <div class="overview-value" id="totalCount">0</div>
+                </div>
+                <div class="overview-card">
+                    <div class="overview-label">Nota 1</div>
+                    <div class="overview-value" id="note1Count" style="color: var(--danger);">0</div>
+                </div>
+                <div class="overview-card">
+                    <div class="overview-label">Nota 2</div>
+                    <div class="overview-value" id="note2Count">0</div>
+                </div>
+                <div class="overview-card">
+                    <div class="overview-label">Nota 3</div>
+                    <div class="overview-value" id="note3Count">0</div>
+                </div>
+                <div class="overview-card">
+                    <div class="overview-label">Nota 4 (Liderança)</div>
+                    <div class="overview-value" id="note4Count" style="color: var(--success);">0</div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="charts-container">
+                <div class="chart-card">
+                    <div class="chart-title" data-translate="rh_dash_avaliacoes_chart_dist">Distribuição por Tipo</div>
+                    <canvas id="typeChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title" data-translate="rh_dash_avaliacoes_chart_avg">Média de Pontuação por Tipo
+                    </div>
+                    <canvas id="scoreChart"></canvas>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th data-translate="rh_dash_th_data">Data</th>
+                            <th data-translate="rh_dash_avaliacoes_th_funcionario">Funcionário</th>
+                            <th data-translate="rh_dash_taxas_th_funcao">Função</th>
+                            <th data-translate="rh_dash_avaliacoes_th_tipo">Tipo</th>
+                            <th data-translate="rh_dash_avaliacoes_th_avaliador">Avaliador</th>
+                            <th data-translate="rh_dash_avaliacoes_th_pontuacao">Pontuação</th>
+                            <th data-translate="rh_dash_th_acao">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lista-corpo">
+                        <!-- Data injected via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Detalhes -->
+    <div class="modal-overlay" id="modalDetalhes">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" data-translate="rh_dash_avaliacoes_modal_title">Detalhes da Avaliação</h2>
+                <button class="close-modal" onclick="fecharModal()">×</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Details injected here -->
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalCicloResumo">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Resumo do Ciclo</h2>
+                <button class="close-modal" onclick="fecharResumoCiclo()">×</button>
+            </div>
+            <div class="modal-body" id="modalCicloBody"></div>
+        </div>
+    </div>
+
+    <script>
+        let allAvaliacoes = [];
+        let allExperiencias = [];
+        let typeChartInstance = null;
+        let scoreChartInstance = null;
+        let __meUser = null;
+        let __funcionariosList = [];
+        let __pendenciasCache = [];
+        let __cicloLast = null;
+        let __lastConsolidadoHtml = '';
+        const __urlParams = new URLSearchParams(window.location.search || '');
+        const __prefFuncionario = String(__urlParams.get('funcionario') || '');
+        const __prefTipo = String(__urlParams.get('tipo') || '');
+
+        async function gerarCiclosEmLote() {
+            if (!confirm('Isso irá gerar ciclos de avaliação para todos os colaboradores ativos. Ciclos já existentes serão pulados. Continuar?')) return;
+
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = '⏳ Gerando...';
+
+            try {
+                const res = await fetch('/api/avaliacao/ciclos/gerar-lote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await res.json();
+
+                if (!res.ok || !data.ok) {
+                    alert(data.erro || 'Erro ao gerar ciclos');
+                    return;
+                }
+
+                alert(
+                    `✅ Concluído!\n\n` +
+                    `Ciclos criados: ${data.totalCriados}\n` +
+                    `Já existiam (pulados): ${data.totalPulados}\n` +
+                    `Erros: ${data.erros}`
+                );
+
+                await carregarCiclos();
+                await carregarPendencias();
+            } catch (e) {
+                alert('Erro de conexão: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '⚙️ Gerar ciclos para todos';
+            }
+        }
+
+        function normRole(v) {
+            return String(v || '').trim().toLowerCase();
+        }
+
+        function isManageRole() {
+            const role = normRole(__meUser && __meUser.role);
+            return ['admin', 'rh', 'rh_geral', 'dp', 'td'].includes(role);
+        }
+
+        function isEquipeScopedRole() {
+            const role = normRole(__meUser && __meUser.role);
+            return ['gestor', 'supervisor', 'gerente', 'lider'].includes(role);
+        }
+
+        function dedupPendenciasPorPeriodo(items) {
+            const seen = new Set();
+            const out = [];
+            for (const p of (Array.isArray(items) ? items : [])) {
+                const key = `${String(p.avaliadoId || '').trim().toLowerCase()}_${String(p.cicloTitulo || '').trim().toLowerCase()}`;
+                if (!key || key === '_') continue;
+                if (seen.has(key)) continue;
+                seen.add(key);
+                out.push(p);
+            }
+            return out;
+        }
+
+        function filtrarPendenciasDesempenho(items, role) {
+            const isRH = ['admin', 'rh', 'rh_geral', 'dp', 'td'].includes(normRole(role));
+            const nearThreshold = 60;
+            const semExperiencia = (Array.isArray(items) ? items : []).filter(p => {
+                const titulo = String(p.cicloTitulo || '').toLowerCase();
+                const tipo = String(p.tipoFormulario || '').toLowerCase();
+                const isExp = tipo === 'experiencia'
+                    || /experiência|experiencia|1º desempenho|1o desempenho/i.test(titulo);
+                return !isExp;
+            });
+            const semDuplicatas = dedupPendenciasPorPeriodo(semExperiencia);
+            if (isRH || !isEquipeScopedRole()) return semDuplicatas;
+            return semDuplicatas.filter(p =>
+                Number.isFinite(Number(p && p.diasParaFim)) &&
+                Number(p.diasParaFim) >= 0 &&
+                Number(p.diasParaFim) <= nearThreshold
+            );
+        }
+
+        function formatDatePtBR(value) {
+            if (!value) return '-';
+            if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                const [y, m, d] = value.split('-');
+                return `${d}/${m}/${y}`;
+            }
+            const d = new Date(value);
+            if (Number.isNaN(d.getTime())) return '-';
+            return d.toLocaleDateString('pt-BR');
+        }
+
+        function formatDateTimePtBR(value) {
+            if (!value) return '-';
+            const d = new Date(value);
+            if (Number.isNaN(d.getTime())) return formatDatePtBR(value);
+            return d.toLocaleString('pt-BR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+        }
+
+        function formatPrazoDias(dias) {
+            const n = Number(dias);
+            if (!Number.isFinite(n)) return '';
+            if (n < 0) return `Vencido há ${Math.abs(n)} dia(s)`;
+            if (n === 0) return 'Vence hoje';
+            return `Em ${n} dia(s)`;
+        }
+
+        function showTab(tab) {
+            const name = String(tab || '').trim().toLowerCase();
+            const tabsBar = document.getElementById('avaliacoesTabsBar');
+            if (tabsBar) tabsBar.style.display = 'block';
+
+            const btns = Array.from(document.querySelectorAll('#avaliacoesTabs .tab-btn'));
+            btns.forEach(b => {
+                if (!b) return;
+                const t = String(b.dataset.tab || '').trim().toLowerCase();
+                b.classList.toggle('active', t === name);
+            });
+
+            const sections = [
+                ['pendencias', 'secPendencias'],
+                ['nova', 'secNova'],
+                ['ciclos', 'secCiclos'],
+                ['lista', 'secLista']
+            ];
+            sections.forEach(([t, id]) => {
+                const el = document.getElementById(id);
+                if (el) el.classList.toggle('active', t === name);
+            });
+
+            try { localStorage.setItem('avaliacoes_tab', name); } catch (_) { }
+        }
+
+        function initTabs() {
+            const tabCiclosBtn = document.getElementById('tabCiclosBtn');
+            if (tabCiclosBtn) tabCiclosBtn.style.display = isManageRole() ? 'inline-flex' : 'none';
+
+            const btns = Array.from(document.querySelectorAll('#avaliacoesTabs .tab-btn'));
+            btns.forEach(b => {
+                if (!b) return;
+                b.onclick = () => showTab(String(b.dataset.tab || 'lista'));
+            });
+
+            const fromUrl = String(__urlParams.get('tab') || '').trim().toLowerCase();
+            let saved = '';
+            try { saved = String(localStorage.getItem('avaliacoes_tab') || '').trim().toLowerCase(); } catch (_) { }
+            const preferred = fromUrl || saved || 'pendencias';
+            const allowed = ['pendencias', 'nova', 'ciclos', 'lista'];
+            const finalTab = (preferred === 'ciclos' && !isManageRole()) ? 'pendencias' : (allowed.includes(preferred) ? preferred : 'pendencias');
+            showTab(finalTab);
+        }
+
+        function setPendenciasCount(n) {
+            const el = document.getElementById('tabPendenciasCount');
+            if (!el) return;
+            const num = Number(n);
+            el.textContent = Number.isFinite(num) ? String(num) : '0';
+        }
+
+        function safeParseDados(item) {
+            if (!item || !item.dados) return item;
+            if (typeof item.dados !== 'string') return { ...item, ...item.dados };
+            try {
+                return { ...item, ...JSON.parse(item.dados) };
+            } catch (_) {
+                return item; // ignora registro corrompido
+            }
+        }
+
+        function getScores(item) {
+            // ✅ desempacota campo "dados" se existir
+            const data = (item && item.dados)
+                ? (typeof item.dados === 'string' ? JSON.parse(item.dados) : item.dados)
+                : item;
+
+            const total = Number(data && (data.weightedTotalScore ?? data.totalScore));
+            const max = Number(data && (data.weightedMaxScore ?? data.maxScore));
+            if (Number.isFinite(total) && Number.isFinite(max) && max > 0) {
+                return { total, max, pct: (total / max) * 100 };
+            }
+
+            const answers = Array.isArray(data && data.answers) ? data.answers : [];
+            const tipo = String(data && data.tipo || '').toLowerCase();
+            let t = 0, m = 0;
+
+            answers.forEach(ans => {
+                const isDisc = !!(ans && (
+                    ans.isDiscursive ||
+                    /discurs/i.test(String(ans.category || ans.categoria || ''))
+                ));
+                if (isDisc) return;
+                const mx = Number(ans && ans.maxScore);
+                const effectiveMx = (Number.isFinite(mx) && mx > 0) ? mx : (tipo === 'lideranca' ? 4 : 3);
+                m += effectiveMx;
+                const s = Number(ans && ans.score);
+                if (Number.isFinite(s)) t += s;
+            });
+
+            if (m > 0) return { total: t, max: m, pct: (t / m) * 100 };
+            return { total: 0, max: 0, pct: 0 };
+        }
+
+        function getScaledScore(item) {
+            const s = getScores(item);
+            if (s.max <= 0) return { avg: 0, scale: 0 };
+            const type = String(item && item.tipo || '').toLowerCase();
+            const scale = type === 'lideranca' ? 4 : 3;
+            return {
+                avg: (s.total / s.max) * scale,
+                scale: scale
+            };
+        }
+
+        function updateNovaAvaliacaoEnabled() {
+            const sel = document.getElementById('newEvalFuncionario');
+            const btn = document.getElementById('btnAbrirAvaliacao');
+            const has = !!(sel && sel.value);
+            if (btn) btn.disabled = !has;
+        }
+
+        function normalizeFuncionarioKey(v) {
+            return String(v || '')
+                .trim()
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '');
+        }
+
+        function inferTipoAvaliacaoFromFuncionario({ cargo, setor }) {
+            const hay = `${normalizeFuncionarioKey(cargo)} ${normalizeFuncionarioKey(setor)}`.trim();
+
+            console.log('inferTipo →', { cargo, setor, hay }); // ← adicione esta linha
+
+            if (/(gerent|supervis|coorden|lider|encarreg)/.test(hay)) return 'lideranca';
+            if (/(atendimento|atendente|recepcao|recepcion|call.?center|sac|helpdesk|teleatendimento|balcao|caixa|balconista)/.test(hay)) return 'atendimento';
+            if (/(adm|administr|\brh\b|\bdp\b|financ|contab|compras|\bti\b|fiscal|jurid|almox|aprendiz|eventos|comercial|qualidade|\bpcp\b|processos)/.test(hay)) return 'adm';
+
+            return 'operacional';
+        }
+
+        function syncTipoAvaliacaoByFuncionarioSelect() {
+            const sel = document.getElementById('newEvalFuncionario');
+            const tipoEl = document.getElementById('newEvalTipo');
+            if (!sel || !tipoEl) return;
+            const opt = sel.selectedOptions && sel.selectedOptions[0];
+            if (!opt || !opt.value) {
+                tipoEl.disabled = false;
+                return;
+            }
+            const tipo = inferTipoAvaliacaoFromFuncionario({ cargo: opt.dataset.cargo || '', setor: opt.dataset.setor || '' });
+            tipoEl.value = tipo;
+            tipoEl.disabled = true;
+        }
+
+        async function carregarEquipeNovaAvaliacao() {
+            const sel = document.getElementById('newEvalFuncionario');
+            if (!sel) return;
+            try {
+                const [meRes, funcRes] = await Promise.all([
+                    fetch('/api/me', { headers: { 'Accept': 'application/json' }, cache: 'no-store' }),
+                    fetch('/api/funcionarios', { headers: { 'Accept': 'application/json' }, cache: 'no-store' })
+                ]);
+                const meData = meRes.ok ? await meRes.json().catch(() => null) : null;
+                __meUser = meData && meData.user ? meData.user : meData;
+
+                const funcionarios = funcRes.ok ? await funcRes.json().catch(() => []) : [];
+                const lista = Array.isArray(funcionarios) ? funcionarios.slice() : [];
+                __funcionariosList = lista.slice();
+                lista.sort((a, b) => String(a && a.nome || '').localeCompare(String(b && b.nome || ''), 'pt-BR'));
+
+                sel.innerHTML = '<option value="">Selecione um colaborador...</option>';
+                lista.forEach(f => {
+                    const opt = document.createElement('option');
+                    opt.value = String(f && f.nome || '');
+                    opt.textContent = String(f && f.nome || '');
+                    opt.dataset.cargo = String(f && f.cargo || '');
+                    opt.dataset.setor = String(f && f.setor || '');
+                    sel.appendChild(opt);
+                });
+
+                const avaliadoSel = document.getElementById('participanteAvaliado');
+                if (avaliadoSel) {
+                    avaliadoSel.innerHTML = '<option value="">Selecione um colaborador...</option>';
+                    lista.forEach(f => {
+                        const opt = document.createElement('option');
+                        opt.value = String(f && f.id || '');
+                        opt.textContent = String(f && f.nome || '');
+                        avaliadoSel.appendChild(opt);
+                    });
+                }
+
+                sel.addEventListener('change', updateNovaAvaliacaoEnabled);
+                sel.addEventListener('change', syncTipoAvaliacaoByFuncionarioSelect);
+                if (__prefTipo) {
+                    const tipoEl = document.getElementById('newEvalTipo');
+                    if (tipoEl) tipoEl.value = __prefTipo;
+                }
+                if (__prefFuncionario) {
+                    sel.value = __prefFuncionario;
+                }
+                updateNovaAvaliacaoEnabled();
+                syncTipoAvaliacaoByFuncionarioSelect();
+
+                document.getElementById('pendenciasBar').style.display = 'block';
+                if (isManageRole()) {
+                    document.getElementById('ciclosAdminBar').style.display = 'flex';
+                    document.getElementById('participantesAdminBar').style.display = 'flex';
+                    initPesosEditors();
+                    await carregarCiclos();
+                    await carregarUsersDatalist();
+                    const cicloSel = document.getElementById('participanteCiclo');
+                    if (cicloSel) {
+                        cicloSel.addEventListener('change', syncParticipantesAvaliadosByCiclo);
+                    }
+                    syncParticipantesAvaliadosByCiclo();
+                }
+                initTabs();
+                await carregarPendencias();
+                if (__pendenciasCache.length === 0) {
+                    const current = String(__urlParams.get('tab') || '').trim().toLowerCase();
+                    if (!current) {
+                        const saved = (() => { try { return String(localStorage.getItem('avaliacoes_tab') || '').trim().toLowerCase(); } catch { return ''; } })();
+                        if (!saved || saved === 'pendencias') showTab('lista');
+                    }
+                }
+            } catch (e) {
+                sel.innerHTML = '<option value="">Erro ao carregar colaboradores</option>';
+                updateNovaAvaliacaoEnabled();
+            }
+        }
+
+        function formatarJsonCiclo() {
+            syncPesosTextareasFromEditors();
+        }
+
+        let __pesosEditorsInited = false;
+
+        function formatPesoMultFromPercent(pct) {
+            const n = Number(pct);
+            if (!Number.isFinite(n)) return 'x1.00';
+            return `x${(n / 100).toFixed(2)}`;
+        }
+
+        function percentToWeight(pct) {
+            const n = Number(pct);
+            if (!Number.isFinite(n)) return null;
+            return n / 100;
+        }
+
+        function clearNode(el) {
+            if (!el) return;
+            while (el.firstChild) el.removeChild(el.firstChild);
+        }
+
+        function renderPesoCategoriaRow({ categoria = '', percent = 100 } = {}) {
+            const row = document.createElement('div');
+            row.className = 'weights-row';
+
+            const inputCategoria = document.createElement('input');
+            inputCategoria.type = 'text';
+            inputCategoria.placeholder = 'Categoria (ex: Comunicação)';
+            inputCategoria.value = String(categoria || '');
+            inputCategoria.dataset.field = 'categoria';
+
+            const inputPercent = document.createElement('input');
+            inputPercent.type = 'number';
+            inputPercent.min = '0';
+            inputPercent.step = '10';
+            inputPercent.value = String(Number.isFinite(Number(percent)) ? Number(percent) : 100);
+            inputPercent.dataset.field = 'percent';
+
+            const mult = document.createElement('div');
+            mult.className = 'weight-mult';
+
+            const btnRemove = document.createElement('button');
+            btnRemove.type = 'button';
+            btnRemove.className = 'btn-remove';
+            btnRemove.textContent = '×';
+            btnRemove.onclick = () => {
+                row.remove();
+                syncPesosTextareasFromEditors();
+            };
+
+            const update = () => {
+                mult.textContent = formatPesoMultFromPercent(inputPercent.value);
+                syncPesosTextareasFromEditors();
+            };
+
+            inputCategoria.addEventListener('input', update);
+            inputPercent.addEventListener('input', update);
+            update();
+
+            row.appendChild(inputCategoria);
+            row.appendChild(inputPercent);
+            row.appendChild(mult);
+            row.appendChild(btnRemove);
+            return row;
+        }
+
+        let __pesosRelacaoMap = { gestor: 1, par: 1, subordinado: 1, auto: 1 };
+
+        function addPesoCategoriaRow(categoria = '', percent = 100) {
+            const editor = document.getElementById('pesosCategoriaEditor');
+            if (!editor) return;
+            editor.appendChild(renderPesoCategoriaRow({ categoria, percent }));
+            syncPesosTextareasFromEditors();
+        }
+
+        function resetPesosCategoria() {
+            const editor = document.getElementById('pesosCategoriaEditor');
+            if (!editor) return;
+            clearNode(editor);
+            addPesoCategoriaRow('', 100);
+        }
+
+        function resetPesosRelacao() {
+            __pesosRelacaoMap = { gestor: 1, par: 1, subordinado: 1, auto: 1 };
+            const sel = document.getElementById('pesosRelacaoSelect');
+            const pct = document.getElementById('pesosRelacaoPercent');
+            if (sel) sel.value = 'gestor';
+            if (pct) pct.value = '100';
+            atualizarRelacaoUi();
+        }
+
+        function setPesosCategoriaEditorFromObj(obj) {
+            const editor = document.getElementById('pesosCategoriaEditor');
+            if (!editor) return;
+            clearNode(editor);
+            const entries = obj && typeof obj === 'object' ? Object.entries(obj) : [];
+            if (!entries.length) {
+                addPesoCategoriaRow('', 100);
+                return;
+            }
+            entries.forEach(([k, w]) => addPesoCategoriaRow(k, Number(w) * 100));
+            syncPesosTextareasFromEditors();
+        }
+
+        function setPesosRelacaoEditorFromObj(obj) {
+            const map = obj && typeof obj === 'object' ? obj : {};
+            __pesosRelacaoMap = {
+                gestor: Number.isFinite(Number(map.gestor)) ? Number(map.gestor) : 1,
+                par: Number.isFinite(Number(map.par)) ? Number(map.par) : 1,
+                subordinado: Number.isFinite(Number(map.subordinado)) ? Number(map.subordinado) : 1,
+                auto: Number.isFinite(Number(map.auto)) ? Number(map.auto) : 1
+            };
+            atualizarRelacaoUi();
+        }
+
+        function getPesosCategoriaFromEditor() {
+            const editor = document.getElementById('pesosCategoriaEditor');
+            const out = {};
+            if (!editor) return out;
+            const rows = Array.from(editor.querySelectorAll('.weights-row'));
+            rows.forEach(row => {
+                const categoria = String(row.querySelector('[data-field="categoria"]')?.value || '').trim();
+                if (!categoria) return;
+                const pct = row.querySelector('[data-field="percent"]')?.value;
+                const w = percentToWeight(pct);
+                if (w === null) return;
+                out[categoria] = Number(w.toFixed(4));
+            });
+            return out;
+        }
+
+        function getPesosRelacaoFromEditor() {
+            return { ...__pesosRelacaoMap };
+        }
+
+        function syncPesosTextareasFromEditors() {
+            const catEl = document.getElementById('cicloPesosCategoria');
+            const relEl = document.getElementById('cicloPesosRelacao');
+            const cat = getPesosCategoriaFromEditor();
+            const rel = getPesosRelacaoFromEditor();
+            if (catEl) catEl.value = JSON.stringify(cat, null, 2);
+            if (relEl) relEl.value = JSON.stringify(rel, null, 2);
+        }
+
+        function atualizarRelacaoUi() {
+            const sel = document.getElementById('pesosRelacaoSelect');
+            const pct = document.getElementById('pesosRelacaoPercent');
+            const mult = document.getElementById('pesosRelacaoMult');
+            const key = String(sel && sel.value || 'gestor').trim();
+            const w = Object.prototype.hasOwnProperty.call(__pesosRelacaoMap, key) ? __pesosRelacaoMap[key] : 1;
+            if (pct) pct.value = String(Math.round(Number(w) * 100));
+            if (mult) mult.textContent = formatPesoMultFromPercent(pct && pct.value);
+            syncPesosTextareasFromEditors();
+        }
+
+        function initPesosEditors() {
+            if (__pesosEditorsInited) return;
+            __pesosEditorsInited = true;
+            const catEl = document.getElementById('cicloPesosCategoria');
+            const relEl = document.getElementById('cicloPesosRelacao');
+            let catObj = null;
+            let relObj = null;
+            try {
+                const raw = String(catEl?.value || '').trim();
+                if (raw) catObj = JSON.parse(raw);
+            } catch (_) { }
+            try {
+                const raw = String(relEl?.value || '').trim();
+                if (raw) relObj = JSON.parse(raw);
+            } catch (_) { }
+            setPesosCategoriaEditorFromObj(catObj || {});
+            setPesosRelacaoEditorFromObj(relObj || {});
+
+            const sel = document.getElementById('pesosRelacaoSelect');
+            const pct = document.getElementById('pesosRelacaoPercent');
+            if (sel) {
+                sel.addEventListener('change', () => {
+                    atualizarRelacaoUi();
+                });
+            }
+            if (pct) {
+                pct.addEventListener('input', () => {
+                    const key = String(sel && sel.value || 'gestor').trim();
+                    const w = percentToWeight(pct.value);
+                    if (w !== null) {
+                        __pesosRelacaoMap[key] = Number(w.toFixed(4));
+                    }
+                    atualizarRelacaoUi();
+                });
+            }
+            atualizarRelacaoUi();
+        }
+
+        // ── FILTROS DE PENDÊNCIAS ─────────────────────────────────────────────
+
+        function classificarPrazo(diasParaFim) {
+            const n = Number(diasParaFim);
+            if (!Number.isFinite(n)) return 'futuro';
+            if (n < 0) return 'vencido';
+            if (n === 0) return 'hoje';
+            if (n <= 7) return 'urgente';
+            if (n <= 30) return 'proximo';
+            return 'futuro';
+        }
+
+        function popularFiltroSetores(pendencias) {
+            const sel = document.getElementById('filtPendSetor');
+            if (!sel) return;
+            const prev = sel.value;
+            const setores = Array.from(
+                new Set((pendencias || []).map(p => String(p.avaliadoSetor || '').trim()).filter(Boolean))
+            ).sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
+
+            sel.innerHTML = '<option value="">Todos os setores</option>';
+            setores.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.textContent = s;
+                sel.appendChild(opt);
+            });
+            if (prev && setores.includes(prev)) sel.value = prev;
+        }
+
+        function aplicarFiltrosPendencias() {
+            const nome = String(document.getElementById('filtPendNome')?.value || '')
+                .trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const setor = String(document.getElementById('filtPendSetor')?.value || '').trim();
+            const prazo = String(document.getElementById('filtPendPrazo')?.value || '').trim();
+
+            const filtrados = __pendenciasCache.filter(p => {
+                if (nome && !String(p.avaliadoNome || '').toLowerCase()
+                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(nome)) return false;
+                if (setor && String(p.avaliadoSetor || '').trim() !== setor) return false;
+                if (prazo && classificarPrazo(p.diasParaFim) !== prazo) return false;
+                return true;
+            });
+
+            renderizarCardsPendencias(filtrados);
+            atualizarResumoFiltros(filtrados.length, __pendenciasCache.length, { nome, setor, prazo });
+        }
+
+        function atualizarResumoFiltros(exibidos, total, { nome, setor, prazo }) {
+            const el = document.getElementById('pendenciasResumoFiltros');
+            if (!el) return;
+            el.innerHTML = '';
+            if (![nome, setor, prazo].some(Boolean)) return;
+
+            const texto = document.createElement('span');
+            texto.className = 'resumo-texto';
+            texto.textContent = `${exibidos} de ${total} pendência(s)`;
+            el.appendChild(texto);
+
+            const btn = document.createElement('button');
+            btn.className = 'btn-clear-filtros';
+            btn.innerHTML = '× Limpar filtros';
+            btn.onclick = limparFiltrosPendencias;
+            el.appendChild(btn);
+        }
+
+        function limparFiltrosPendencias() {
+            ['filtPendNome', 'filtPendSetor', 'filtPendPrazo'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            aplicarFiltrosPendencias();
+        }
+
+        function renderizarCardsPendencias(list) {
+            const grid = document.getElementById('pendenciasGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            if (list.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'pendencias-empty';
+                empty.textContent = 'Nenhuma pendência encontrada com os filtros aplicados.';
+                grid.appendChild(empty);
+                return;
+            }
+
+            list.forEach(p => {
+                const prazoClasse = classificarPrazo(p.diasParaFim);
+                const card = document.createElement('div');
+                card.className = 'pendencia-card';
+
+                const titulo = document.createElement('div');
+                titulo.className = 'pendencia-title';
+                titulo.textContent = String(p.avaliadoNome || 'Colaborador');
+
+                const meta = document.createElement('div');
+                meta.className = 'pendencia-meta';
+                const cicloTxt = p.cicloTitulo ? `Ciclo: ${p.cicloTitulo}` : 'Ciclo: -';
+                const tipoTxt = p.tipoFormulario ? `Tipo: ${p.tipoFormulario}` : 'Tipo: -';
+                const relTxt = p.relacao ? `Relação: ${p.relacao}` : 'Relação: -';
+                const prazoTxt = p.cicloDataFim
+                    ? `Prazo: ${formatDatePtBR(p.cicloDataFim)}${Number.isFinite(Number(p.diasParaFim)) ? ` (${formatPrazoDias(p.diasParaFim)})` : ''}`
+                    : 'Prazo: -';
+                meta.textContent = `${cicloTxt} | ${tipoTxt} | ${relTxt} | ${prazoTxt}`;
+
+                const actions = document.createElement('div');
+                actions.className = 'pendencia-actions';
+
+                // Chip de prazo — só para casos urgentes/vencidos
+                const prazoLabels = {
+                    vencido: { cls: 'chip chip-vencido', txt: '⛔ Vencido' },
+                    hoje: { cls: 'chip chip-danger', txt: '🔴 Hoje' },
+                    urgente: { cls: 'chip chip-urgente', txt: '🟠 Urgente' }
+                };
+                if (prazoLabels[prazoClasse]) {
+                    const chipPrazo = document.createElement('span');
+                    chipPrazo.className = prazoLabels[prazoClasse].cls;
+                    chipPrazo.textContent = prazoLabels[prazoClasse].txt;
+                    actions.appendChild(chipPrazo);
+                }
+
+                const st = String(p.status || '').trim().toLowerCase();
+                const chipSt = document.createElement('span');
+                chipSt.className = st === 'concluida' ? 'chip chip-success' : 'chip chip-warning';
+                chipSt.textContent = st ? st.replace('_', ' ') : 'pendente';
+
+                const chipRel = document.createElement('span');
+                chipRel.className = 'chip';
+                chipRel.textContent = String(p.relacao || 'pendência');
+
+                const btn = document.createElement('button');
+                btn.className = 'btn-primary';
+                btn.textContent = 'Iniciar';
+                btn.onclick = () => iniciarPendencia(p);
+
+                actions.appendChild(chipSt);
+                actions.appendChild(chipRel);
+                actions.appendChild(btn);
+                card.appendChild(titulo);
+                card.appendChild(meta);
+                card.appendChild(actions);
+                grid.appendChild(card);
+            });
+        }
+
+        async function carregarPendencias() {
+            const grid = document.getElementById('pendenciasGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            try {
+                const res = await fetch('/api/avaliacao/pendencias?contexto=desempenho', {
+                    headers: { 'Accept': 'application/json' },
+                    cache: 'no-store'
+                });
+                const data = res.ok ? await res.json().catch(() => []) : [];
+                const listRaw = Array.isArray(data) ? data : [];
+                const nearThreshold = 60;
+
+                const list = filtrarPendenciasDesempenho(listRaw, __meUser && __meUser.role);
+
+                __pendenciasCache = list.slice();
+                setPendenciasCount(list.length);
+                popularFiltroSetores(list);
+                aplicarFiltrosPendencias();
+
+            } catch (e) {
+                __pendenciasCache = [];
+                setPendenciasCount(0);
+                const err = document.createElement('div');
+                err.className = 'pendencia-meta';
+                err.textContent = 'Erro ao carregar pendências.';
+                grid.appendChild(err);
+            }
+        }
+        async function iniciarPendencia(p) {
+            const id = String(p && p.id || '').trim();
+            if (!id) return;
+            try {
+                await fetch(`/api/avaliacao/participantes/${encodeURIComponent(id)}/start`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({})
+                });
+            } catch (e) { }
+            const link = String(p && p.link || '').trim();
+            if (link) window.location.href = link;
+        }
+
+        async function carregarCiclos() {
+            const sel = document.getElementById('participanteCiclo');
+            if (!sel) return;
+            sel.innerHTML = '';
+            try {
+                const res = await fetch('/api/avaliacao/ciclos', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                const data = res.ok ? await res.json().catch(() => null) : null;
+                const ciclos = data && Array.isArray(data.ciclos) ? data.ciclos : [];
+                sel.innerHTML = '<option value="">Selecione um ciclo...</option>';
+                ciclos.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = String(c && c.id || '');
+                    opt.textContent = `${String(c && c.titulo || '')} (${String(c && c.tipo_formulario || '')})`;
+                    opt.dataset.tipo = String(c && c.tipo_formulario || '');
+                    sel.appendChild(opt);
+                });
+            } catch (e) {
+                sel.innerHTML = '<option value="">Erro ao carregar ciclos</option>';
+            }
+        }
+
+        function syncParticipantesAvaliadosByCiclo() {
+            const cicloSel = document.getElementById('participanteCiclo');
+            const avaliadoSel = document.getElementById('participanteAvaliado');
+            if (!cicloSel || !avaliadoSel) return;
+            const opt = cicloSel.selectedOptions && cicloSel.selectedOptions[0];
+            const cicloTipo = opt ? String(opt.dataset.tipo || '').trim().toLowerCase() : '';
+            const all = Array.isArray(__funcionariosList) ? __funcionariosList : [];
+            const filtered = cicloTipo
+                ? all.filter(f => inferTipoAvaliacaoFromFuncionario({ cargo: f && f.cargo, setor: f && f.setor }) === cicloTipo)
+                : all.slice();
+            filtered.sort((a, b) => String(a && a.nome || '').localeCompare(String(b && b.nome || ''), 'pt-BR'));
+            const prev = String(avaliadoSel.value || '').trim();
+            avaliadoSel.innerHTML = '<option value="">Selecione um colaborador...</option>';
+            filtered.forEach(f => {
+                const o = document.createElement('option');
+                o.value = String(f && f.id || '');
+                o.textContent = String(f && f.nome || '');
+                avaliadoSel.appendChild(o);
+            });
+            if (prev && filtered.some(f => String(f && f.id || '') === prev)) avaliadoSel.value = prev;
+        }
+
+        function ymdLocal(date) {
+            const d = date instanceof Date ? date : new Date(date);
+            if (Number.isNaN(d.getTime())) return '';
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        function titleMonthPtBR(date) {
+            const d = date instanceof Date ? date : new Date(date);
+            if (Number.isNaN(d.getTime())) return '';
+            const raw = d.toLocaleDateString('pt-BR', { month: 'long' });
+            return raw ? (raw.charAt(0).toUpperCase() + raw.slice(1)) : '';
+        }
+
+        async function criarCicloExemplo() {
+            const tituloEl = document.getElementById('cicloTitulo');
+            const tipoEl = document.getElementById('cicloTipo');
+            const modeloEl = document.getElementById('cicloModelo');
+            const inicioEl = document.getElementById('cicloInicio');
+            const fimEl = document.getElementById('cicloFim');
+            const maxEl = document.getElementById('cicloMaxScoreItem');
+
+            const now = new Date();
+            const start = new Date(now.getFullYear(), now.getMonth(), 1);
+            const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            const titulo = `Ciclo Exemplo - ${titleMonthPtBR(start)}/${start.getFullYear()}`;
+
+            if (tituloEl) tituloEl.value = titulo;
+            if (tipoEl) tipoEl.value = 'adm';
+            if (modeloEl) modeloEl.value = '180';
+            if (inicioEl) inicioEl.value = ymdLocal(start);
+            if (fimEl) fimEl.value = ymdLocal(end);
+            if (maxEl) maxEl.value = 3;
+            resetPesosCategoria();
+            resetPesosRelacao();
+            formatarJsonCiclo();
+            await criarCiclo();
+        }
+
+        async function criarCiclo() {
+            const titulo = String(document.getElementById('cicloTitulo')?.value || '').trim();
+            const tipo_formulario = String(document.getElementById('cicloTipo')?.value || '').trim();
+            const modelo = String(document.getElementById('cicloModelo')?.value || '180').trim();
+            const data_inicio = String(document.getElementById('cicloInicio')?.value || '').trim();
+            const data_fim = String(document.getElementById('cicloFim')?.value || '').trim();
+            const maxScoreItem = Number(document.getElementById('cicloMaxScoreItem')?.value || 7.7);
+            if (!titulo) return alert('Informe o título do ciclo.');
+            const pesos_categoria = getPesosCategoriaFromEditor();
+            const pesos_relacao = getPesosRelacaoFromEditor();
+            try {
+                const res = await fetch('/api/avaliacao/ciclos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({
+                        titulo,
+                        tipo_formulario,
+                        modelo,
+                        data_inicio: data_inicio || null,
+                        data_fim: data_fim || null,
+                        pesos_categoria,
+                        pesos_relacao,
+                        max_score_item: Number.isFinite(maxScoreItem) ? maxScoreItem : 7.7
+                    })
+                });
+                const out = await res.json().catch(() => ({}));
+                if (!res.ok || !out.ok) return alert(out.erro || 'Erro ao criar ciclo');
+                document.getElementById('cicloTitulo').value = '';
+                resetPesosCategoria();
+                resetPesosRelacao();
+                await carregarCiclos();
+                alert('Ciclo criado com sucesso!');
+            } catch (e) {
+                alert('Erro ao criar ciclo');
+            }
+        }
+
+        async function adicionarParticipante() {
+            const cicloId = String(document.getElementById('participanteCiclo')?.value || '').trim();
+            const avaliadoId = String(document.getElementById('participanteAvaliado')?.value || '').trim();
+            const avaliadorUsername = String(document.getElementById('participanteAvaliador')?.value || '').trim();
+            const relacao = String(document.getElementById('participanteRelacao')?.value || 'gestor').trim();
+            const peso = Number(document.getElementById('participantePeso')?.value || 1);
+            if (!cicloId) return alert('Selecione um ciclo.');
+            if (!avaliadoId) return alert('Selecione um colaborador.');
+            if (!avaliadorUsername) return alert('Informe o username do avaliador.');
+            try {
+                const res = await fetch(`/api/avaliacao/ciclos/${encodeURIComponent(cicloId)}/participantes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({ avaliadoId, avaliadorUsername, relacao, peso })
+                });
+                const out = await res.json().catch(() => ({}));
+                if (!res.ok || !out.ok) return alert(out.erro || 'Erro ao adicionar participante');
+                document.getElementById('participanteAvaliador').value = '';
+                alert('Participante adicionado!');
+                await carregarPendencias();
+            } catch (e) {
+                alert('Erro ao adicionar participante');
+            }
+        }
+
+        async function carregarUsersDatalist() {
+            const dl = document.getElementById('usersDatalist');
+            if (!dl) return;
+            dl.innerHTML = '';
+            const role = normRole(__meUser && __meUser.role);
+            if (!['admin', 'rh', 'rh_geral'].includes(role)) return;
+            try {
+                const res = await fetch('/api/users?limit=1000', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                const data = res.ok ? await res.json().catch(() => ({})) : {};
+                const users = Array.isArray(data.users) ? data.users : (Array.isArray(data) ? data : []);
+                
+                users.forEach(u => {
+                    const opt = document.createElement('option');
+                    opt.value = String(u && u.username || '');
+                    dl.appendChild(opt);
+                });
+            } catch (e) { }
+        }
+
+        async function abrirResumoCiclo() {
+            const cicloId = String(document.getElementById('participanteCiclo')?.value || '').trim();
+            if (!cicloId) return alert('Selecione um ciclo.');
+            const body = document.getElementById('modalCicloBody');
+            if (!body) return;
+            body.innerHTML = 'Carregando...';
+            document.getElementById('modalCicloResumo').style.display = 'flex';
+            try {
+                const res = await fetch(`/api/avaliacao/ciclos/${encodeURIComponent(cicloId)}/resumo`, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                const out = await res.json().catch(() => ({}));
+                if (!res.ok || !out.ok) {
+                    body.innerHTML = out.erro || 'Erro ao carregar resumo';
+                    return;
+                }
+                const ranking = Array.isArray(out.ranking) ? out.ranking : [];
+                const rows = ranking.map(r => {
+                    const pct = r.mediaPct == null ? '-' : `${(r.mediaPct * 100).toFixed(1)}%`;
+                    return `<tr><td>${String(r.avaliadoNome || '')}</td><td>${String(r.avaliadoSetor || '')}</td><td>${pct}</td><td>${r.concluidas}/${r.totalSolicitadas}</td></tr>`;
+                }).join('');
+                body.innerHTML = `
+                    <div class="info-card" style="margin-bottom: 16px;">
+                        <div class="info-item"><label>Ciclo</label><span>${String(out.ciclo && out.ciclo.titulo || '')}</span></div>
+                        <div class="info-item"><label>Tipo</label><span>${String(out.ciclo && out.ciclo.tipo_formulario || '')}</span></div>
+                        <div class="info-item"><label>Modelo</label><span>${String(out.ciclo && out.ciclo.modelo || '')}</span></div>
+                        <div class="info-item"><label>Pesos por relação</label><span><pre style="margin:0; white-space:pre-wrap;">${JSON.stringify(out.ciclo && out.ciclo.pesos_relacao || {}, null, 2)}</pre></span></div>
+                        <div class="info-item"><label>Pesos por categoria</label><span><pre style="margin:0; white-space:pre-wrap;">${JSON.stringify(out.ciclo && out.ciclo.pesos_categoria || {}, null, 2)}</pre></span></div>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead><tr><th>Colaborador</th><th>Setor</th><th>Média</th><th>Concluídas</th></tr></thead>
+                            <tbody>${rows || ''}</tbody>
+                        </table>
+                    </div>
+                `;
+            } catch (e) {
+                body.innerHTML = 'Erro ao carregar resumo';
+            }
+        }
+
+        async function abrirConsolidadoCiclo() {
+            const cicloId = String(document.getElementById('participanteCiclo')?.value || '').trim();
+            if (!cicloId) return alert('Selecione um ciclo.');
+            const body = document.getElementById('modalCicloBody');
+            if (!body) return;
+            body.innerHTML = 'Carregando...';
+            document.getElementById('modalCicloResumo').style.display = 'flex';
+            try {
+                const res = await fetch(`/api/avaliacao/ciclos/${encodeURIComponent(cicloId)}/consolidado`, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                const out = await res.json().catch(() => ({}));
+                if (!res.ok || !out.ok) {
+                    body.innerHTML = out.erro || 'Erro ao carregar consolidado';
+                    return;
+                }
+                __cicloLast = cicloId;
+                const list = Array.isArray(out.consolidado) ? out.consolidado : [];
+                const header = `
+                    <div class="info-card" style="margin-bottom: 16px;">
+                        <div class="info-item"><label>Ciclo</label><span>${String(out.ciclo && out.ciclo.titulo || '')}</span></div>
+                        <div class="info-item"><label>Status</label><span>${String(out.ciclo && out.ciclo.status || '')}</span></div>
+                        <div class="info-item"><label>Tipo</label><span>${String(out.ciclo && out.ciclo.tipo_formulario || '')}</span></div>
+                        <div class="info-item"><label>Modelo</label><span>${String(out.ciclo && out.ciclo.modelo || '')}</span></div>
+                    </div>
+                `;
+                const rows = list.map((c, idx) => {
+                    const pct = c.mediaPct == null ? '-' : `${(c.mediaPct * 100).toFixed(1)}%`;
+                    const rel = Array.isArray(c.byRelacao) ? c.byRelacao : [];
+                    const cats = Array.isArray(c.byCategoria) ? c.byCategoria : [];
+                    const relTxt = rel.map(r => `${r.relacao}: ${r.pct == null ? '-' : (r.pct * 100).toFixed(1) + '%'}`).join('\\n');
+                    const catTxt = cats.slice(0, 12).map(r => `${r.categoria}: ${r.pct == null ? '-' : (r.pct * 100).toFixed(1) + '%'}`).join('\\n');
+                    const detailId = `consolidado_${idx}`;
+                    return `
+                        <tr>
+                            <td>${String(c.avaliadoNome || '')}</td>
+                            <td>${String(c.avaliadoSetor || '')}</td>
+                            <td>${pct}</td>
+                            <td>${Number(c.concluidas || 0)}/${Number(c.totalSolicitadas || 0)}</td>
+                            <td style="display:flex; gap:8px; flex-wrap:wrap;">
+                                <button class="btn-action" onclick="toggleConsolidado('${detailId}')">Detalhes</button>
+                                <button class="btn-action" onclick="abrirRelatorioColaborador('${String(cicloId)}','${String(c.avaliadoId || '')}')">Relatório</button>
+                            </td>
+                        </tr>
+                        <tr id="${detailId}" style="display:none;">
+                            <td colspan="5">
+                                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                    <div>
+                                        <div style="font-weight:800; margin-bottom:6px;">Por relação</div>
+                                        <pre style="margin:0; white-space:pre-wrap;">${relTxt || '-'}</pre>
+                                    </div>
+                                    <div>
+                                        <div style="font-weight:800; margin-bottom:6px;">Por categoria (top 12)</div>
+                                        <pre style="margin:0; white-space:pre-wrap;">${catTxt || '-'}</pre>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+                body.innerHTML = `
+                    ${header}
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead><tr><th>Colaborador</th><th>Setor</th><th>Média final</th><th>Concluídas</th><th>Ações</th></tr></thead>
+                            <tbody>${rows || ''}</tbody>
+                        </table>
+                    </div>
+                `;
+                __lastConsolidadoHtml = body.innerHTML;
+            } catch (e) {
+                body.innerHTML = 'Erro ao carregar consolidado';
+            }
+        }
+
+        function toggleConsolidado(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.style.display = el.style.display === 'none' ? '' : 'none';
+        }
+
+        async function abrirRelatorioColaborador(cicloId, avaliadoId) {
+            const cId = String(cicloId || '').trim();
+            const aId = String(avaliadoId || '').trim();
+            if (!cId || !aId) return;
+            const body = document.getElementById('modalCicloBody');
+            if (!body) return;
+            body.innerHTML = 'Carregando...';
+            document.getElementById('modalCicloResumo').style.display = 'flex';
+            try {
+                const res = await fetch(`/api/avaliacao/ciclos/${encodeURIComponent(cId)}/avaliados/${encodeURIComponent(aId)}/relatorio`, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                const out = await res.json().catch(() => ({}));
+                if (!res.ok || !out.ok) {
+                    body.innerHTML = out.erro || 'Erro ao carregar relatório';
+                    return;
+                }
+                const cons = out.consolidado || {};
+                const pct = cons.mediaPct == null ? '-' : `${(cons.mediaPct * 100).toFixed(1)}%`;
+                const relRows = (Array.isArray(cons.byRelacao) ? cons.byRelacao : []).map(r => {
+                    const rp = r.pct == null ? '-' : `${(r.pct * 100).toFixed(1)}%`;
+                    return `<tr><td>${String(r.relacao || '')}</td><td>${rp}</td><td>${Number(r.count || 0)}</td></tr>`;
+                }).join('');
+                const catRows = (Array.isArray(cons.byCategoria) ? cons.byCategoria : []).map(r => {
+                    const cp = r.pct == null ? '-' : `${(r.pct * 100).toFixed(1)}%`;
+                    return `<tr><td>${String(r.categoria || '')}</td><td>${cp}</td></tr>`;
+                }).join('');
+                const evalRows = (Array.isArray(out.avaliacoes) ? out.avaliacoes : []).map(a => {
+                    const ep = a.pctCategoria == null ? '-' : `${(a.pctCategoria * 100).toFixed(1)}%`;
+                    const nome = String(a.avaliadorNome || a.avaliadorUsername || '');
+                    const pdfBtn = a.avaliacaoId
+                        ? `<button class="btn-action" onclick="window.open('/api/rh/avaliacoes/${encodeURIComponent(String(a.avaliacaoId))}/pdf','_blank')">PDF</button>`
+                        : '';
+                    return `
+                        <tr>
+                            <td>${nome}</td>
+                            <td>${String(a.relacao || '')}</td>
+                            <td>${Number(a.pesoFinal || 0).toFixed(2)}</td>
+                            <td>${String(a.status || '')}</td>
+                            <td>${ep}</td>
+                            <td>${pdfBtn}</td>
+                        </tr>
+                    `;
+                }).join('');
+                body.innerHTML = `
+                    <div class="pendencia-actions" style="justify-content: space-between; margin-bottom: 12px;">
+                        <button class="btn-action" onclick="voltarConsolidado()">← Voltar</button>
+                        <div style="display:flex; gap:8px; align-items:center; margin-left:auto;">
+                            <button class="btn-action" onclick="window.open('/api/avaliacao/ciclos/${encodeURIComponent(String(cId))}/avaliados/${encodeURIComponent(String(aId))}/pdf','_blank')">PDF relatório</button>
+                            <div class="pendencia-meta">${String(out.ciclo && out.ciclo.status || '')}</div>
+                        </div>
+                    </div>
+                    <div class="info-card" style="margin-bottom: 16px;">
+                        <div class="info-item"><label>Colaborador</label><span>${String(out.avaliado && out.avaliado.nome || '')}</span></div>
+                        <div class="info-item"><label>Setor</label><span>${String(out.avaliado && out.avaliado.setor || '')}</span></div>
+                        <div class="info-item"><label>Cargo</label><span>${String(out.avaliado && out.avaliado.cargo || '')}</span></div>
+                        <div class="info-item"><label>Média final</label><span>${pct}</span></div>
+                        <div class="info-item"><label>Concluídas</label><span>${Number(cons.concluidas || 0)}/${Number(cons.totalSolicitadas || 0)}</span></div>
+                    </div>
+                    <div class="charts-container" style="grid-template-columns: 1fr 1fr;">
+                        <div class="chart-card">
+                            <div class="chart-title">Por relação</div>
+                            <div class="table-container">
+                                <table class="data-table">
+                                    <thead><tr><th>Relação</th><th>Média</th><th>Qtd</th></tr></thead>
+                                    <tbody>${relRows || ''}</tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <div class="chart-title">Por categoria</div>
+                            <div class="table-container">
+                                <table class="data-table">
+                                    <thead><tr><th>Categoria</th><th>Média</th></tr></thead>
+                                    <tbody>${catRows || ''}</tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-title">Avaliações do ciclo</div>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead><tr><th>Avaliador</th><th>Relação</th><th>Peso</th><th>Status</th><th>Resultado</th><th>Ações</th></tr></thead>
+                                <tbody>${evalRows || ''}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            } catch (e) {
+                body.innerHTML = 'Erro ao carregar relatório';
+            }
+        }
+
+        function voltarConsolidado() {
+            const body = document.getElementById('modalCicloBody');
+            if (!body) return;
+            if (__lastConsolidadoHtml) {
+                body.innerHTML = __lastConsolidadoHtml;
+            } else if (__cicloLast) {
+                abrirConsolidadoCiclo();
+            } else {
+                body.innerHTML = '';
+            }
+        }
+
+        async function encerrarCiclo() {
+            const cicloId = String(document.getElementById('participanteCiclo')?.value || '').trim();
+            if (!cicloId) return alert('Selecione um ciclo.');
+            if (!confirm('Deseja encerrar este ciclo? Após encerrar, não será possível enviar novas avaliações neste ciclo.')) return;
+            try {
+                const res = await fetch(`/api/avaliacao/ciclos/${encodeURIComponent(cicloId)}/encerrar`, {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const out = await res.json().catch(() => ({}));
+                if (!res.ok || !out.ok) return alert(out.erro || 'Erro ao encerrar ciclo');
+                await carregarCiclos();
+                await carregarPendencias();
+                alert('Ciclo encerrado com sucesso!');
+            } catch (e) {
+                alert('Erro ao encerrar ciclo');
+            }
+        }
+
+        function fecharResumoCiclo() {
+            const el = document.getElementById('modalCicloResumo');
+            if (el) el.style.display = 'none';
+        }
+
+        function abrirAvaliacaoNova() {
+            const sel = document.getElementById('newEvalFuncionario');
+            const tipoEl = document.getElementById('newEvalTipo');
+            if (!sel || !sel.value) return;
+            const tipo = String(tipoEl && tipoEl.value || 'operacional');
+            const selected = sel.selectedOptions && sel.selectedOptions[0];
+            const cargo = selected ? String(selected.dataset.cargo || '') : '';
+            const setor = selected ? String(selected.dataset.setor || '') : '';
+            const avaliador = __meUser ? String(__meUser.name || __meUser.username || '') : '';
+
+            const base = tipo === 'lideranca'
+                ? '/avaliacao-lideranca.html'
+                : (tipo === 'adm' ? '/avaliacao-adm.html' : (tipo === 'atendimento' ? '/avaliacao-atendimento.html' : '/avaliacao-operacional.html'));
+
+            const params = new URLSearchParams();
+            params.set('funcionario', String(sel.value));
+            if (avaliador) params.set('avaliador', avaliador);
+            if (cargo) params.set('funcao', cargo);
+            if (setor) params.set('setor', setor);
+            params.set('from', 'dashboard-avaliacao');
+            if (tipo === 'atendimento') params.set('modelo', 'atendimento');
+
+            window.location.href = `${base}?${params.toString()}`;
+        }
+
+        async function carregarAvaliacoes() {
+            try {
+                const response = await fetch('/api/avaliacoes');
+                const data = await response.json();
+
+                // Inclui avaliações de desempenho E avaliações de experiência que chegaram aos 6 meses
+                allAvaliacoes = data.filter(i => {
+                    const tipo = String(i.tipo || '').toLowerCase();
+                    const titulo = String(i.cicloTitulo || i.ciclo_titulo || '').toLowerCase();
+
+                    if (tipo === 'experiencia') return false; // ← vai para allExperiencias
+
+                    if (/(experiência|experiencia|1º desempenho|1o desempenho)/i.test(titulo)) return false;
+
+                    return true;
+                });
+
+                allExperiencias = data.filter(i => {
+                    const tipo = String(i.tipo || '').toLowerCase();
+                    const titulo = String(i.cicloTitulo || i.ciclo_titulo || '').toLowerCase();
+
+                    return tipo === 'experiencia'
+                        || /(experiência|experiencia|1º desempenho|1o desempenho)/i.test(titulo);
+                });
+
+                initSetorFilter(allAvaliacoes);
+                filtrarAvaliacoes();
+
+                
+
+                document.getElementById('lastUpdate').textContent =
+                    'Atualizado em: ' + new Date().toLocaleTimeString();
+            } catch (error) {
+                console.error('Erro ao carregar avaliações:', error);
+                // Adicione isso para ver o status real:
+                fetch('/api/avaliacoes')
+                    .then(r => { console.log('Status:', r.status); return r.text(); })
+                    .then(t => console.log('Resposta bruta:', t.substring(0, 500)));
+            }
+        }
+
+
+        function getSetorFromItem(item) {
+            const setor = item && (item.setor || item.departamento || '');
+            return String(setor || '').trim();
+        }
+
+        function getAvaliacaoTimestamp(item) {
+            const raw = item && (item.updatedAt || item.updated_at || item.createdAt || item.created_at || item.data || item.created_at);
+            const d = raw ? new Date(raw) : null;
+            if (!d || Number.isNaN(d.getTime())) return 0;
+            return d.getTime();
+        }
+
+        function getAvaliacaoScopeKey(item) {
+            const cicloId = String(item && (item.cicloId || item.ciclo_id) || '').trim();
+            if (cicloId) return `ciclo:${cicloId}`;
+            const rawDate = item && (item.createdAt || item.created_at || item.data);
+            const d = rawDate ? new Date(rawDate) : null;
+            if (d && !Number.isNaN(d.getTime())) {
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `dia:${y}-${m}-${day}`;
+            }
+            return 'dia:';
+        }
+
+        function normalizeKey(v) {
+            return String(v || '')
+                .trim()
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '');
+        }
+
+        function getAvaliacaoDedupKey(item) {
+            const funcionario = normalizeKey(item && (item.funcionario || item.avaliadoNome || item.nome));
+            const tipo = normalizeKey(item && item.tipo);
+            const scope = getAvaliacaoScopeKey(item);
+            return `${funcionario}|${tipo}|${scope}`;
+        }
+
+        function pickLatestAvaliacoes(items) {
+            const arr = Array.isArray(items) ? items : [];
+            const byKey = new Map();
+            arr.forEach(it => {
+                const key = getAvaliacaoDedupKey(it);
+                const ts = getAvaliacaoTimestamp(it);
+                const current = byKey.get(key);
+                if (!current) {
+                    byKey.set(key, it);
+                    return;
+                }
+                const curTs = getAvaliacaoTimestamp(current);
+                if (ts >= curTs) byKey.set(key, it);
+            });
+            return Array.from(byKey.values());
+        }
+
+        function initSetorFilter(data) {
+            const sel = document.getElementById('sectorFilter');
+            if (!sel) return;
+            const prev = String(sel.value || '').trim();
+            const setores = Array.from(new Set((Array.isArray(data) ? data : []).map(getSetorFromItem).filter(Boolean)))
+                .sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
+            sel.innerHTML = `<option value="" data-translate="rh_dash_filter_all">${i18n('rh_dash_filter_all', 'Todos')}</option>`;
+            setores.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.textContent = s;
+                sel.appendChild(opt);
+            });
+            if (prev && setores.includes(prev)) sel.value = prev;
+        }
+
+        function renderizarStats(data) {
+            // Total
+            document.getElementById('totalCount').innerText = data.length;
+
+            const buckets = { n1: 0, n2: 0, n3: 0, n4: 0 };
+            data.forEach(i => {
+                const s = getScores(i);
+                if (!(s && s.max > 0)) return;
+                const maxItemScore = String(i && i.tipo || '').toLowerCase() === 'lideranca' ? 4 : 3;
+                const avgScale = (s.total / s.max) * maxItemScore;
+                if (!Number.isFinite(avgScale) || avgScale <= 0) return;
+                let nota = Math.round(avgScale);
+                if (nota < 1) nota = 1;
+                if (nota > maxItemScore) nota = maxItemScore;
+                if (nota === 1) buckets.n1++;
+                else if (nota === 2) buckets.n2++;
+                else if (nota === 3) buckets.n3++;
+                else if (nota === 4) buckets.n4++;
+            });
+            const elN1 = document.getElementById('note1Count');
+            const elN2 = document.getElementById('note2Count');
+            const elN3 = document.getElementById('note3Count');
+            const elN4 = document.getElementById('note4Count');
+            if (elN1) elN1.innerText = buckets.n1;
+            if (elN2) elN2.innerText = buckets.n2;
+            if (elN3) elN3.innerText = buckets.n3;
+            if (elN4) elN4.innerText = buckets.n4;
+        }
+
+        function currentLang() {
+            try { return localStorage.getItem('app_lang') || 'pt'; } catch { return 'pt'; }
+        }
+        function i18n(key, fallback) {
+            const lang = currentLang();
+            const dict = (window.__APP_I18N__ && window.__APP_I18N__[lang]) || {};
+            return dict[key] || fallback || key;
+        }
+
+        function renderizarCharts(data) {
+            const cs = getComputedStyle(document.documentElement);
+            const accentColor = cs.getPropertyValue('--accent').trim();
+            const successColor = cs.getPropertyValue('--success').trim();
+            const warningColor = cs.getPropertyValue('--warning').trim();
+            const dangerColor = cs.getPropertyValue('--danger').trim() || warningColor;
+            // Data prep for Type Chart
+            const types = { 'lideranca': 0, 'adm': 0, 'atendimento': 0, 'operacional': 0 };
+            const typeNotes = { 'lideranca': { sum: 0, count: 0 }, 'adm': { sum: 0, count: 0 }, 'atendimento': { sum: 0, count: 0 }, 'operacional': { sum: 0, count: 0 } };
+
+            data.forEach(item => {
+                // Se for experiência, inferimos o tipo funcional para entrar no gráfico
+                const effectiveType = item.tipo === 'experiencia'
+                    ? inferTipoAvaliacaoFromFuncionario({ cargo: item.cargo || item.funcao, setor: item.setor || item.departamento })
+                    : item.tipo;
+
+                // Count by type
+                if (types[effectiveType] !== undefined) types[effectiveType]++;
+
+                const s = getScores(item);
+                if (typeNotes[effectiveType] && s && s.max > 0) {
+                    const maxItemScore = effectiveType === 'lideranca' ? 4 : 3;
+                    const nota = (s.total / s.max) * maxItemScore;
+                    if (Number.isFinite(nota) && nota > 0) {
+                        typeNotes[effectiveType].sum += nota;
+                        typeNotes[effectiveType].count++;
+                    }
+                }
+            });
+
+            // Destroy existing charts if update
+            if (typeChartInstance) typeChartInstance.destroy();
+            if (scoreChartInstance) scoreChartInstance.destroy();
+
+            // 1. Pie Chart - Distribution
+            const ctxType = document.getElementById('typeChart').getContext('2d');
+            typeChartInstance = new Chart(ctxType, {
+                type: 'doughnut',
+                data: {
+                    labels: [
+                        i18n('rh_dash_avaliacoes_type_leadership', 'Liderança'),
+                        i18n('rh_dash_avaliacoes_type_admin', 'Administrativo'),
+                        'Atendimento',
+                        i18n('rh_dash_avaliacoes_type_operational', 'Operacional')
+                    ],
+                    datasets: [{
+                        data: [types.lideranca, types.adm, types.atendimento, types.operacional],
+                        backgroundColor: [accentColor, successColor, dangerColor, warningColor],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+
+            // 2. Bar Chart - Average Rating (Notas)
+            const avgLideranca = typeNotes.lideranca.count ? (typeNotes.lideranca.sum / typeNotes.lideranca.count) : 0;
+            const avgAdm = typeNotes.adm.count ? (typeNotes.adm.sum / typeNotes.adm.count) : 0;
+            const avgAtendimento = typeNotes.atendimento.count ? (typeNotes.atendimento.sum / typeNotes.atendimento.count) : 0;
+            const avgOperacional = typeNotes.operacional.count ? (typeNotes.operacional.sum / typeNotes.operacional.count) : 0;
+
+            const ctxScore = document.getElementById('scoreChart').getContext('2d');
+            scoreChartInstance = new Chart(ctxScore, {
+                type: 'bar',
+                data: {
+                    labels: [
+                        i18n('rh_dash_avaliacoes_type_leadership', 'Liderança'),
+                        i18n('rh_dash_avaliacoes_type_admin', 'Administrativo'),
+                        'Atendimento',
+                        i18n('rh_dash_avaliacoes_type_operational', 'Operacional')
+                    ],
+                    datasets: [{
+                        label: i18n('rh_dash_avaliacoes_chart_avg', 'Média de Nota por Tipo'),
+                        data: [avgLideranca, avgAdm, avgAtendimento, avgOperacional],
+                        backgroundColor: [accentColor, successColor, dangerColor, warningColor],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 4,
+                            ticks: { stepSize: 1 }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        function renderizarTabela(data) {
+            const tbody = document.getElementById('lista-corpo');
+            tbody.innerHTML = '';
+
+            data.forEach(itemRaw => {
+                // ✅ desempacota "dados"
+                const item = (itemRaw && itemRaw.dados)
+                    ? { ...itemRaw, ...(typeof itemRaw.dados === 'string' ? JSON.parse(itemRaw.dados) : itemRaw.dados) }
+                    : itemRaw;
+
+                const tr = document.createElement('tr');
+                const dataFormatada = formatDateTimePtBR(item.createdAt || item.created_at || item.data);
+                // Format type
+                const tipoMap = {
+                    'lideranca': i18n('rh_dash_avaliacoes_type_leadership', 'Liderança'),
+                    'adm': i18n('rh_dash_avaliacoes_type_admin', 'Administrativo'),
+                    'atendimento': 'Atendimento',
+                    'operacional': i18n('rh_dash_avaliacoes_type_operational', 'Operacional'),
+                    'experiencia': 'Experiência (6M)'
+                };
+                const tipoFormatado = tipoMap[item.tipo] || item.tipo;
+
+                // Score badge
+                const s = getScores(item);
+                const sc = getScaledScore(item);
+                const percentage = s.pct;
+                let badgeClass = 'score-low';
+                if (percentage >= 80) badgeClass = 'score-high';
+                else if (percentage >= 50) badgeClass = 'score-medium';
+
+                const setor = getSetorFromItem(item);
+                const funcao = String(item && (item.funcao || item.cargo || item.avaliado_cargo || '') || '-');
+
+                tr.innerHTML = `
+                    <td>${dataFormatada}</td>
+                    <td>${item.funcionario || item.avaliado_nome || ''}</td>
+                    <td>${funcao}</td>
+                    <td>${tipoFormatado}</td>
+                    <td>${item.avaliador}</td>
+                    <td><span class="score-badge ${badgeClass}">${sc.avg.toFixed(1)} / ${sc.scale.toFixed(1)}</span></td>
+                    <td>
+                        <button class="btn-action" onclick='verDetalhes(${JSON.stringify(item)})'>👁️ ${i18n('rh_dash_preview', 'Visualizar')}</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filtrarAvaliacoes() {
+            const setorSel = document.getElementById('sectorFilter');
+            const setor = String(setorSel && setorSel.value || '').trim().toLowerCase();
+            const tipo = document.getElementById('typeFilter').value;
+
+            const filtradosAll = allAvaliacoes.filter(item => {
+                const itemSetor = getSetorFromItem(item).toLowerCase();
+                const matchSetor = setor ? itemSetor === setor : true;
+                const matchTipo = tipo ? item.tipo === tipo : true;
+                return matchSetor && matchTipo;
+            });
+
+            const contabilizadas = pickLatestAvaliacoes(filtradosAll);
+            renderizarStats(contabilizadas);
+            renderizarCharts(contabilizadas);
+            renderizarTabela(filtradosAll);
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        function formatScore(score) {
+            const n = Number(score);
+            if (!Number.isFinite(n)) return '0';
+            return Number.isInteger(n) ? String(n) : n.toFixed(1);
+        }
+
+        function respostaLabelPorEscala(score, maxScore) {
+            const s = Number(score);
+            const m = Number(maxScore);
+            if (!Number.isFinite(s) || !Number.isFinite(m)) return '';
+            if (m === 4) {
+                if (s >= 4) return 'Supera as expectativas';
+                if (s >= 3) return 'Atende as expectativas';
+                if (s >= 2) return 'Atende parcialmente';
+                return 'Não atende';
+            }
+            if (m === 3) {
+                if (s >= 3) return 'Atende completamente';
+                if (s >= 2) return 'Atende parcialmente';
+                return 'Não atende';
+            }
+            return '';
+        }
+
+        function verDetalhes(itemRaw) {
+            // ✅ desempacota campo "dados" se existir
+            const item = (itemRaw && itemRaw.dados)
+                ? { ...itemRaw, ...(typeof itemRaw.dados === 'string' ? JSON.parse(itemRaw.dados) : itemRaw.dados) }
+                : itemRaw;
+
+            const modalBody = document.getElementById('modalBody');
+            let answersHtml = '<div class="answers-list">';
+            if (item && item.tipo === 'experiencia') {
+                const answers = item.answers6m || item.answers90 || {};
+                const map = { 'E': 'Excelente', 'B': 'Bom', 'R': 'Regular', 'M': 'Melhorar', 'NA': 'Não atende', 'N': 'Não se aplica' };
+                const scoreMap = { 'E': 3, 'B': 2, 'R': 1, 'M': 0.5, 'NA': 0, 'N': 0 };
+
+                // We don't have the question text in the DB record for experience, 
+                // but we can try to show the categories/IDs or just a summary.
+                // Ideally, we'd have a shared 'categories' array. 
+                // For now, let's show the keys and values.
+                Object.entries(answers).forEach(([key, val]) => {
+                    const score = scoreMap[val] ?? 0;
+                    const label = map[val] || val;
+                    const pct = score / 3;
+                    const scoreClass = pct >= 0.8 ? 'score-val-high' : (pct >= 0.5 ? 'score-val-med' : 'score-val-low');
+
+                    answersHtml += `
+                        <div class="answer-item">
+                            <div class="answer-content">
+                                <div class="answer-category">Questão ${key.replace('q_', '').replace('_6m', '').replace('_', '.')}</div>
+                                <div class="answer-response">${escapeHtml(label)}</div>
+                            </div>
+                            <div class="answer-score ${scoreClass}">
+                                ${score.toFixed(1)} / 3.0
+                            </div>
+                        </div>
+                    `;
+                });
+
+                if (item.comentarios) {
+                    answersHtml += `
+                        <div class="answer-item">
+                            <div class="answer-content">
+                                <div class="answer-category">Comentários Gerais</div>
+                                <div class="answer-response">${escapeHtml(item.comentarios)}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            } else {
+                const answers = Array.isArray(item && item.answers) ? item.answers : [];
+                answers.forEach(ans => {
+                    const max = Number(ans && ans.maxScore);
+                    const fallbackMax = (item && item.tipo === 'lideranca') ? 4 : 3;
+                    const maxScore = Number.isFinite(max) && max > 0 ? max : fallbackMax;
+                    const responseRaw = (ans && typeof ans.response === 'string') ? ans.response.trim() : '';
+                    const isDiscursive = !!(ans && (ans.isDiscursive || /discurs/i.test(String(ans.category || ans.categoria || ''))));
+
+                    const scoreNum = Number(ans && ans.score);
+                    const score = Number.isFinite(scoreNum) ? scoreNum : 0;
+                    const pct = (!isDiscursive && maxScore > 0) ? (score / maxScore) : 0;
+                    const scoreClass = pct >= 0.8 ? 'score-val-high' : (pct >= 0.5 ? 'score-val-med' : 'score-val-low');
+                    const icon = isDiscursive ? '📝' : (pct >= 0.8 ? '👍' : (pct >= 0.5 ? '⚠️' : '👎'));
+                    const response = responseRaw ? responseRaw : (isDiscursive ? '' : respostaLabelPorEscala(score, maxScore));
+                    const responseHtml = response ? `<div class="answer-response">${escapeHtml(response)}</div>` : '';
+                    const scoreHtml = isDiscursive
+                        ? `${icon} —`
+                        : `${icon} ${formatScore(score)} / ${formatScore(maxScore)}`;
+
+                    answersHtml += `
+                        <div class="answer-item">
+                            <div class="answer-content">
+                                <div class="answer-category">${escapeHtml(ans && ans.category)}</div>
+                                <div class="answer-text">${escapeHtml(ans && ans.question)}</div>
+                                ${responseHtml}
+                            </div>
+                            <div class="answer-score ${scoreClass}">
+                                ${scoreHtml}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            answersHtml += '</div>';
+
+            const s = getScores(item);
+            const sc = getScaledScore(item);
+            const percentage = s.pct;
+            let totalClass = 'score-val-low';
+            if (percentage >= 80) totalClass = 'score-val-high';
+            else if (percentage >= 50) totalClass = 'score-val-med';
+
+            modalBody.innerHTML = `
+                <div class="info-card">
+                    <div class="info-item">
+                        <label>${i18n('rh_dash_avaliacoes_th_funcionario', 'Funcionário')}</label>
+                        <span>${item.funcionario}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>${i18n('rh_dash_avaliacoes_th_avaliador', 'Avaliador')}</label>
+                        <span>${item.avaliador}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>${i18n('rh_dash_th_setor', 'Setor')}</label>
+                        <span>${item.setor}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>${i18n('rh_dash_th_data', 'Data')}</label>
+                        <span>${formatDateTimePtBR(item.data || item.createdAt || item.created_at)}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>${i18n('rh_dash_avaliacoes_th_pontuacao', 'Pontuação')}</label>
+                        <span class="${totalClass}" style="font-size: 1.2rem;">${sc.avg.toFixed(1)} / ${sc.scale.toFixed(1)}</span>
+                    </div>
+                </div>
+                <h3 class="modal-section-title">${i18n('rh_dash_preview_title', 'Pré-visualização')}</h3>
+
+                ${answersHtml}
+
+                 <div id="assinaturas-wrap" style="margin-top: 28px; border-top: 1px solid var(--border); padding-top: 20px;">
+                    <h3 class="modal-section-title" style="margin-bottom: 16px;">Assinaturas</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <div style="font-size: 0.8rem; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Gestor</div>
+                            <div id="sig-gestor-pad-wrap" style="border: 1px solid var(--border); border-radius: 12px; background: var(--bg-body); overflow: hidden; position: relative;">
+                                <canvas id="sig-gestor-pad" width="340" height="120" style="display: block; width: 100%; cursor: crosshair; touch-action: none;"></canvas>
+                                <button onclick="limparAssinatura('gestor')" style="position: absolute; top: 6px; right: 8px; background: none; border: none; font-size: 0.75rem; color: var(--text-secondary); cursor: pointer; padding: 2px 6px; border-radius: 6px;">✕ Limpar</button>
+                            </div>
+                            <input id="sig-gestor-nome" type="text" class="filter-input" placeholder="Nome do gestor" style="font-size: 0.9rem;">
+                            <input id="sig-gestor-data" type="date" class="filter-input" style="font-size: 0.9rem;">
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <div style="font-size: 0.8rem; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Colaborador</div>
+                            <div id="sig-colab-pad-wrap" style="border: 1px solid var(--border); border-radius: 12px; background: var(--bg-body); overflow: hidden; position: relative;">
+                                <canvas id="sig-colab-pad" width="340" height="120" style="display: block; width: 100%; cursor: crosshair; touch-action: none;"></canvas>
+                                <button onclick="limparAssinatura('colab')" style="position: absolute; top: 6px; right: 8px; background: none; border: none; font-size: 0.75rem; color: var(--text-secondary); cursor: pointer; padding: 2px 6px; border-radius: 6px;">✕ Limpar</button>
+                            </div>
+                            <input id="sig-colab-nome" type="text" class="filter-input" placeholder="Nome do colaborador" style="font-size: 0.9rem;" value="${escapeHtml(item.funcionario || '')}">
+                            <input id="sig-colab-data" type="date" class="filter-input" style="font-size: 0.9rem;">
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                        <button class="btn btn-primary" onclick="salvarAssinaturas('${escapeHtml(String(item.id || item._id || ''))}')">💾 Salvar assinaturas</button>
+                        <button class="btn btn-outline" onclick="exportarPdfComAssinaturas()">📄 Exportar PDF</button>
+                        <span id="sig-status" style="font-size: 0.85rem; color: var(--text-secondary);"></span>
+                    </div>
+                </div>
+            `;
+            async function carregarAssinaturas(avaliacaoId) {
+                if (!avaliacaoId) return;
+                try {
+                    const res = await fetch(`/api/avaliacoes/${encodeURIComponent(avaliacaoId)}/assinaturas`);
+                    const data = await res.json().catch(() => ({}));
+                    if (!data.ok || !data.assinaturas || !data.assinaturas.length) return;
+
+                    // Para avaliações de desempenho gerais, pega a primeira assinatura encontrada
+                    const sig = data.assinaturas[0];
+
+                    // Preencher gestor
+                    if (sig.gestor) {
+                        const parsed = typeof sig.gestor === 'string' ? JSON.parse(sig.gestor) : sig.gestor;
+                        if (parsed.assinatura) {
+                            const img = new Image();
+                            img.onload = () => {
+                                const canvas = document.getElementById('sig-gestor-pad');
+                                if (canvas) canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                            };
+                            img.src = parsed.assinatura;
+                        }
+                        const nomeEl = document.getElementById('sig-gestor-nome');
+                        const dataEl = document.getElementById('sig-gestor-data');
+                        if (nomeEl && parsed.nome) nomeEl.value = parsed.nome;
+                        if (dataEl && parsed.data) dataEl.value = parsed.data;
+                    }
+
+                    // Preencher colaborador
+                    if (sig.colaborador) {
+                        const parsed = typeof sig.colaborador === 'string' ? JSON.parse(sig.colaborador) : sig.colaborador;
+                        if (parsed.assinatura) {
+                            const img = new Image();
+                            img.onload = () => {
+                                const canvas = document.getElementById('sig-colab-pad');
+                                if (canvas) canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                            };
+                            img.src = parsed.assinatura;
+                        }
+                        const nomeEl = document.getElementById('sig-colab-nome');
+                        const dataEl = document.getElementById('sig-colab-data');
+                        if (nomeEl && parsed.nome) nomeEl.value = parsed.nome;
+                        if (dataEl && parsed.data) dataEl.value = parsed.data;
+                    }
+                } catch (e) {
+                    console.warn('Erro ao carregar assinaturas:', e);
+                }
+            }
+
+            iniciarPadsAssinatura();
+            preencherDataHoje();
+            carregarAssinaturas(String(item.id || item._id || ''));
+
+
+            document.getElementById('modalDetalhes').style.display = 'flex';
+        }
+
+        function fecharModal() {
+            document.getElementById('modalDetalhes').style.display = 'none';
+        }
+
+        function exportarExcel() {
+            const ws = XLSX.utils.json_to_sheet(allAvaliacoes.map(item => ({
+                [i18n('rh_dash_th_data', 'Data')]: formatDatePtBR(item.createdAt || item.created_at || item.data),
+                [i18n('rh_dash_avaliacoes_th_funcionario', 'Funcionário')]: item.funcionario,
+                [i18n('rh_dash_th_cargo', 'Função')]: item.funcao,
+                [i18n('rh_dash_th_setor', 'Setor')]: item.setor,
+                [i18n('rh_dash_type', 'Tipo')]: item.tipo,
+                [i18n('rh_dash_avaliacoes_th_avaliador', 'Avaliador')]: item.avaliador,
+                [i18n('rh_dash_avaliacoes_th_pontuacao', 'Pontuação')]: (item.weightedTotalScore ?? item.totalScore),
+                Max: (item.weightedMaxScore ?? item.maxScore)
+            })));
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Avaliacoes");
+            XLSX.writeFile(wb, "Avaliacoes_Desempenho.xlsx");
+        }
+
+        // Close modal on outside click
+        window.onclick = function (event) {
+            if (event.target == document.getElementById('modalDetalhes')) {
+                fecharModal();
+            }
+            if (event.target == document.getElementById('modalCicloResumo')) {
+                fecharResumoCiclo();
+            }
+        }
+
+        function iniciarPadsAssinatura() {
+            ['gestor', 'colab'].forEach(id => {
+                const canvas = document.getElementById(`sig-${id}-pad`);
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                let drawing = false;
+                let lastX = 0, lastY = 0;
+
+                function getPos(e) {
+                    const rect = canvas.getBoundingClientRect();
+                    const src = e.touches ? e.touches[0] : e;
+                    return {
+                        x: (src.clientX - rect.left) * (canvas.width / rect.width),
+                        y: (src.clientY - rect.top) * (canvas.height / rect.height)
+                    };
+                }
+
+                function start(e) {
+                    e.preventDefault();
+                    drawing = true;
+                    const p = getPos(e);
+                    lastX = p.x; lastY = p.y;
+                    ctx.beginPath();
+                    ctx.moveTo(lastX, lastY);
+                }
+                function move(e) {
+                    e.preventDefault();
+                    if (!drawing) return;
+                    const p = getPos(e);
+                    ctx.lineWidth = 2;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    ctx.strokeStyle = '#1a1a1a';
+                    ctx.lineTo(p.x, p.y);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y);
+                    lastX = p.x; lastY = p.y;
+                }
+                function stop() { drawing = false; }
+
+                canvas.addEventListener('mousedown', start);
+                canvas.addEventListener('mousemove', move);
+                canvas.addEventListener('mouseup', stop);
+                canvas.addEventListener('mouseleave', stop);
+                canvas.addEventListener('touchstart', start, { passive: false });
+                canvas.addEventListener('touchmove', move, { passive: false });
+                canvas.addEventListener('touchend', stop);
+            });
+        }
+
+        function limparAssinatura(id) {
+            const canvas = document.getElementById(`sig-${id}-pad`);
+            if (!canvas) return;
+            canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function preencherDataHoje() {
+            const hoje = new Date().toISOString().split('T')[0];
+            ['sig-gestor-data', 'sig-colab-data'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && !el.value) el.value = hoje;
+            });
+        }
+
+        function canvasVazio(canvas) {
+            const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+            return !data.some(v => v !== 0);
+        }
+
+        async function salvarAssinaturas(avaliacaoId) {
+            const status = document.getElementById('sig-status');
+            const cGestor = document.getElementById('sig-gestor-pad');
+            const cColab = document.getElementById('sig-colab-pad');
+
+            if (canvasVazio(cGestor) || canvasVazio(cColab)) {
+                if (status) status.textContent = '⚠️ Ambas as assinaturas são obrigatórias.';
+                return;
+            }
+            const payload = {
+                gestor: {
+                    assinatura: cGestor.toDataURL('image/png'),
+                    nome: document.getElementById('sig-gestor-nome')?.value?.trim() || '',
+                    data: document.getElementById('sig-gestor-data')?.value || ''
+                },
+                colaborador: {
+                    assinatura: cColab.toDataURL('image/png'),
+                    nome: document.getElementById('sig-colab-nome')?.value?.trim() || '',
+                    data: document.getElementById('sig-colab-data')?.value || ''
+                }
+            };
+            if (status) status.textContent = 'Salvando...';
+            try {
+                const res = await fetch(`/api/avaliacoes/${encodeURIComponent(avaliacaoId)}/assinaturas`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok) throw new Error(data.erro || 'Falha ao salvar');
+                if (status) status.textContent = '✅ Assinaturas salvas com sucesso!';
+            } catch (e) {
+                if (status) status.textContent = `❌ Erro: ${e.message}`;
+            }
+        }
+
+        function exportarPdfComAssinaturas() {
+            const cGestor = document.getElementById('sig-gestor-pad');
+            const cColab = document.getElementById('sig-colab-pad');
+            const nomeGestor = document.getElementById('sig-gestor-nome')?.value?.trim() || 'Gestor';
+            const dataGestor = document.getElementById('sig-gestor-data')?.value || '';
+            const nomeColab = document.getElementById('sig-colab-nome')?.value?.trim() || 'Colaborador';
+            const dataColab = document.getElementById('sig-colab-data')?.value || '';
+
+            const sigGestorData = cGestor ? cGestor.toDataURL('image/png') : '';
+            const sigColabData = cColab ? cColab.toDataURL('image/png') : '';
+
+            const win = window.open('', '_blank');
+            if (!win) return;
+            const modalBodyHtml = document.getElementById('modalBody')?.innerHTML || '';
+            win.document.write(`<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="UTF-8"><title>Avaliação</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 32px; color: #111; }
+  .sig-block { display: inline-block; text-align: center; margin: 0 32px; }
+  .sig-line { border-top: 1px solid #333; width: 240px; margin: 8px auto 4px; }
+  @media print { button { display: none; } }
+</style></head><body>
+  <div id="modal-content">${modalBodyHtml.replace(/<button[^>]*>.*?<\/button>/gs, '')}</div>
+  <hr style="margin: 32px 0;">
+  <div style="display:flex; justify-content: space-around; align-items: flex-end; padding-top: 16px;">
+    <div class="sig-block">
+      ${sigGestorData ? `<img src="${sigGestorData}" style="height:80px; display:block; margin: 0 auto;">` : '<div style="height:80px;"></div>'}
+      <div class="sig-line"></div>
+      <div style="font-size:13px;">${nomeGestor}</div>
+      <div style="font-size:12px; color:#555;">${dataGestor}</div>
+    </div>
+    <div class="sig-block">
+      ${sigColabData ? `<img src="${sigColabData}" style="height:80px; display:block; margin: 0 auto;">` : '<div style="height:80px;"></div>'}
+      <div class="sig-line"></div>
+      <div style="font-size:13px;">${nomeColab}</div>
+      <div style="font-size:12px; color:#555;">${dataColab}</div>
+    </div>
+  </div>
+  <script>window.onload=()=>window.print()<\/script>
+</body></html>`);
+            win.document.close();
+        }
+
+        carregarEquipeNovaAvaliacao();
+        carregarAvaliacoes();
+    </script>
+</body>
+
+</html>

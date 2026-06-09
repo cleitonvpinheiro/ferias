@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avaliação de Experiência (45/90 Dias)</title>
+    <script src="/lang-switcher.js" defer></script>
+    <link rel="stylesheet" href="./styles.css">
+    <link rel="icon" href="/assets/logo.png" type="image/png">
+    <!-- Google Fonts for a more professional look -->
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-color: var(--text);
+            --primary-light: var(--muted);
+            --accent-color: var(--accent);
+            --accent-hover: var(--accent-hover);
+            --success-color: var(--success);
+            --warning-color: var(--warning);
+            --danger-color: var(--danger);
+            --bg-color: var(--bg);
+            --card-bg: var(--card);
+            --border-color: var(--border);
+            --text-main: var(--text);
+            --text-secondary: var(--muted);
+            --table-header-bg: var(--bg);
+            --input-bg: var(--card);
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            color: var(--text-main);
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.78);
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            padding: 50px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Header Styles */
+        .header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 30px;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .logo {
+            max-height: 80px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            margin: 0 0 10px 0;
+            letter-spacing: -0.025em;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin: 0;
+            font-weight: 500;
+        }
+
+        .meta-info {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 15px;
+            padding: 5px 15px;
+            background: var(--bg-color);
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        /* Form Grid - Employee Info */
+        .header-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+            background: var(--bg);
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .form-control {
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            color: var(--text-main);
+            background-color: var(--input-bg);
+            transition: all 0.2s ease;
+            width: 100%;
+            box-sizing: border-box;
+            /* Fix width issues */
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: var(--focus-ring);
+        }
+
+        .form-control[readonly],
+        .form-control:disabled {
+            background-color: var(--bg);
+            color: var(--muted);
+            cursor: not-allowed;
+        }
+
+        /* Status Section Cards */
+        .status-section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-section-title::before {
+            content: '';
+            display: block;
+            width: 6px;
+            height: 24px;
+            background: var(--accent-color);
+            border-radius: 3px;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .status-box {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .status-box h4 {
+            margin: 0 0 20px 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .status-radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .status-radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.95rem;
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .status-radio-group label:hover {
+            background: var(--bg);
+        }
+
+        .status-radio-group input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent-color);
+        }
+
+        /* Active/Inactive States for Status Boxes */
+        .status-box.active {
+            border-color: var(--accent-color);
+            box-shadow: var(--shadow-md);
+        }
+
+        .status-box.active h4 {
+            color: var(--accent-color);
+        }
+
+        /* Table Styling */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 40px;
+            box-shadow: var(--shadow-sm);
+            background: var(--card-bg);
+        }
+
+        .evaluation-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+            background: transparent;
+        }
+
+        .evaluation-table th {
+            background-color: var(--table-header-bg);
+            color: var(--primary-color);
+            font-weight: 700;
+            padding: 15px 20px;
+            text-align: left;
+            border-bottom: 2px solid var(--border-color);
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
+        }
+
+        .evaluation-table td {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+            color: var(--text-main);
+        }
+
+        .evaluation-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .evaluation-table tr:hover td {
+            background-color: var(--table-hover-bg);
+        }
+
+        .category-header {
+            background-color: var(--category-header-bg) !important;
+            color: var(--category-header-text);
+            font-weight: 700;
+            font-size: 0.9rem;
+            padding: 12px 20px !important;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        select.score-select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: var(--input-bg);
+            color: var(--text-main);
+            cursor: pointer;
+            font-size: 0.9rem;
+            text-align: center;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 16px;
+            padding-right: 35px;
+        }
+
+        select.score-select:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: var(--focus-ring);
+        }
+
+        select.score-select:disabled {
+            background-color: var(--bg);
+            color: var(--muted);
+            cursor: not-allowed;
+            border-color: var(--border-color);
+        }
+
+        /* Legend */
+        .legend-box {
+            background: var(--accent-soft);
+            border: 1px solid var(--border-color);
+            color: var(--accent-color);
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: var(--card-bg);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            box-shadow: var(--shadow-xs);
+        }
+
+        /* Submit Button */
+        .form-actions {
+            margin-top: 40px;
+            text-align: right;
+            border-top: 1px solid var(--border-color);
+            padding-top: 30px;
+        }
+
+        .submit-btn {
+            background-color: var(--accent-color);
+            color: var(--brand-text);
+            border: none;
+            padding: 14px 32px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-md);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .submit-btn:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            .header-info {
+                grid-template-columns: 1fr;
+            }
+
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .evaluation-table th,
+            .evaluation-table td {
+                padding: 10px;
+            }
+        }
+
+        .signature-container {
+            margin-top: 30px;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #f9fafb;
+        }
+
+        .signature-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #1f2937;
+        }
+
+        .signature-row {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .signature-box {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .signature-box label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #374151;
+        }
+
+        .signature-canvas {
+            border: 2px solid #d1d5db;
+            border-radius: 4px;
+            background: white;
+            cursor: crosshair;
+            width: 100%;
+            height: auto;
+            background-color: #fff;
+        }
+
+        .signature-actions {
+            margin-top: 8px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .signature-actions button {
+            padding: 4px 12px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .signature-actions button:hover {
+            background: #e5e7eb;
+        }
+
+        .signature-name {
+            margin-top: 8px;
+            padding: 6px;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            width: 100%;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+
+<body data-page="avaliacao-experiencia">
+    <div style="margin-bottom: 20px;">
+        <a href="../protected/dashboard-gestor.html"
+            style="color: var(--muted); text-decoration: none; font-size: 0.9rem;"
+            data-translate="public_back_menu">&larr; Voltar ao Painel</a>
+    </div>
+
+    <div class="header">
+        <img src="/assets/logo.png" alt="Logo" class="logo">
+        <h1 data-translate="avaliacao_experiencia_title">AVALIAÇÃO DE EXPERIÊNCIA</h1>
+        <p data-translate="avaliacao_experiencia_subtitle">Acompanhamento de 45 e 90 dias</p>
+    </div>
+
+    <form id="experienciaForm">
+        <input type="hidden" name="id" id="formId">
+        <input type="hidden" name="tipo" value="experiencia">
+        <input type="hidden" name="etapa" id="etapaAtual" value="45">
+
+        <div class="header-info">
+            <div class="form-group">
+                <label>Colaborador</label>
+                <select name="funcionario" id="funcionarioSelect" class="form-control" required>
+                    <option value="">Selecione...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Avaliador</label>
+                <input type="text" name="avaliador" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Cargo</label>
+                <input type="text" name="cargo" id="cargoField" class="form-control" readonly>
+            </div>
+            <div class="form-group">
+                <label>Setor</label>
+                <input type="text" name="setor" id="setorField" class="form-control" readonly>
+            </div>
+            <div class="form-group">
+                <label>Data Admissão</label>
+                <input type="date" name="dataAdmissao" class="form-control" required>
+            </div>
+        </div>
+
+        <!-- Status Section -->
+        <div class="form-section">
+            <div class="status-section-title">Parecer da Avaliação</div>
+            <div class="status-grid" id="statusGrid">
+                <div class="status-box active" id="status45Box">
+                    <h4>45 DIAS</h4>
+                    <div class="status-radio-group">
+                        <label><input type="radio" name="status45" value="reprovado"> REPROVADO</label>
+                        <label><input type="radio" name="status45" value="prorrogado"> PRORROGADO/APROVADO</label>
+                    </div>
+                </div>
+                <div class="status-box" id="status90Box"
+                    style="opacity: 0.6; pointer-events: none; background: var(--bg-color);">
+                    <h4>90 DIAS</h4>
+                    <div class="status-radio-group">
+                        <label><input type="radio" name="status90" value="aprovado"> APROVADO</label>
+                        <label><input type="radio" name="status90" value="reprovado"> REPROVADO</label>
+                    </div>
+                </div>
+                <div class="status-box" id="status6mBox" style="display: none;">
+                    <h4>6 MESES</h4>
+                    <div class="status-radio-group">
+                        <label><input type="radio" name="status6months" value="aprovado"> MANTER</label>
+                        <label><input type="radio" name="status6months" value="reprovado"> DESLIGAR</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="legend-box">
+            <span style="font-weight: 700; margin-right: 10px;">Legenda:</span>
+            <span class="legend-item">N - Não se aplica</span>
+            <span class="legend-item">NA - Não atende</span>
+            <span class="legend-item">M - Melhorar</span>
+            <span class="legend-item">R - Regular</span>
+            <span class="legend-item">B - Bom</span>
+            <span class="legend-item">E - Excelente</span>
+        </div>
+
+        <div class="table-container">
+            <table class="evaluation-table">
+                <thead>
+                    <tr>
+                        <th id="thCrit" style="width: 50%;">Critérios de Avaliação</th>
+                        <th id="th45" style="width: 25%; text-align: center;">45 Dias</th>
+                        <th id="th90" style="width: 25%; text-align: center;">90 Dias</th>
+                        <th id="th6m" style="width: 20%; text-align: center; display: none;">6 Meses</th>
+                    </tr>
+                </thead>
+                <tbody id="criteriaBody">
+                    <!-- JS will populate -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="form-section" style="margin-top: 40px;">
+            <div class="status-section-title">Metas e Desenvolvimento</div>
+
+            <div class="form-group" style="margin-bottom: 25px;">
+                <label>Metas: Conhecimentos e habilidades a serem desenvolvidas e/ou aperfeiçoadas</label>
+                <textarea name="metas" rows="4" class="form-control"></textarea>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 25px;">
+                <label>Indicação de treinamento para suprir as necessidades indicadas</label>
+                <textarea name="treinamentos" rows="3" class="form-control"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Comentários (Opcional)</label>
+                <textarea name="comentarios" rows="3" class="form-control"></textarea>
+            </div>
+        </div>
+
+        <div class="signature-container" id="signatureSection" style="display:none;">
+            <div class="signature-title">📝 Assinaturas</div>
+            <div class="signature-row">
+                <div class="signature-box">
+                    <label>Assinatura do Gestor:</label>
+                    <canvas id="signature-gestor" class="signature-canvas" width="400" height="150"
+                        style="width:100%; height:150px"></canvas>
+                    <div class="signature-actions">
+                        <button type="button" onclick="clearSignature('gestor')">Limpar</button>
+                    </div>
+                    <input type="text" id="signature-gestor-nome" class="signature-name" placeholder="Nome do gestor"
+                        required>
+                    <input type="hidden" id="signature-gestor-data">
+                </div>
+
+                <div class="signature-box">
+                    <label>Assinatura do Colaborador:</label>
+                    <canvas id="signature-colaborador" class="signature-canvas" width="400" height="150"
+                        style="width:100%; height:150px"></canvas>
+                    <div class="signature-actions">
+                        <button type="button" onclick="clearSignature('colaborador')">Limpar</button>
+                    </div>
+                    <input type="text" id="signature-colaborador-nome" class="signature-name"
+                        placeholder="Nome do colaborador" required>
+                    <input type="hidden" id="signature-colaborador-data">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="submit-btn" id="submitBtn">
+                <span data-translate="avaliacao_experiencia_submit">💾 Salvar Avaliação (45 Dias)</span>
+            </button>
+        </div>
+    </form>
+    </div>
+
+    <script>
+        const categories = [
+            {
+                name: "1. COMPROMETIMENTO",
+                items: [
+                    "Comprimento de regras",
+                    "Realização de atividades estipuladas pela liderança",
+                    "Pontualidade",
+                    "Resolução de problemas"
+                ]
+            },
+            {
+                name: "2. COMUNICAÇÃO",
+                items: [
+                    "Comunicação com colegas, líderes e demais envolvidos",
+                    "Comunicação escrita",
+                    "Entendimento sobre preocupações e necessidades",
+                    "Objetividade",
+                    "Profissionalismo",
+                    "Adaptação a diferentes ambientes",
+                    "Simpatia"
+                ]
+            },
+            {
+                name: "3. ORGANIZAÇÃO E PLANEJAMENTO",
+                items: [
+                    "Organização com execução de atividades",
+                    "Planejamento de atividades, com definição e gerenciamento de prioridades"
+                ]
+            },
+            {
+                name: "4. RELACIONAMENTO INTERPESSOAL",
+                items: [
+                    "Relacionamento interpessoal (colegas e líderes)",
+                    "Mantém ambiente favorável ao convívio e à execução do trabalho"
+                ]
+            },
+            {
+                name: "5. TRABALHO EM EQUIPE",
+                items: [
+                    "Cooperação e interação com os demais membros da equipe",
+                    "Sabe ouvir e respeitar posições contrárias",
+                    "Estabelecimento de credibilidade ao interagir com funcionários, clientes internos e externos"
+                ]
+            },
+            {
+                name: "6. CONHECIMENTO TÉCNICO",
+                items: [
+                    "Aplicação de conhecimento técnico com necessidade de supervisão",
+                    "Aplicação de conhecimento técnico sem necessidade de supervisão"
+                ]
+            },
+            {
+                name: "7. DESENVOLVIMENTO PROFISSIONAL",
+                items: [
+                    "Proativo com atividades não designadas",
+                    "Busca aperfeiçoamento de competências por meio de treinamentos",
+                    "Busca constante de desenvolvimento pessoal e profissional"
+                ]
+            },
+            {
+                name: "8. DISCIPLINA",
+                items: [
+                    "Demonstra ser disciplinado com regras ou ordens",
+                    "Cumprimento regras e respeita as diretrizes",
+                    "Perfil receptivo, entendendo a necessidade do direcionamento e das regras",
+                    "Aceita bem as regras, recebe com presteza as orientações"
+                ]
+            },
+            {
+                name: "9. HÁBITOS DE SEGURANÇA",
+                items: [
+                    "Respeita as normas de segurança e utilização dos EPIS",
+                    "Conhecimento com as normas básicas de segurança e age de forma a evitar acidentes"
+                ]
+            },
+            {
+                name: "10. SOLUÇÃO DE PROBLEMAS",
+                items: [
+                    "Identificação de problemas",
+                    "Apresentação de ideias para solução de problemas",
+                    "Apresentação de novas ideias e recursos para aprimorar técnicas"
+                ]
+            }
+        ];
+
+        const options = [
+            { val: "N", label: "N - Não se aplica" },
+            { val: "NA", label: "NA - Não atende" },
+            { val: "M", label: "M - Melhorar" },
+            { val: "R", label: "R - Regular" },
+            { val: "B", label: "B - Bom" },
+            { val: "E", label: "E - Excelente" }
+        ];
+
+        function createSelect(name, disabled = false) {
+            let html = `<select name="${name}" class="score-select" ${disabled ? 'disabled' : ''}>`;
+            html += `<option value="">-</option>`;
+            options.forEach(o => {
+                html += `<option value="${o.val}">${o.val}</option>`;
+            });
+            html += `</select>`;
+            return html;
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('criteriaBody');
+            let html = '';
+            const is6m = document.getElementById('etapaAtual').value === '6m';
+
+            categories.forEach((cat, catIndex) => {
+                html += `<tr><td colspan="${is6m ? 4 : 3}" class="category-header">${cat.name}</td></tr>`;
+                cat.items.forEach((item, itemIndex) => {
+                    const fieldName45 = `q_${catIndex}_${itemIndex}_45`;
+                    const fieldName90 = `q_${catIndex}_${itemIndex}_90`;
+                    const fieldName6m = `q_${catIndex}_${itemIndex}_6m`;
+
+                    html += `
+                        <tr>
+                            <td>${item}</td>
+                            <td class="center-text" ${is6m ? 'style="display:none"' : ''}>${createSelect(fieldName45)}</td>
+                            <td class="center-text" ${is6m ? 'style="display:none"' : ''}>${createSelect(fieldName90, true)}</td>
+                            <td class="center-text" ${!is6m ? 'style="display:none"' : ''}>${createSelect(fieldName6m, true)}</td>
+                        </tr>
+                    `;
+                });
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        // Load employees
+        async function loadFuncionarios() {
+            try {
+                const res = await fetch('/api/funcionarios');
+                const funcionarios = await res.json();
+                const select = document.getElementById('funcionarioSelect');
+
+                funcionarios.sort((a, b) => a.nome.localeCompare(b.nome));
+                funcionarios.forEach(f => {
+                    const opt = document.createElement('option');
+                    opt.value = f.nome;
+                    opt.textContent = f.nome;
+                    opt.dataset.cargo = f.cargo || '';
+                    opt.dataset.setor = f.setor || '';
+                    opt.dataset.dataAdmissao = f.data_admissao || f.dataAdmissao || '';
+                    select.appendChild(opt);
+                });
+
+                select.addEventListener('change', async (e) => {
+                    const selected = e.target.selectedOptions[0];
+                    if (selected && selected.value) {
+                        document.getElementById('cargoField').value = selected.dataset.cargo;
+                        document.getElementById('setorField').value = selected.dataset.setor;
+
+                        // ✅ NOVO: preenche data de admissão
+                        const admField = document.querySelector('input[name="dataAdmissao"]');
+                        if (admField && selected.dataset.dataAdmissao) {
+                            const raw = selected.dataset.dataAdmissao;
+                            if (raw.includes('/')) {
+                                const [d, m, y] = raw.split('/');
+                                admField.value = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+                            } else {
+                                admField.value = raw;
+                            }
+                        }
+
+                        // ✅ NOVO: preenche nome do colaborador na assinatura
+                        const colabNome = document.getElementById('signature-colaborador-nome');
+                        if (colabNome) colabNome.value = selected.value;
+
+                        // Check for existing evaluation (código original, não alterar)
+                        try {
+                            const params = new URLSearchParams({
+                                funcionario: selected.value,
+                                tipo: 'experiencia'
+                            });
+                            const checkRes = await fetch(`/api/avaliacao/buscar/recente?${params}`);
+                            if (checkRes.ok) {
+                                const existingData = await checkRes.json();
+                                if (confirm(`Encontrada uma avaliação de experiência anterior para ${selected.value}. Deseja carregá-la?`)) {
+                                    window.location.href = `?id=${existingData.id}`;
+                                }
+                            }
+                        } catch (err) {
+                            console.error('Erro ao verificar avaliação existente:', err);
+                        }
+                    }
+                });
+
+                const preFuncionario = urlParams.get('funcionario');
+                if (preFuncionario) {
+                    select.value = preFuncionario;
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function loadEvaluation(id) {
+            try {
+                const res = await fetch(`/api/avaliacao/${id}`);
+                const data = await res.json();
+
+                if (data) {
+                    // Populate form
+                    document.getElementById('formId').value = data.id;
+
+                    // Populate fields
+                    const form = document.getElementById('experienciaForm');
+
+                    // Set basic fields
+                    if (data.funcionario) {
+                        document.getElementById('funcionarioSelect').value = data.funcionario;
+                    }
+                    if (data.avaliador) form.avaliador.value = data.avaliador;
+                    if (data.cargo) form.cargo.value = data.cargo;
+                    if (data.setor) form.setor.value = data.setor;
+                    if (data.dataAdmissao) form.dataAdmissao.value = data.dataAdmissao;
+                    if (data.metas) form.metas.value = data.metas;
+                    if (data.treinamentos) form.treinamentos.value = data.treinamentos;
+                    if (data.comentarios) form.comentarios.value = data.comentarios;
+
+                    if (data.status45) {
+                        const r = form.querySelector(`input[name="status45"][value="${data.status45}"]`);
+                        if (r) r.checked = true;
+                    }
+                    if (data.status90) {
+                        const r = form.querySelector(`input[name="status90"][value="${data.status90}"]`);
+                        if (r) r.checked = true;
+                    }
+
+                    // Determine stage
+                    let etapa = '45';
+                    if (data.answers45) {
+                        etapa = '90';
+                        // Lock 45
+                        Object.keys(data.answers45).forEach(key => {
+                            const el = form.querySelector(`select[name="${key}"]`);
+                            if (el) { el.value = data.answers45[key]; el.disabled = true; }
+                        });
+                        form.querySelectorAll('input[name="status45"]').forEach(el => el.disabled = true);
+                        document.getElementById('status45Box').classList.remove('active');
+                        document.getElementById('status45Box').style.opacity = '0.7';
+
+                        // Enable 90
+                        form.querySelectorAll('select[name$="_90"]').forEach(el => el.disabled = false);
+                        const box90 = document.getElementById('status90Box');
+                        box90.style.opacity = '1'; box90.style.pointerEvents = 'auto';
+                        box90.style.background = 'var(--card-bg)'; box90.classList.add('active');
+
+                        document.getElementById('submitBtn').innerHTML = '<span>💾 Salvar Avaliação (90 Dias)</span>';
+
+                        // ✅ Liberar seção de assinaturas para qualquer etapa de experiência
+                        const sigSection = document.getElementById('signatureSection');
+                        if (sigSection) sigSection.style.display = 'block';
+                    } else {
+                        // Se não tem answers45, estamos na etapa 45
+                        const sigSection = document.getElementById('signatureSection');
+                        if (sigSection) sigSection.style.display = 'block';
+                    }
+                    if (data.answers90) {
+                        etapa = '6m';
+                        // Lock 90
+                        Object.keys(data.answers90).forEach(key => {
+                            const el = form.querySelector(`select[name="${key}"]`);
+                            if (el) { el.value = data.answers90[key]; el.disabled = true; }
+                        });
+                        form.querySelectorAll('input[name="status90"]').forEach(el => el.disabled = true);
+                        document.getElementById('status90Box').classList.remove('active');
+                        document.getElementById('status90Box').style.opacity = '0.7';
+
+                        // Check if we should actually show 6m
+                        const urlParams = new URLSearchParams(window.location.search);
+                        if (urlParams.get('etapa') === '6m' || data.status6months) {
+                            // Switch UI to 6m mode
+                            document.getElementById('statusGrid').style.gridTemplateColumns = '1fr';
+                            document.getElementById('status45Box').style.display = 'none';
+                            document.getElementById('status90Box').style.display = 'none';
+                            const box6m = document.getElementById('status6mBox');
+                            box6m.style.display = 'block'; box6m.classList.add('active');
+
+                            document.getElementById('th45').style.display = 'none';
+                            document.getElementById('th90').style.display = 'none';
+                            document.getElementById('th6m').style.display = 'table-cell';
+                            document.getElementById('thCrit').style.width = '70%';
+
+                            document.getElementById('submitBtn').innerHTML = '<span>💾 Salvar Avaliação (6 Meses)</span>';
+                        } else {
+                            // If not explicitly 6m, and 90 is done, the exp process is finished for this form
+                            etapa = 'finalizada';
+                            document.getElementById('submitBtn').style.display = 'none';
+                        }
+                    }
+
+                    if (data.answers6m) {
+                        etapa = 'finalizada';
+                        // Lock 6m
+                        Object.keys(data.answers6m).forEach(key => {
+                            const el = form.querySelector(`select[name="${key}"]`);
+                            if (el) { el.value = data.answers6m[key]; el.disabled = true; }
+                        });
+                        if (form.status6months) {
+                            form.querySelectorAll('input[name="status6months"]').forEach(el => el.disabled = true);
+                        }
+                        document.getElementById('submitBtn').style.display = 'none';
+                    }
+
+                    document.getElementById('etapaAtual').value = etapa;
+                    renderTable();
+
+                    // Carrega as assinaturas após definir a etapa
+                    if (data.id) {
+                        await loadExistingSignatures(data.id);
+                    }
+                }
+            } catch (e) {
+                console.error('Erro ao carregar:', e);
+                alert('Erro ao carregar avaliação.');
+            }
+        }
+
+        document.getElementById('experienciaForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+
+            // Collect answers
+            const answers45 = {};
+            const answers90 = {};
+            const answers6m = {};
+
+            for (let [key, value] of formData.entries()) {
+                if (key.endsWith('_45')) answers45[key] = value;
+                if (key.endsWith('_90')) answers90[key] = value;
+                if (key.endsWith('_6m')) answers6m[key] = value;
+            }
+
+            const etapa = document.getElementById('etapaAtual').value;
+            const id = document.getElementById('formId').value;
+
+            const payload = {
+                id: id || undefined,
+                tipo: 'experiencia',
+                funcionario: data.funcionario,
+                avaliador: data.avaliador,
+                cargo: data.cargo,
+                setor: data.setor,
+                dataAdmissao: data.dataAdmissao,
+                metas: data.metas,
+                treinamentos: data.treinamentos,
+                comentarios: data.comentarios,
+            };
+
+            if (etapa === '45') {
+                payload.answers45 = answers45;
+                payload.status45 = data.status45;
+            } else if (etapa === '90') {
+                payload.answers90 = answers90;
+                payload.status90 = data.status90;
+            } else if (etapa === '6m') {
+                payload.answers6m = answers6m;
+                payload.status6months = data.status6months;
+            }
+
+            const url = id ? `/api/avaliacao/${id}` : '/api/avaliacao';
+            const method = id ? 'PUT' : 'POST';
+
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await res.json();
+                if (result.ok) {
+                    const avalId = id || result.id;
+                    // Se estiver em etapa de assinatura (45 ou 90), tenta salvar assinaturas
+                    if (etapa === '45' || etapa === '90') {
+                        const sigSaved = await saveSignatures(avalId, etapa);
+                        if (!sigSaved) {
+                            console.warn('Avaliação salva, mas houve erro ou assinaturas pendentes.');
+                        }
+                    }
+
+                    alert('Salvo com sucesso!');
+                    if (!id) {
+                        window.location.href = `/form-avaliacao-experiencia.html?id=${result.id}`;
+                    } else {
+                        location.reload();
+                    }
+                } else {
+                    alert('Erro: ' + result.erro);
+                }
+            } catch (err) {
+                alert('Erro de conexão.');
+            }
+        });
+
+        // Initialize
+        const urlParams = new URLSearchParams(window.location.search);
+        const id = urlParams.get('id');
+        const normRole = (v) => String(v || '').trim().toLowerCase();
+
+        renderTable();
+        loadFuncionarios();
+
+        (async () => {
+            if (id) return;
+            const form = document.getElementById('experienciaForm');
+            if (!form || !form.avaliador) return;
+            try {
+                const res = await fetch('/api/me', { cache: 'no-store' });
+                const out = await res.json().catch(() => ({}));
+                const user = out && out.user ? out.user : null;
+                const role = normRole(user && user.role);
+                const nome = String(user && (user.name || user.username) || '').trim();
+                const isGestor = ['gestor', 'supervisor', 'gerente'].includes(role);
+                const gestorNomeAssinatura = document.getElementById('signature-gestor-nome');
+                if (gestorNomeAssinatura && form.avaliador.value) {
+                    gestorNomeAssinatura.value = form.avaliador.value;
+                }
+            } catch (_) { }
+        })();
+
+        document.querySelector('input[name="avaliador"]').addEventListener('input', function () {
+            const gestorNomeAssinatura = document.getElementById('signature-gestor-nome');
+            if (gestorNomeAssinatura) gestorNomeAssinatura.value = this.value;
+        });
+
+        if (id) loadEvaluation(id);
+
+        // Inicializar assinaturas
+        let gestorSignature, colaboradorSignature;
+
+        function initSignatures() {
+            const canvasGestor = document.getElementById('signature-gestor');
+            const canvasColab = document.getElementById('signature-colaborador');
+
+            if (canvasGestor) {
+                gestorSignature = new SignaturePad(canvasGestor, { color: '#000000', lineWidth: 2 });
+            }
+            if (canvasColab) {
+                colaboradorSignature = new SignaturePad(canvasColab, { color: '#000000', lineWidth: 2 });
+            }
+        }
+
+        function clearSignature(type) {
+            if (type === 'gestor' && gestorSignature) {
+                gestorSignature.clear();
+            } else if (type === 'colaborador' && colaboradorSignature) {
+                colaboradorSignature.clear();
+            }
+        }
+
+        async function saveSignatures(avaliacaoId, periodo = '90') {
+            const gestorNome = document.getElementById('signature-gestor-nome')?.value;
+            const colaboradorNome = document.getElementById('signature-colaborador-nome')?.value;
+
+            const gestorSignatureEmpty = gestorSignature ? gestorSignature.isEmpty() : true;
+            const colaboradorSignatureEmpty = colaboradorSignature ? colaboradorSignature.isEmpty() : true;
+
+            if (gestorSignatureEmpty && colaboradorSignatureEmpty) {
+                return false; // Nada para salvar
+            }
+
+            const gestorData = new Date().toLocaleDateString('pt-BR');
+            const colaboradorData = new Date().toLocaleDateString('pt-BR');
+
+            const gestorSignatureData = !gestorSignatureEmpty ? gestorSignature.toDataURL() : null;
+            const colaboradorSignatureData = !colaboradorSignatureEmpty ? colaboradorSignature.toDataURL() : null;
+
+            const payload = {
+                periodo: periodo,
+                gestor: gestorSignatureData ? {
+                    assinatura: gestorSignatureData,
+                    nome: gestorNome,
+                    data: gestorData
+                } : null,
+                colaborador: colaboradorSignatureData ? {
+                    assinatura: colaboradorSignatureData,
+                    nome: colaboradorNome,
+                    data: colaboradorData
+                } : null
+            };
+
+            try {
+                const response = await fetch(`/api/avaliacoes/${avaliacaoId}/assinaturas`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Erro ao salvar assinaturas');
+                }
+
+                return true;
+            } catch (error) {
+                console.error('Erro ao salvar assinaturas:', error);
+                return false;
+            }
+        }
+
+        // Modificar a função de submit para incluir assinaturas
+        async function submitAvaliacao() {
+            // ... código existente de coleta de dados ...
+
+            // Primeiro salva a avaliação
+            const response = await fetch('/api/avaliacao', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(avaliacaoData)
+            });
+
+            const result = await response.json();
+
+            if (result.ok && result.id) {
+                // Salva as assinaturas
+                const signaturesSaved = await saveSignatures(result.id);
+                if (signaturesSaved) {
+                    alert('Avaliação e assinaturas salvas com sucesso!');
+                    window.location.href = '/rh-experiencia.html';
+                } else {
+                    alert('Avaliação salva, mas houve erro ao salvar assinaturas.');
+                }
+            } else {
+                alert('Erro ao salvar avaliação');
+            }
+        }
+
+        // Carregar assinaturas existentes se for edição
+        async function loadExistingSignatures(avaliacaoId) {
+            try {
+                const response = await fetch(`/api/avaliacoes/${avaliacaoId}/assinaturas`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const etapa = document.getElementById('etapaAtual')?.value || '45';
+                    
+                    // Encontra a assinatura para o período atual
+                    const sig = (data.assinaturas || []).find(a => String(a.periodo) === String(etapa));
+                    
+                    if (sig) {
+                        if (sig.gestor && sig.gestor.assinatura) {
+                            await gestorSignature?.fromDataURL(sig.gestor.assinatura);
+                            document.getElementById('signature-gestor-nome').value = sig.gestor.nome || '';
+                        }
+                        if (sig.colaborador && sig.colaborador.assinatura) {
+                            await colaboradorSignature?.fromDataURL(sig.colaborador.assinatura);
+                            document.getElementById('signature-colaborador-nome').value = sig.colaborador.nome || '';
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao carregar assinaturas:', error);
+            }
+        }
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', () => {
+            initSignatures();
+
+            // Se estiver criando uma nova, o loadFuncionarios já cuida
+            // Se for edição, o loadEvaluation() é chamado e ele chama o loadExistingSignatures()
+        });
+    </script>
+</body>
+
+</html>

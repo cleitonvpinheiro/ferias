@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Portal RH - Família Madalosso</title>
+    <link rel="icon" href="/assets/logo.png" type="image/png">
+    <link rel="stylesheet" href="/rh-styles.css">
+    <script src="/lang-switcher.js" defer></script>
+
+</head>
+
+<body data-page="rh-index">
+
+    <div id="navbar-container" style="display:none;"></div>
+    <script src="/rh-navbar.js"></script>
+
+    <main class="dashboard-container">
+        <div class="page-header">
+            <div>
+                <div class="intranet-landing-logo-wrap" aria-hidden="true">
+                    <img class="intranet-landing-logo" src="/assets/logo.png" alt="">
+                </div>
+                <h1 id="page-title" class="page-title" data-translate="intranet_public_title">Intranet</h1>
+                <p id="page-subtitle" class="page-subtitle" data-translate="intranet_public_subtitle">Comunicados,
+                    aniversariantes e eventos</p>
+            </div>
+            <div class="page-actions" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                <a class="btn btn-outline" href="/formularios">📄 <span
+                        data-translate="intranet_public_forms">Formulários</span></a>
+                <a id="btn-go-protected" class="btn btn-primary" href="/login.html">🔒 <span
+                        data-translate="intranet_public_login">Login</span></a>
+                <div id="user-info"
+                    style="display:none; padding: 8px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-secondary); font-weight: 800; font-size: 0.9rem;">
+                </div>
+            </div>
+        </div>
+
+        <div id="dp-alerts"
+            style="display:none; margin: 16px 0; padding: 14px 16px; border-radius: 12px; border: 1px solid #fbbf24; background: #fffbeb; color: #78350f;">
+        </div>
+
+        <div id="intranet-section" style="display:none; margin: 16px 0 24px 0;">
+            <div class="module-header">
+                <h2 id="intranet-module-title" class="module-title" data-translate="intranet_public_module_title">
+                    Comunicados</h2>
+                <div class="module-actions">
+                    <button id="btn-refresh-intranet" class="btn btn-sm btn-outline" style="display:none;"
+                        data-translate="intranet_refresh">Atualizar</button>
+                </div>
+            </div>
+
+            <div class="intranet-grid">
+                <div class="intranet-left">
+                    <div id="intranet-composer-panel" class="panel">
+                        <div class="panel-header">
+                            <div class="panel-title" data-translate="intranet_publish_title">Publicar</div>
+                        </div>
+                        <div class="composer">
+                            <div class="composer-row">
+                                <input id="intranet-title" type="text" class="filter-input"
+                                    data-translate="intranet_post_title_ph" placeholder="Título (opcional)">
+                                <select id="intranet-type" class="filter-select">
+                                    <option value="post">Post</option>
+                                    <option value="announcement">Comunicado RH</option>
+                                </select>
+                            </div>
+                            <textarea id="intranet-content" class="filter-input"
+                                data-translate="intranet_post_content_ph" placeholder="Escreva uma atualização..."
+                                rows="3" style="resize: vertical;"></textarea>
+
+                            <div class="composer-img-bar"
+                                style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+                                <button type="button" class="btn btn-outline" data-translate="intranet_post_image_btn"
+                                    onclick="document.getElementById('intranet-img-input').click()">📷 Imagem</button>
+                                <span style="font-size: 0.8rem; color: var(--text-secondary);">JPG, PNG, GIF · máx. 5
+                                    MB</span>
+                                <input type="file" id="intranet-img-input" style="display: none;" accept="image/*"
+                                    onchange="handleIntranetImgPreview(this)">
+                            </div>
+
+                            <div id="intranet-img-preview-wrap" class="composer-img-preview"
+                                style="display: none; position:relative; margin-top: 8px;">
+                                <img id="intranet-img-preview" src="" alt="Prévia da imagem"
+                                    style="max-width: 100%; border-radius: 8px; max-height:220px; object-fit:contain; border:1px solid var(--border); display:block;">
+                                <button type="button" onclick="removeIntranetImage()" class="btn btn-outline"
+                                    style="position:absolute; top:8px; right:8px;">❌</button>
+                            </div>
+
+                            <div class="composer-actions">
+                                <button id="btn-intranet-post" class="btn btn-primary"
+                                    data-translate="intranet_publish_btn">Publicar</button>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-header">
+                            <div id="intranet-feed-title" class="panel-title"
+                                data-translate="intranet_public_feed_title">Comunicados</div>
+                        </div>
+                        <div id="intranet-feed" class="feed"></div>
+                    </div>
+                </div>
+
+                <div class="intranet-right">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <div class="panel-title" data-translate="intranet_events_title">Eventos</div>
+                            <button id="btn-toggle-event" class="btn btn-sm btn-outline" style="display:none;"
+                                data-translate="intranet_events_new">Novo</button>
+                        </div>
+                        <div id="event-form" style="display:none; gap: 8px; margin-bottom: 10px;">
+                            <input id="event-title" type="text" class="filter-input"
+                                data-translate="intranet_event_title_ph" placeholder="Título">
+                            <input id="event-date" type="datetime-local" class="filter-input">
+                            <input id="event-local" type="text" class="filter-input"
+                                data-translate="intranet_event_local_ph" placeholder="Local (opcional)">
+                            <textarea id="event-desc" rows="2" class="filter-input"
+                                data-translate="intranet_event_desc_ph" placeholder="Descrição (opcional)"
+                                style="resize: vertical;"></textarea>
+                            <button id="btn-create-event" class="btn btn-primary" style="width:100%;"
+                                data-translate="intranet_events_create">Criar evento</button>
+                        </div>
+                        <div id="events-list" class="list"></div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-header">
+                            <div class="panel-title" data-translate="intranet_birthdays_title">Aniversariantes</div>
+                        </div>
+                        <div id="birthdays-list" class="list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="analytics-section" style="display:none; margin: 16px 0 24px 0;">
+            <div class="module-header">
+                <h2 class="module-title">People Analytics</h2>
+                <div class="module-actions">
+                    <button id="btn-run-reminders" class="btn btn-sm btn-outline" style="display:none;">Gerar
+                        lembretes</button>
+                    <button id="btn-refresh-analytics" class="btn btn-sm btn-outline"
+                        style="display:none;">Atualizar</button>
+                </div>
+            </div>
+
+            <div class="kpi-grid">
+                <div class="panel">
+                    <div class="kpi-label">Média performance</div>
+                    <div id="kpi-perf-avg" class="kpi-value">—</div>
+                </div>
+                <div class="panel">
+                    <div class="kpi-label">Desligamentos (30d)</div>
+                    <div id="kpi-turnover" class="kpi-value">—</div>
+                </div>
+                <div class="panel">
+                    <div class="kpi-label">Onboarding pendente</div>
+                    <div id="kpi-onboarding" class="kpi-value">—</div>
+                </div>
+                <div class="panel">
+                    <div class="kpi-label">Pendências RH</div>
+                    <div id="kpi-pendencias" class="kpi-value">—</div>
+                </div>
+            </div>
+
+            <div class="split-grid">
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">Top setores (performance)</div>
+                    </div>
+                    <div id="perf-setores" style="display:flex; flex-direction:column; gap: 8px;"></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">Heatmap (setor × tipo)</div>
+                    </div>
+                    <div style="overflow:auto;">
+                        <table id="heatmap-table" class="heatmap-table">
+                            <thead id="heatmap-head"></thead>
+                            <tbody id="heatmap-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="gestor-equipe-section" style="display:none; margin-top: 24px;">
+            <h2 style="margin: 0 0 10px 0; font-size: 1.1rem; color: var(--text-primary);">Minha equipe</h2>
+            <div id="gestor-equipe-card"
+                style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+                <div id="gestor-equipe-loading" style="color: var(--text-secondary); font-size: 0.9rem;">Carregando...
+                </div>
+                <div id="gestor-equipe-empty" style="display:none; color: var(--text-secondary); font-size: 0.9rem;">
+                    Nenhum colaborador vinculado.</div>
+                <div style="overflow-x:auto;">
+                    <table id="gestor-equipe-table" style="width:100%; border-collapse: collapse; display:none;">
+                        <thead>
+                            <tr
+                                style="text-align:left; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 0.85rem;">
+                                <th style="padding: 8px 6px;">Nome</th>
+                                <th style="padding: 8px 6px;">Cargo</th>
+                                <th style="padding: 8px 6px;">Setor</th>
+                                <th style="padding: 8px 6px;">Matrícula</th>
+                                <th style="padding: 8px 6px;">Período de Experiência</th>
+                                <th style="padding: 8px 6px;">Estabilidade</th>
+                                <th style="padding: 8px 6px;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gestor-equipe-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div id="gestor-ferias-section" style="display:none; margin-top: 24px;">
+            <h2 style="margin: 0 0 10px 0; font-size: 1.1rem; color: var(--text-primary);">Férias da Equipe</h2>
+            <div
+                style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+                <div id="gestor-ferias-loading" style="color: var(--text-secondary); font-size: 0.9rem;">Carregando...
+                </div>
+                <div id="gestor-ferias-empty" style="display:none; color: var(--text-secondary); font-size: 0.9rem;">
+                    Nenhuma solicitação encontrada.</div>
+                <div style="overflow-x:auto;">
+                    <table id="gestor-ferias-table" style="width:100%; border-collapse: collapse; display:none;">
+                        <thead>
+                            <tr
+                                style="text-align:left; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 0.85rem;">
+                                <th style="padding: 8px 6px;">Colaborador</th>
+                                <th style="padding: 8px 6px;">Setor</th>
+                                <th style="padding: 8px 6px;">Início</th>
+                                <th style="padding: 8px 6px;">Período</th>
+                                <th style="padding: 8px 6px;">Status</th>
+                                <th style="padding: 8px 6px;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gestor-ferias-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <footer class="rh-portal-footer">
+            <p id="page-footer" data-translate="intranet_public_footer">&copy; 2026 Família Madalosso.</p>
+        </footer>
+    </main>
+
+    <div id="notifications-modal"
+        style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); align-items: center; justify-content: center; z-index: 9999;"
+        onclick="if(event.target===this) toggleNotifications(false)">
+        <div
+            style="width: min(520px, 92vw); max-height: 80vh; overflow:auto; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px;">
+            <div
+                style="display:flex; align-items:center; justify-content:space-between; gap: 10px; margin-bottom: 10px;">
+                <div style="font-weight: 900; color: var(--text-primary);">Notificações</div>
+                <button class="btn btn-sm btn-outline" onclick="toggleNotifications(false)">Fechar</button>
+            </div>
+            <div style="display:flex; gap: 10px; margin-bottom: 10px;">
+                <button class="btn btn-sm btn-outline" onclick="marcarTodasNotificacoesLidas()">Marcar todas como
+                    lidas</button>
+            </div>
+            <div id="notifications-list" style="display:flex; flex-direction:column; gap: 10px;"></div>
+        </div>
+    </div>
+
+    <script>
+        function handleIntranetImgPreview(input) {
+            const file = input.files && input.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                const preview = document.getElementById('intranet-img-preview');
+                const wrap = document.getElementById('intranet-img-preview-wrap');
+                if (preview && wrap) {
+                    preview.src = url;
+                    wrap.style.display = 'block';
+                }
+            }
+        }
+
+        function removeIntranetImage() {
+            const input = document.getElementById('intranet-img-input');
+            const preview = document.getElementById('intranet-img-preview');
+            const wrap = document.getElementById('intranet-img-preview-wrap');
+            if (input) input.value = '';
+            if (preview) preview.src = '';
+            if (wrap) wrap.style.display = 'none';
+        }
+
+        async function checkAccess() {
+            try {
+                const res = await fetch('/api/access', { cache: 'no-store' });
+                if (res.status === 401 || res.status === 403) {
+                    window.__intranetPublicMode = true;
+                    await renderPublicView();
+                    return;
+                }
+                if (!res.ok) throw new Error('Erro ao verificar sessão');
+
+                const data = await res.json();
+                const user = data.user;
+                const role = user.role;
+                window.__currentUser = user;
+                window.__intranetPublicMode = false;
+
+                const roleNorm = String(role || '').trim().toLowerCase();
+                const isGestorHome = ['gestor', 'lider', 'supervisor', 'gerente'].includes(roleNorm);
+                if (isGestorHome && window.location && window.location.pathname === '/protected/index.html') {
+                    window.location.href = '/protected/dashboard-gestor.html';
+                    return;
+                }
+
+                const nav = document.getElementById('navbar-container');
+                if (nav) nav.style.display = '';
+                if (typeof renderRHNavbar === 'function') renderRHNavbar('');
+
+                const btnProtected = document.getElementById('btn-go-protected');
+                if (btnProtected) {
+                    const access = data && data.access ? data.access : null;
+                    let dashLink = '/protected/dashboard-rh.html';
+                    if (access && Array.isArray(access.protectedPaths) && access.protectedPaths.length > 0) {
+                        const first = access.protectedPaths.find(p => p && typeof p === 'string' && p.startsWith('/protected/') && p.endsWith('.html') && !p.endsWith('/index.html'));
+                        if (first) dashLink = first;
+                    }
+                    if (String(role || '').toLowerCase() === 'portaria') dashLink = '/protected/dashboard-portaria.html';
+                    btnProtected.href = dashLink;
+                    btnProtected.innerHTML = '🖥️ <span data-translate="intranet_dashboard">Painel</span>';
+                    refreshI18n();
+                }
+
+                // Show user info
+                const infoDiv = document.getElementById('user-info');
+                if (infoDiv) {
+                    infoDiv.style.display = '';
+                    infoDiv.textContent = `👤 ${user.name || user.username} (${String(role || '').toUpperCase()})`;
+                }
+
+                await renderDpAlerts(role);
+                await setupNotifications(user);
+                await renderIntranet(role, user);
+                await renderAnalytics(role);
+
+                if (['gestor', 'lider', 'supervisor', 'gerente'].includes(roleNorm)) {
+                    renderEquipeGestor();
+                    renderFeriasEquipeGestor();
+                }
+
+            } catch (e) {
+                console.error(e);
+                window.__intranetPublicMode = true;
+                await renderPublicView();
+            }
+        }
+
+        async function renderPublicView() {
+            setPageMode(true);
+
+            const infoDiv = document.getElementById('user-info');
+            if (infoDiv) infoDiv.style.display = 'none';
+
+            const nav = document.getElementById('navbar-container');
+            if (nav) nav.style.display = 'none';
+
+            const dpAlerts = document.getElementById('dp-alerts');
+            if (dpAlerts) dpAlerts.style.display = 'none';
+
+            const analytics = document.getElementById('analytics-section');
+            if (analytics) analytics.style.display = 'none';
+
+            const gestorEquipe = document.getElementById('gestor-equipe-section');
+            if (gestorEquipe) gestorEquipe.style.display = 'none';
+
+            const gestorFerias = document.getElementById('gestor-ferias-section');
+            if (gestorFerias) gestorFerias.style.display = 'none';
+
+            const notifModal = document.getElementById('notifications-modal');
+            if (notifModal) notifModal.style.display = 'none';
+
+            const btnProtected = document.getElementById('btn-go-protected');
+            if (btnProtected) {
+                btnProtected.href = '/login.html';
+                btnProtected.innerHTML = '🔒 <span data-translate="intranet_public_login">Login</span>';
+            }
+
+            const section = document.getElementById('intranet-section');
+            if (section) section.style.display = '';
+
+            const composerPanel = document.getElementById('intranet-composer-panel');
+            if (composerPanel) composerPanel.style.display = 'none';
+
+            const toggleEventBtn = document.getElementById('btn-toggle-event');
+            if (toggleEventBtn) toggleEventBtn.style.display = 'none';
+
+            const eventForm = document.getElementById('event-form');
+            if (eventForm) eventForm.style.display = 'none';
+
+            const btnCreateEvent = document.getElementById('btn-create-event');
+            if (btnCreateEvent) btnCreateEvent.style.display = 'none';
+
+            const refreshBtn = document.getElementById('btn-refresh-intranet');
+            if (refreshBtn) {
+                refreshBtn.style.display = '';
+                refreshBtn.onclick = async () => {
+                    await Promise.all([loadIntranetFeed(), loadIntranetEvents(), loadBirthdays()]);
+                };
+            }
+
+            await Promise.all([loadIntranetFeed(), loadIntranetEvents(), loadBirthdays()]);
+        }
+
+        function refreshI18n() {
+            if (typeof window.__i18nApply === 'function') {
+                try { window.__i18nApply(); } catch { }
+                return;
+            }
+            try { window.dispatchEvent(new Event('i18n:refresh')); } catch { }
+            setTimeout(() => {
+                if (typeof window.__i18nApply === 'function') {
+                    try { window.__i18nApply(); } catch { }
+                } else {
+                    try { window.dispatchEvent(new Event('i18n:refresh')); } catch { }
+                }
+            }, 0);
+        }
+
+        function getLang() {
+            try {
+                const v = String(localStorage.getItem('app_lang') || '').trim().toLowerCase();
+                if (v === 'pt' || v === 'es' || v === 'en') return v;
+            } catch (_) { }
+            return 'pt';
+        }
+
+        function i18n(key, fallback) {
+            const lang = getLang();
+            const dict = window.__APP_I18N__ && window.__APP_I18N__[lang];
+            const val = dict && dict[key];
+            return (typeof val === 'string' && val.length) ? val : fallback;
+        }
+
+        function fmt(tpl, vars) {
+            let out = String(tpl || '');
+            const v = vars && typeof vars === 'object' ? vars : {};
+            Object.keys(v).forEach(k => {
+                out = out.replaceAll(`{${k}}`, String(v[k]));
+            });
+            return out;
+        }
+
+        function applyIntranetStaticI18n() {
+            const sel = document.getElementById('intranet-type');
+            if (sel) {
+                const optPost = sel.querySelector('option[value="post"]');
+                if (optPost) optPost.textContent = i18n('intranet_post_type_post', optPost.textContent || 'Post');
+                const optAnn = sel.querySelector('option[value="announcement"]');
+                if (optAnn) optAnn.textContent = i18n('intranet_post_type_announcement', optAnn.textContent || 'Comunicado RH');
+            }
+        }
+
+        function setPageMode(isPublic) {
+            const titleEl = document.getElementById('page-title');
+            const subEl = document.getElementById('page-subtitle');
+            const footerEl = document.getElementById('page-footer');
+            const moduleTitle = document.getElementById('intranet-module-title');
+            const feedTitle = document.getElementById('intranet-feed-title');
+
+            if (document.body && document.body.classList) {
+                document.body.classList.toggle('intranet-public', !!isPublic);
+            }
+
+            if (titleEl) titleEl.setAttribute('data-translate', isPublic ? 'intranet_public_title' : 'rh_portal_title');
+            if (subEl) subEl.setAttribute('data-translate', isPublic ? 'intranet_public_subtitle' : 'rh_portal_subtitle');
+            if (footerEl) footerEl.setAttribute('data-translate', isPublic ? 'intranet_public_footer' : 'rh_footer');
+
+            if (moduleTitle) moduleTitle.setAttribute('data-translate', isPublic ? 'intranet_public_module_title' : 'intranet_module_title');
+            if (feedTitle) feedTitle.setAttribute('data-translate', isPublic ? 'intranet_public_feed_title' : 'intranet_feed_title');
+
+            refreshI18n();
+            applyIntranetStaticI18n();
+        }
+
+        window.addEventListener('languagechange', () => {
+            applyIntranetStaticI18n();
+            refreshI18n();
+            const sec = document.getElementById('intranet-section');
+            const visible = !!(sec && sec.style.display !== 'none');
+            if (visible) {
+                Promise.all([loadIntranetFeed(), loadIntranetEvents(), loadBirthdays()]).catch(() => { });
+            }
+        });
+
+        function canManageIntranet(role) {
+            return ['admin', 'rh', 'rh_geral', 'dp', 'td'].includes(String(role || '').trim().toLowerCase());
+        }
+
+        function canRunReminders(role) {
+            return ['admin', 'rh', 'rh_geral', 'dp'].includes(String(role || '').trim().toLowerCase());
+        }
+
+        async function renderAnalytics(role) {
+            const section = document.getElementById('analytics-section');
+            if (!section) return;
+            section.style.display = '';
+
+            const refreshBtn = document.getElementById('btn-refresh-analytics');
+            if (refreshBtn) {
+                refreshBtn.style.display = '';
+                refreshBtn.onclick = async () => {
+                    await Promise.all([loadAnalyticsOverview(), loadHeatmap()]);
+                };
+            }
+
+            const runBtn = document.getElementById('btn-run-reminders');
+            if (runBtn) {
+                runBtn.style.display = canRunReminders(role) ? '' : 'none';
+                runBtn.onclick = async () => {
+                    runBtn.disabled = true;
+                    try {
+                        const res = await fetch('/api/rh/reminders/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok || !data.ok) throw new Error(data.erro || 'Falha');
+                        await loadNotificationsCount();
+                    } catch (_) {
+                    } finally {
+                        runBtn.disabled = false;
+                    }
+                };
+            }
+
+            await Promise.all([loadAnalyticsOverview(), loadHeatmap()]);
+        }
+
+        function heatColor(avg) {
+            const v = typeof avg === 'number' ? avg : null;
+            if (v === null) return 'transparent';
+            if (v >= 85) return 'rgba(16,185,129,0.18)';
+            if (v >= 70) return 'rgba(245,158,11,0.18)';
+            return 'rgba(239,68,68,0.18)';
+        }
+
+        async function loadAnalyticsOverview() {
+            const kPerf = document.getElementById('kpi-perf-avg');
+            const kTurn = document.getElementById('kpi-turnover');
+            const kOnb = document.getElementById('kpi-onboarding');
+            const kPend = document.getElementById('kpi-pendencias');
+            const setores = document.getElementById('perf-setores');
+            if (kPerf) kPerf.textContent = '—';
+            if (kTurn) kTurn.textContent = '—';
+            if (kOnb) kOnb.textContent = '—';
+            if (kPend) kPend.textContent = '—';
+            if (setores) setores.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.9rem;">Carregando...</div>';
+
+            try {
+                const res = await fetch('/api/analytics/overview', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok) throw new Error(data.erro || 'Falha');
+
+                const avg = data.performance && typeof data.performance.avg === 'number' ? data.performance.avg : null;
+                if (kPerf) kPerf.textContent = avg === null ? '—' : `${avg}%`;
+
+                const turn = data.turnover && Number.isFinite(Number(data.turnover.desligamentos30d)) ? Number(data.turnover.desligamentos30d) : 0;
+                if (kTurn) kTurn.textContent = String(turn);
+
+                const onbPend = data.onboarding && Number.isFinite(Number(data.onboarding.pendente)) ? Number(data.onboarding.pendente) : 0;
+                if (kOnb) kOnb.textContent = String(onbPend);
+
+                const oper = data.operacional || {};
+                const pend = (Number(oper.feriasPendentesRh || 0) + Number(oper.taxasPendentes || 0) + Number(oper.movimentacoesPendentes || 0));
+                if (kPend) kPend.textContent = String(pend);
+
+                const list = (data.performance && Array.isArray(data.performance.topSetores)) ? data.performance.topSetores : [];
+                if (!setores) return;
+                if (list.length === 0) {
+                    setores.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.9rem;">Sem dados.</div>';
+                    return;
+                }
+                setores.innerHTML = list.map(s => {
+                    const setor = escapeHtml(s.setor || '');
+                    const avgS = typeof s.avg === 'number' ? `${s.avg}%` : '—';
+                    const cnt = Number(s.count || 0);
+                    return `<div style="display:flex; justify-content:space-between; gap: 10px; border: 1px solid var(--border); border-radius: 12px; padding: 10px; background: var(--bg-body);">
+                    <div style="font-weight: 900; color: var(--text-primary);">${setor}</div>
+                    <div style="color: var(--text-secondary); font-size: 0.85rem;">${escapeHtml(avgS)} • ${cnt}</div>
+                </div>`;
+                }).join('');
+            } catch (_) {
+                if (setores) setores.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.9rem;">Erro ao carregar.</div>';
+            }
+        }
+
+        async function loadHeatmap() {
+            const head = document.getElementById('heatmap-head');
+            const body = document.getElementById('heatmap-body');
+            if (!head || !body) return;
+            head.innerHTML = '';
+            body.innerHTML = '<tr><td style="padding: 10px; color: var(--text-secondary);">Carregando...</td></tr>';
+            try {
+                const res = await fetch('/api/analytics/performance-heatmap', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok) throw new Error(data.erro || 'Falha');
+                const tipos = Array.isArray(data.tipos) ? data.tipos : [];
+                const rows = Array.isArray(data.rows) ? data.rows : [];
+
+                const ths = ['<tr><th style="text-align:left; padding:8px 6px; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 0.85rem;">Setor</th>']
+                    .concat(tipos.map(t => `<th style="text-align:left; padding:8px 6px; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 0.85rem;">${escapeHtml(t)}</th>`))
+                    .concat(['</tr>']);
+                head.innerHTML = ths.join('');
+
+                if (rows.length === 0) {
+                    body.innerHTML = '<tr><td style="padding: 10px; color: var(--text-secondary);">Sem dados.</td></tr>';
+                    return;
+                }
+
+                const trs = rows.slice(0, 12).map(r => {
+                    const cells = r && r.cells ? r.cells : {};
+                    const tds = [`<td style="padding:8px 6px; border-bottom: 1px solid var(--border); font-weight: 900; color: var(--text-primary);">${escapeHtml(r.setor || '')}</td>`]
+                        .concat(tipos.map(t => {
+                            const c = cells[t] || {};
+                            const avg = typeof c.avg === 'number' ? c.avg : null;
+                            const count = Number(c.count || 0);
+                            const text = avg === null ? '—' : `${avg}%`;
+                            const bg = heatColor(avg);
+                            return `<td style="padding:8px 6px; border-bottom: 1px solid var(--border); background:${bg}; color: var(--text-primary);">${escapeHtml(text)}<span style="color: var(--text-secondary); font-size: 0.8rem;"> (${count})</span></td>`;
+                        }));
+                    return `<tr>${tds.join('')}</tr>`;
+                });
+                body.innerHTML = trs.join('');
+            } catch (_) {
+                body.innerHTML = '<tr><td style="padding: 10px; color: var(--text-secondary);">Erro ao carregar.</td></tr>';
+            }
+        }
+
+        async function renderIntranet(role, user) {
+            setPageMode(false);
+
+            const section = document.getElementById('intranet-section');
+            if (!section) return;
+            section.style.display = '';
+
+            const refreshBtn = document.getElementById('btn-refresh-intranet');
+            if (refreshBtn) {
+                refreshBtn.style.display = '';
+                refreshBtn.onclick = async () => {
+                    await Promise.all([loadIntranetFeed(), loadIntranetEvents(), loadBirthdays()]);
+                };
+            }
+
+            const typeSel = document.getElementById('intranet-type');
+            if (typeSel && !canManageIntranet(role)) {
+                typeSel.value = 'post';
+                const opt = typeSel.querySelector('option[value="announcement"]');
+                if (opt) opt.remove();
+            }
+            const composerPanel = document.getElementById('intranet-composer-panel');
+            if (composerPanel) composerPanel.style.display = '';
+
+            const btnPost = document.getElementById('btn-intranet-post');
+            if (btnPost) {
+                btnPost.onclick = async () => {
+                    const tituloEl = document.getElementById('intranet-title');
+                    const contentEl = document.getElementById('intranet-content');
+                    const imgInput = document.getElementById('intranet-img-input');
+                    const tipo = typeSel ? String(typeSel.value) : 'post';
+                    const titulo = tituloEl ? String(tituloEl.value || '').trim() : '';
+                    const conteudo = contentEl ? String(contentEl.value || '').trim() : '';
+                    if (!conteudo) return;
+
+                    btnPost.disabled = true;
+                    try {
+                        let res;
+                        const file = imgInput && imgInput.files[0];
+
+                        if (file) {
+                            // Envia como multipart/form-data quando há imagem
+                            const fd = new FormData();
+                            fd.append('titulo', titulo);
+                            fd.append('conteudo', conteudo);
+                            fd.append('tipo', tipo);
+                            fd.append('imagem', file);
+                            res = await fetch('/api/intranet/posts', { method: 'POST', body: fd });
+                        } else {
+                            // Mantém JSON quando não há imagem (compatível com o backend atual)
+                            res = await fetch('/api/intranet/posts', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ titulo, conteudo, tipo })
+                            });
+                        }
+
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok || !data.ok) throw new Error(data.erro || 'Falha ao publicar');
+
+                        if (tituloEl) tituloEl.value = '';
+                        if (contentEl) contentEl.value = '';
+                        removeIntranetImage();   // limpa preview e input
+                        await loadIntranetFeed();
+                        await loadNotificationsCount();
+                    } catch (_) {
+                    } finally {
+                        btnPost.disabled = false;
+                    }
+                };
+            }
+
+            const toggleEventBtn = document.getElementById('btn-toggle-event');
+            const eventForm = document.getElementById('event-form');
+            if (toggleEventBtn) {
+                toggleEventBtn.style.display = canManageIntranet(role) ? '' : 'none';
+                toggleEventBtn.onclick = () => {
+                    if (!eventForm) return;
+                    const open = eventForm.style.display === 'none' || !eventForm.style.display;
+                    eventForm.style.display = open ? 'grid' : 'none';
+                };
+            }
+            if (eventForm) eventForm.style.display = 'none';
+
+            const btnCreateEvent = document.getElementById('btn-create-event');
+            if (btnCreateEvent) {
+                btnCreateEvent.onclick = async () => {
+                    const t = document.getElementById('event-title');
+                    const d = document.getElementById('event-date');
+                    const l = document.getElementById('event-local');
+                    const desc = document.getElementById('event-desc');
+                    const titulo = t ? String(t.value || '').trim() : '';
+                    const data_inicio = d ? String(d.value || '').trim() : '';
+                    const local = l ? String(l.value || '').trim() : '';
+                    const descricao = desc ? String(desc.value || '').trim() : '';
+                    if (!titulo || !data_inicio) return;
+                    btnCreateEvent.disabled = true;
+                    try {
+                        const res = await fetch('/api/intranet/events', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ titulo, data_inicio, local, descricao })
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok || !data.ok) throw new Error(data.erro || 'Falha ao criar evento');
+                        if (t) t.value = '';
+                        if (d) d.value = '';
+                        if (l) l.value = '';
+                        if (desc) desc.value = '';
+                        if (eventForm) eventForm.style.display = 'none';
+                        await loadIntranetEvents();
+                        await loadNotificationsCount();
+                    } catch (_) {
+                    } finally {
+                        btnCreateEvent.disabled = false;
+                    }
+                };
+            }
+
+            await Promise.all([loadIntranetFeed(), loadIntranetEvents(), loadBirthdays()]);
+        }
+
+        function escapeHtml(s) {
+            return String(s ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
+        function initials(name) {
+            const n = String(name || '').trim();
+            if (!n) return '';
+            const parts = n.split(/\s+/).filter(Boolean);
+            const a = parts[0] ? parts[0][0] : '';
+            const b = parts.length > 1 ? parts[parts.length - 1][0] : '';
+            return (a + b).toUpperCase();
+        }
+
+        function fmtDateTime(iso) {
+            if (!iso) return '';
+            const d = new Date(iso);
+            if (Number.isNaN(d.getTime())) return '';
+            return d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+        }
+
+        async function loadIntranetFeed() {
+            const feed = document.getElementById('intranet-feed');
+            if (!feed) return;
+            const isPublic = !!window.__intranetPublicMode;
+            feed.innerHTML = `<div class="feed-empty">${escapeHtml(i18n('intranet_loading', 'Carregando...'))}</div>`;
+            try {
+                const prefix = isPublic ? '/api/public/intranet' : '/api/intranet';
+                const url = isPublic ? `${prefix}/feed?limit=50&type=announcement` : `${prefix}/feed?limit=50`;
+                const res = await fetch(url, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok) throw new Error(data.erro || 'Falha');
+                const items = Array.isArray(data.items) ? data.items : [];
+                if (items.length === 0) {
+                    feed.innerHTML = `<div class="feed-empty">${escapeHtml(i18n(isPublic ? 'intranet_feed_empty_announcements' : 'intranet_feed_empty', isPublic ? 'Sem comunicados.' : 'Sem publicações.'))}</div>`;
+                    return;
+                }
+
+                // Verifica se o usuário logado pode excluir
+                const currentUser = window.__currentUser || null;
+                const currentRole = currentUser ? String(currentUser.role || '').toLowerCase() : '';
+                const canDeleteAny = ['admin', 'rh', 'rh_geral'].includes(currentRole);
+
+                const parts = [];
+                items.forEach(it => {
+                    const isAnn = String(it.tipo || '') === 'announcement';
+                    const badge = isAnn ? `<span class="badge badge-warning">${escapeHtml(i18n('intranet_badge_announcement', 'Comunicado'))}</span>` : '';
+                    const title = it.titulo ? `<div class="feed-title">${escapeHtml(it.titulo)}</div>` : '';
+                    const meta = `<div class="feed-meta">${badge}<span>${escapeHtml(it.autor_nome || it.autor_username || '')}</span><span>•</span><span>${escapeHtml(fmtDateTime(it.created_at))}</span></div>`;
+
+                    // Imagem (se houver)
+                    const imgTag = it.imagem_url
+                        ? `<img src="${escapeHtml(it.imagem_url)}" alt="" loading="lazy" style="
+        margin-top:8px; 
+        width:100%; 
+        max-height:400px; 
+        object-fit:contain; 
+        border-radius:12px; 
+        border:1px solid var(--border);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        filter: brightness(1.05) contrast(1.1) saturate(1.05);
+        transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
+        cursor: pointer;
+      "
+      onmouseover="this.style.transform='scale(1.02)'; this.style.filter='brightness(1.1) contrast(1.2) saturate(1.1)'; this.style.boxShadow='0 8px 24px rgba(0,0,0,0.18)';"
+      onmouseout="this.style.transform='scale(1)'; this.style.filter='brightness(1.05) contrast(1.1) saturate(1.05)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.12)';"
+      onclick="window.open('${escapeHtml(it.imagem_url)}', '_blank')">`
+                        : '';
+
+
+                    // Botão excluir — aparece para admin/rh ou para o próprio autor
+                    const isOwner = currentUser && it.autor_username === currentUser.username;
+                    const showDelete = !isPublic && (canDeleteAny || isOwner);
+                    const deleteBtn = showDelete
+                        ? `<button class="btn btn-sm btn-outline" style="color:var(--danger); border-color:var(--danger); margin-top:8px;"
+                       onclick="deleteIntranetPost('${escapeHtml(it.id)}', this)">🗑 Excluir</button>`
+                        : '';
+
+                    parts.push(
+                        `<div class="feed-item">` +
+                        meta + title +
+                        `<div class="feed-content">${escapeHtml(it.conteudo || '')}</div>` +
+                        imgTag +
+                        deleteBtn +
+                        `</div>`
+                    );
+
+                    console.log('item:', JSON.stringify(it));
+                });
+                feed.innerHTML = parts.join('');
+            } catch (_) {
+                feed.innerHTML = `<div class="feed-empty">${escapeHtml(i18n('intranet_feed_error', 'Erro ao carregar feed.'))}</div>`;
+            }
+        }
+
+        async function deleteIntranetPost(id, btn) {
+            if (!confirm('Excluir este post? Esta ação não pode ser desfeita.')) return;
+            if (btn) btn.disabled = true;
+            try {
+                const res = await fetch(`/api/intranet/posts/${encodeURIComponent(id)}`, {
+                    method: 'DELETE',
+                    headers: { 'Accept': 'application/json' }
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok) throw new Error(data.erro || 'Falha ao excluir');
+                await loadIntranetFeed();
+            } catch (e) {
+                alert('Erro ao excluir: ' + e.message);
+                if (btn) btn.disabled = false;
+            }
+        }
+        async function loadIntranetEvents() {
+            const list = document.getElementById('events-list');
+            if (!list) return;
+            list.innerHTML = `<div class="feed-empty">${escapeHtml(i18n('intranet_loading', 'Carregando...'))}</div>`;
+            try {
+                const prefix = window.__intranetPublicMode ? '/api/public/intranet' : '/api/intranet';
+                const res = await fetch(`${prefix}/events?limit=20`, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok) throw new Error(data.erro || 'Falha');
+                const items = Array.isArray(data.items) ? data.items : [];
+                if (items.length === 0) {
+                    list.innerHTML = `<div class="feed-empty">${escapeHtml(i18n('intranet_events_empty', 'Sem eventos.'))}</div>`;
+                    return;
+                }
+                const parts = [];
+                items.forEach(it => {
+                    const when = fmtDateTime(it.data_inicio);
+                    const where = it.local ? ` • ${escapeHtml(it.local)}` : '';
+                    parts.push(
+                        `<div class="list-item">` +
+                        `<div class="avatar" aria-hidden="true">📅</div>` +
+                        `<div class="list-main">` +
+                        `<div class="list-title">${escapeHtml(it.titulo || '')}</div>` +
+                        `<div class="list-sub">${escapeHtml(when)}${where}</div>` +
+                        (it.descricao ? `<div class="list-sub" style="margin-top:6px; color: var(--text-primary); white-space: pre-wrap;">${escapeHtml(it.descricao)}</div>` : '') +
+                        `</div>` +
+                        `</div>`
+                    );
+                });
+                list.innerHTML = parts.join('');
+            } catch (_) {
+                list.innerHTML = `<div class="feed-empty">${escapeHtml(i18n('intranet_events_error', 'Erro ao carregar eventos.'))}</div>`;
+            }
+        }
+
+        async function loadBirthdays() {
+            const list = document.getElementById('birthdays-list');
+            if (!list) return;
+            list.innerHTML = `<div class="feed-empty">${escapeHtml(i18n('intranet_loading', 'Carregando...'))}</div>`;
+            try {
+                const prefix = window.__intranetPublicMode ? '/api/public/intranet' : '/api/intranet';
+                const res = await fetch(`${prefix}/birthdays?days=7`, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok) throw new Error(data.erro || 'Falha');
+                const items = Array.isArray(data.items) ? data.items : [];
+                if (items.length === 0) {
+                    list.innerHTML = `<div class="feed-empty">${escapeHtml(i18n('intranet_birthdays_empty', 'Sem aniversariantes.'))}</div>`;
+                    return;
+                }
+                const parts = [];
+                items.slice(0, 12).forEach(it => {
+                    const d = new Date(it.data);
+                    const label = Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                    const name = String(it.nome || '');
+                    parts.push(
+                        `<div class="list-item">` +
+                        `<div class="avatar">${escapeHtml(initials(name) || '🎉')}</div>` +
+                        `<div class="list-main">` +
+                        `<div class="list-title">${escapeHtml(name)}</div>` +
+                        `</div>` +
+                        `<div class="date-pill">${escapeHtml(label)}</div>` +
+                        `</div>`
+                    );
+                });
+                list.innerHTML = parts.join('');
+            } catch (_) {
+                list.innerHTML = `<div class="feed-empty">${escapeHtml(i18n('intranet_birthdays_error', 'Erro ao carregar aniversariantes.'))}</div>`;
+            }
+        }
+
+        function toggleNotifications(open) {
+            const modal = document.getElementById('notifications-modal');
+            if (!modal) return;
+            const shouldOpen = typeof open === 'boolean' ? open : modal.style.display === 'none';
+            modal.style.display = shouldOpen ? 'flex' : 'none';
+            if (shouldOpen) {
+                loadNotificationsList(true);
+            }
+        }
+
+        async function setupNotifications(user) {
+            const infoDiv = document.getElementById('user-info');
+            if (!infoDiv || document.getElementById('btn-notifications')) return;
+            const btn = document.createElement('button');
+            btn.id = 'btn-notifications';
+            btn.className = 'btn btn-sm btn-outline';
+            btn.style.marginLeft = '10px';
+            btn.textContent = 'Notificações';
+            const badge = document.createElement('span');
+            badge.id = 'notifications-badge';
+            badge.style.marginLeft = '8px';
+            badge.style.padding = '1px 7px';
+            badge.style.borderRadius = '999px';
+            badge.style.border = '1px solid var(--border)';
+            badge.style.background = 'var(--bg-body)';
+            badge.style.color = 'var(--text-secondary)';
+            badge.style.fontWeight = '900';
+            badge.textContent = '0';
+            btn.appendChild(badge);
+            btn.onclick = () => toggleNotifications(true);
+            infoDiv.appendChild(btn);
+            await loadNotificationsCount();
+        }
+
+        async function loadNotificationsCount() {
+            const badge = document.getElementById('notifications-badge');
+            if (!badge) return;
+            try {
+                const res = await fetch('/api/notifications?limit=1', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok) throw new Error('Falha');
+                badge.textContent = String(Number(data.unread || 0));
+            } catch (_) {
+            }
+        }
+
+        async function loadNotificationsList(markReadOnOpen) {
+            const list = document.getElementById('notifications-list');
+            if (!list) return;
+            list.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.9rem;">Carregando...</div>';
+            try {
+                const res = await fetch('/api/notifications?limit=40', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok) throw new Error(data.erro || 'Falha');
+                const items = Array.isArray(data.items) ? data.items : [];
+                if (items.length === 0) {
+                    list.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.9rem;">Sem notificações.</div>';
+                    return;
+                }
+                const parts = [];
+                items.forEach(n => {
+                    const isUnread = !n.read_at;
+                    const title = escapeHtml(n.titulo || '');
+                    const msg = escapeHtml(n.mensagem || '');
+                    const when = fmtDateTime(n.created_at);
+                    const link = n.link ? String(n.link) : '';
+                    const openLink = link ? `<a href="${escapeHtml(link)}" class="btn btn-sm btn-outline" style="text-decoration:none;">Abrir</a>` : '';
+                    parts.push(
+                        `<div style="border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: var(--bg-body);">` +
+                        `<div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start;">` +
+                        `<div>` +
+                        `<div style="font-weight: 900; color: var(--text-primary);">${title}${isUnread ? ' <span style="font-size:0.75rem; font-weight:900; color: var(--danger);">•</span>' : ''}</div>` +
+                        `<div style="color: var(--text-secondary); font-size: 0.85rem;">${escapeHtml(when)}</div>` +
+                        (msg ? `<div style="margin-top: 6px; color: var(--text-primary); white-space: pre-wrap;">${msg}</div>` : '') +
+                        `</div>` +
+                        `<div style="display:flex; gap: 8px;">${openLink}</div>` +
+                        `</div>` +
+                        `</div>`
+                    );
+                });
+                list.innerHTML = parts.join('');
+                if (markReadOnOpen) {
+                    await marcarTodasNotificacoesLidas();
+                }
+            } catch (_) {
+                list.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.9rem;">Erro ao carregar notificações.</div>';
+            } finally {
+                await loadNotificationsCount();
+            }
+        }
+
+        async function marcarTodasNotificacoesLidas() {
+            try {
+                await fetch('/api/notifications/read', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ all: true })
+                });
+            } catch (_) {
+            } finally {
+                await loadNotificationsCount();
+            }
+        }
+
+        async function renderDpAlerts(role) {
+            const container = document.getElementById('dp-alerts');
+            if (!container) return;
+
+            if (role !== 'dp') {
+                container.style.display = 'none';
+                container.innerHTML = '';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/rh/alertas', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok) throw new Error(data.erro || 'Falha ao carregar alertas');
+
+                const vagasTotal = Number(data.vagas_desligamento?.total || 0);
+                const expTotal = Number(data.experiencia?.total || 0);
+                const feriasTotal = Number(data.ferias_aquisitivo?.total || 0);
+                const total = vagasTotal + expTotal + feriasTotal;
+
+                if (!total) {
+                    container.style.display = 'none';
+                    container.innerHTML = '';
+                    return;
+                }
+
+                const parts = [];
+                parts.push(`<div style="font-weight:900; letter-spacing:0.02em; margin-bottom:6px;">Alertas DP</div>`);
+                parts.push(`<div style="font-size:0.95rem; margin-bottom:10px;">Há <strong>${total}</strong> item(ns) em atenção.</div>`);
+                parts.push('<div style="display:flex; flex-wrap:wrap; gap:10px;">');
+                if (vagasTotal) parts.push(`<a href="/protected/dashboard-vagas.html" style="text-decoration:none; color: inherit; border:1px solid #fed7aa; background:#fff7ed; padding:8px 10px; border-radius:10px; font-weight:800;">Vagas (desligamento): ${vagasTotal}</a>`);
+                if (expTotal) parts.push(`<a href="/protected/dashboard-experiencia.html" style="text-decoration:none; color: inherit; border:1px solid #fed7aa; background:#fff7ed; padding:8px 10px; border-radius:10px; font-weight:800;">Experiência (45/90): ${expTotal}</a>`);
+                if (feriasTotal) parts.push(`<a href="/protected/dashboard-rh.html" style="text-decoration:none; color: inherit; border:1px solid #fed7aa; background:#fff7ed; padding:8px 10px; border-radius:10px; font-weight:800;">Férias (aquisitivo): ${feriasTotal}</a>`);
+                parts.push('</div>');
+
+                container.innerHTML = parts.join('');
+                container.style.display = '';
+            } catch (e) {
+                container.style.display = 'none';
+                container.innerHTML = '';
+                console.error(e);
+            }
+        }
+
+        async function renderEquipeGestor() {
+            const section = document.getElementById('gestor-equipe-section');
+            const loading = document.getElementById('gestor-equipe-loading');
+            const empty = document.getElementById('gestor-equipe-empty');
+            const table = document.getElementById('gestor-equipe-table');
+            const tbody = document.getElementById('gestor-equipe-body');
+            section.style.display = '';
+            loading.style.display = '';
+            empty.style.display = 'none';
+            table.style.display = 'none';
+            try {
+                const res = await fetch('/api/gestor/equipe', { headers: { 'Accept': 'application/json' } });
+                if (!res.ok) throw new Error('Falha ao carregar equipe');
+                const equipe = await res.json();
+                loading.style.display = 'none';
+                if (!Array.isArray(equipe) || equipe.length === 0) {
+                    empty.style.display = '';
+                    return;
+                }
+                // Optional: carregar avaliações de experiência para inferir status
+                let experienciaMap = new Map();
+                try {
+                    const avRes = await fetch('/api/avaliacoes?tipo=experiencia', { headers: { 'Accept': 'application/json' } });
+                    if (avRes.ok) {
+                        const avs = await avRes.json();
+                        avs.forEach(a => {
+                            const fid = String(a.funcionario || a.avaliado || '').trim();
+                            if (!fid) return;
+                            const list = experienciaMap.get(fid) || [];
+                            list.push(a);
+                            experienciaMap.set(fid, list);
+                        });
+                    }
+                } catch (_) { }
+                tbody.innerHTML = '';
+                equipe.forEach(f => {
+                    const tr = document.createElement('tr');
+                    tr.style.borderBottom = '1px solid var(--border)';
+                    const tdNome = document.createElement('td');
+                    tdNome.style.padding = '8px 6px';
+                    tdNome.textContent = f.nome || '';
+                    const tdCargo = document.createElement('td');
+                    tdCargo.style.padding = '8px 6px';
+                    tdCargo.textContent = f.cargo || '';
+                    const tdSetor = document.createElement('td');
+                    tdSetor.style.padding = '8px 6px';
+                    tdSetor.textContent = f.setor || '';
+                    const tdMatricula = document.createElement('td');
+                    tdMatricula.style.padding = '8px 6px';
+                    tdMatricula.textContent = f.matricula || '';
+                    const tdPeriodo = document.createElement('td');
+                    tdPeriodo.style.padding = '8px 6px';
+                    // Sem data de admissão no schema atual; exibir informação das avaliações, se houver
+                    const avs = experienciaMap.get(String(f.id)) || [];
+                    if (avs.length > 0) {
+                        // Mostra a data da avaliação mais recente como referência de acompanhamento
+                        avs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                        const dt = new Date(avs[0].createdAt);
+                        tdPeriodo.textContent = `Acompanhado desde ${dt.toLocaleDateString('pt-BR')}`;
+                    } else {
+                        tdPeriodo.textContent = '—';
+                    }
+                    const tdEstabilidade = document.createElement('td');
+                    tdEstabilidade.style.padding = '8px 6px';
+                    // Heurística simples: se há avaliações de experiência recentes (< 180 dias), considerar em experiência
+                    let statusEstabilidade = 'Desconhecido';
+                    if (avs.length > 0) {
+                        const now = Date.now();
+                        const recent = avs.find(a => (now - new Date(a.createdAt).getTime()) <= (180 * 24 * 60 * 60 * 1000));
+                        statusEstabilidade = recent ? 'Em experiência' : 'Com estabilidade';
+                    }
+                    tdEstabilidade.textContent = statusEstabilidade;
+                    const tdAcoes = document.createElement('td');
+                    tdAcoes.style.padding = '8px 6px';
+                    tdAcoes.style.display = 'flex';
+                    tdAcoes.style.gap = '8px';
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-sm btn-outline';
+                    btn.textContent = 'Enviar alerta';
+                    btn.onclick = () => enviarAlertaFuncionario(f, statusEstabilidade);
+                    const btnAvaliar = document.createElement('a');
+                    btnAvaliar.className = 'btn btn-sm btn-outline';
+                    btnAvaliar.textContent = 'Avaliar';
+                    btnAvaliar.href = `/protected/dashboard-avaliacao.html?funcionario=${encodeURIComponent(String(f.nome || ''))}`;
+                    tdAcoes.appendChild(btn);
+                    tdAcoes.appendChild(btnAvaliar);
+                    tr.appendChild(tdNome);
+                    tr.appendChild(tdCargo);
+                    tr.appendChild(tdSetor);
+                    tr.appendChild(tdMatricula);
+                    tr.appendChild(tdPeriodo);
+                    tr.appendChild(tdEstabilidade);
+                    tr.appendChild(tdAcoes);
+                    tbody.appendChild(tr);
+                });
+                table.style.display = '';
+            } catch (e) {
+                loading.textContent = 'Erro ao carregar equipe';
+            }
+        }
+
+        function formatStatusFerias(status) {
+            switch (String(status || '')) {
+                case 'pendente_rh': return 'Pendente RH';
+                case 'pendente_gestor': return 'Ajuste solicitado';
+                case 'aguardando_assinatura': return 'Aguardando assinatura';
+                case 'assinado': return 'Assinado (pendente)';
+                case 'concluido': return 'Concluído';
+                case 'reprovado': return 'Reprovado';
+                default: return status || '—';
+            }
+        }
+
+        async function renderFeriasEquipeGestor() {
+            const section = document.getElementById('gestor-ferias-section');
+            const loading = document.getElementById('gestor-ferias-loading');
+            const empty = document.getElementById('gestor-ferias-empty');
+            const table = document.getElementById('gestor-ferias-table');
+            const tbody = document.getElementById('gestor-ferias-body');
+
+            section.style.display = '';
+            loading.style.display = '';
+            empty.style.display = 'none';
+            table.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/gestor/solicitacoes', { headers: { 'Accept': 'application/json' }, credentials: 'include' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok) throw new Error(data.erro || 'Falha ao carregar solicitações');
+
+                const lista = Array.isArray(data.solicitacoes) ? data.solicitacoes : [];
+                loading.style.display = 'none';
+
+                if (lista.length === 0) {
+                    empty.style.display = '';
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                lista.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.style.borderBottom = '1px solid var(--border)';
+
+                    const tdNome = document.createElement('td');
+                    tdNome.style.padding = '8px 6px';
+                    tdNome.textContent = item.nome || '';
+
+                    const tdSetor = document.createElement('td');
+                    tdSetor.style.padding = '8px 6px';
+                    tdSetor.textContent = item.setor || '';
+
+                    const tdInicio = document.createElement('td');
+                    tdInicio.style.padding = '8px 6px';
+                    tdInicio.textContent = item.inicio ? new Date(item.inicio).toLocaleDateString('pt-BR') : '—';
+
+                    const tdPeriodo = document.createElement('td');
+                    tdPeriodo.style.padding = '8px 6px';
+                    tdPeriodo.textContent = item.tipoGozo || item.tipo_gozo || '—';
+
+                    const tdStatus = document.createElement('td');
+                    tdStatus.style.padding = '8px 6px';
+                    tdStatus.textContent = formatStatusFerias(item.status);
+
+                    const tdAcoes = document.createElement('td');
+                    tdAcoes.style.padding = '8px 6px';
+                    const btnVer = document.createElement('a');
+                    btnVer.className = 'btn btn-sm btn-outline';
+                    btnVer.textContent = 'Ver';
+                    btnVer.href = `/ferias.html?id=${encodeURIComponent(item.id)}`;
+                    tdAcoes.appendChild(btnVer);
+
+                    tr.appendChild(tdNome);
+                    tr.appendChild(tdSetor);
+                    tr.appendChild(tdInicio);
+                    tr.appendChild(tdPeriodo);
+                    tr.appendChild(tdStatus);
+                    tr.appendChild(tdAcoes);
+                    tbody.appendChild(tr);
+                });
+
+                table.style.display = '';
+            } catch (_) {
+                loading.textContent = 'Erro ao carregar solicitações';
+            }
+        }
+
+        async function enviarAlertaFuncionario(func, estabilidade) {
+            try {
+                const defaultSubject = `Alerta do colaborador ${func.nome || ''}`;
+                const defaultBody = `Colaborador: ${func.nome || ''}\nMatrícula: ${func.matricula || ''}\nSetor: ${func.setor || ''}\nCargo: ${func.cargo || ''}\nEstabilidade: ${estabilidade || 'Desconhecido'}\n\nObservações:`;
+                const to = '';
+                const { value: formValues } = await Swal.fire({
+                    title: 'Enviar alerta',
+                    html: `
+                    <div style="text-align:left; display:flex; flex-direction:column; gap:10px;">
+                        <div>
+                            <div style="font-size:0.8rem; font-weight:700; color: var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:6px;">Destinatário (email)</div>
+                            <input id="alert-to" class="swal2-input" value="${to}" placeholder="ex: rh@empresa.com">
+                        </div>
+                        <div>
+                            <div style="font-size:0.8rem; font-weight:700; color: var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:6px;">Assunto</div>
+                            <input id="alert-subject" class="swal2-input" value="${defaultSubject}">
+                        </div>
+                        <div>
+                            <div style="font-size:0.8rem; font-weight:700; color: var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:6px;">Mensagem</div>
+                            <textarea id="alert-body" class="swal2-textarea" rows="6" style="resize:vertical;">${defaultBody}</textarea>
+                        </div>
+                    </div>
+                `,
+                    focusConfirm: false,
+                    showCancelButton: true,
+                    confirmButtonText: 'Enviar',
+                    preConfirm: () => {
+                        const to = document.getElementById('alert-to').value.trim();
+                        const subject = document.getElementById('alert-subject').value.trim();
+                        const body = document.getElementById('alert-body').value;
+                        return { to, subject, body };
+                    }
+                });
+                if (!formValues) return;
+                const payload = {
+                    funcionario_id: func.id,
+                    to: formValues.to,
+                    subject: formValues.subject,
+                    body: formValues.body
+                };
+                const res = await fetch('/api/gestor/alerta-equipe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && data.ok) {
+                    Swal.fire('Enviado', 'Alerta enviado com sucesso.', 'success');
+                } else {
+                    Swal.fire('Erro', data.erro || 'Falha ao enviar alerta', 'error');
+                }
+            } catch (e) {
+                Swal.fire('Erro', 'Erro de conexão ao enviar alerta', 'error');
+            }
+        }
+
+        checkAccess();
+    </script>
+</body>
+
+</html>

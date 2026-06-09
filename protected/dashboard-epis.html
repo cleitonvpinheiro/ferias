@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard RH - Gestão de EPIs</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="/rh-styles.css">
+  <script src="/lang-switcher.js" defer></script>
+  <style>
+      .form-epi {
+          background: var(--bg-surface);
+          padding: 20px;
+          border-radius: 8px;
+          box-shadow: var(--shadow-sm);
+          margin-bottom: 20px;
+          display: flex;
+          gap: 15px;
+          align-items: flex-end;
+          flex-wrap: wrap;
+      }
+      .form-group {
+          flex: 1;
+          min-width: 200px;
+      }
+      .form-group label {
+          display: block;
+          margin-bottom: 5px;
+          font-weight: 500;
+          color: var(--text-primary);
+      }
+      .form-group input {
+          width: 100%;
+          padding: 10px;
+          border: 1px solid var(--border);
+          border-radius: 6px;
+      }
+      .form-group select {
+          width: 100%;
+          padding: 10px;
+          border: 1px solid var(--border);
+          border-radius: 6px;
+          background: var(--bg-surface);
+          color: var(--text-primary);
+      }
+      .epi-list {
+          display: grid;
+          gap: 10px;
+      }
+      .epi-item {
+          background: var(--bg-surface);
+          padding: 15px;
+          border-radius: 8px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border: 1px solid var(--border);
+      }
+      .epi-info h3 {
+          margin: 0;
+          font-size: 1rem;
+          color: var(--text-primary);
+      }
+      .epi-info p {
+          margin: 5px 0 0;
+          color: var(--text-secondary);
+          font-size: 0.875rem;
+      }
+      .btn-danger {
+          background-color: var(--danger);
+          color: white;
+          border: none;
+          padding: 8px 12px;
+          border-radius: 6px;
+          cursor: pointer;
+      }
+      .btn-danger:hover {
+          background-color: var(--danger);
+      }
+  </style>
+</head>
+<body data-page="rh-epis">
+  <div id="navbar-container"></div>
+  <script src="/rh-navbar.js"></script>
+  <script>renderRHNavbar('epis');</script>
+
+  <main class="dashboard-container">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title" data-translate="rh_dash_epis_title">Gestão de EPIs</h1>
+            <p class="page-subtitle" data-translate="rh_dash_epis_subtitle">Cadastre os equipamentos e valores para controle da portaria</p>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card pending">
+            <div class="stat-header">
+                <div class="stat-title" data-translate="rh_dash_epis_stat_total_stock">Total em Estoque</div>
+                <div class="stat-icon">📦</div>
+            </div>
+            <div class="stat-value" id="stat-total-items">0</div>
+        </div>
+        <div class="stat-card rejected">
+            <div class="stat-header">
+                <div class="stat-title" data-translate="rh_dash_epis_stat_low_stock">Estoque Baixo</div>
+                <div class="stat-icon">⚠️</div>
+            </div>
+            <div class="stat-value" id="stat-low-stock">0</div>
+        </div>
+        <div class="stat-card approved">
+            <div class="stat-header">
+                <div class="stat-title" data-translate="rh_dash_epis_stat_total_value">Valor Total</div>
+                <div class="stat-icon">💰</div>
+            </div>
+            <div class="stat-value" id="stat-total-value">R$ 0,00</div>
+        </div>
+    </div>
+
+    <div class="form-epi">
+        <div class="form-group">
+            <label data-translate="rh_dash_epis_label_nome">Nome do EPI</label>
+            <input type="text" id="novoNome" placeholder="Ex: Capacete de Segurança" data-translate="rh_dash_epis_placeholder_nome">
+        </div>
+        <div class="form-group">
+            <label data-translate="rh_dash_epis_label_valor">Valor (R$)</label>
+            <input type="number" id="novoValor" placeholder="0.00" data-translate="rh_dash_epis_placeholder_valor" step="0.01">
+        </div>
+        <div class="form-group">
+            <label data-translate="rh_dash_epis_label_estoque">Estoque Inicial</label>
+            <input type="number" id="novoEstoque" placeholder="0" data-translate="rh_dash_epis_placeholder_estoque" step="1" min="0">
+        </div>
+        <div class="form-group">
+            <label>Possui CA</label>
+            <select id="novoPossuiCa" onchange="atualizarCampoCA()">
+                <option value="1" selected>Sim</option>
+                <option value="0">Não</option>
+            </select>
+        </div>
+        <div class="form-group" id="grupoCA">
+            <label data-translate="rh_dash_epis_label_ca">Validade do CA</label>
+            <input type="date" id="novoCA">
+        </div>
+        <div style="display: flex; gap: 10px; align-items: flex-end;">
+            <button class="btn btn-primary" onclick="adicionarEPI()" data-translate="rh_dash_epis_add">Adicionar EPI</button>
+            <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()" style="background-color: var(--success); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer;">
+                📄 <span data-translate="rh_dash_epis_import_excel">Importar Excel</span>
+            </button>
+            <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;" onchange="uploadExcel(this)">
+        </div>
+    </div>
+
+    <div class="epi-list" id="listaEpis">
+        <!-- Lista carregada via JS -->
+        <div style="text-align: center; padding: 20px; color: var(--text-secondary);" data-translate="rh_dash_loading">Carregando...</div>
+    </div>
+
+    <div class="page-header" style="margin-top: 40px;">
+        <div>
+            <h1 class="page-title" data-translate="rh_dash_epis_terms_title">Termos de Desconto</h1>
+            <p class="page-subtitle" data-translate="rh_dash_epis_terms_subtitle">Gerenciamento de descontos gerados pela portaria</p>
+        </div>
+    </div>
+
+    <div class="epi-list" id="listaDescontos">
+        <div style="text-align: center; padding: 20px; color: var(--text-secondary);" data-translate="rh_dash_epis_terms_loading">Carregando termos...</div>
+    </div>
+
+    <div class="page-header" style="margin-top: 40px;">
+        <div>
+            <h1 class="page-title" data-translate="rh_dash_epis_mov_title">Histórico de Movimentações</h1>
+            <p class="page-subtitle" data-translate="rh_dash_epis_mov_subtitle">Registro de retiradas e devoluções na portaria</p>
+        </div>
+    </div>
+
+    <div class="epi-list" id="listaMovimentacoes">
+        <div style="text-align: center; padding: 20px; color: var(--text-secondary);" data-translate="rh_dash_epis_mov_loading">Carregando movimentações...</div>
+    </div>
+  </main>
+
+  <div id="modalEvidencia" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:var(--backdrop-bg); z-index:1000; justify-content:center; align-items:center;">
+      <div style="background:var(--bg-surface); padding:20px; border-radius:8px; max-width:90%; max-height:90%; display:flex; flex-direction:column; gap:10px; border:1px solid var(--border);">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+              <h3 style="margin:0;" data-translate="rh_dash_epis_modal_evidence">Evidência</h3>
+              <button onclick="fecharEvidencia()" style="background:none; border:none; font-size:1.5em; cursor:pointer;">&times;</button>
+          </div>
+          <div style="overflow:auto; text-align:center;">
+              <img id="imgEvidencia" src="" alt="Evidência" style="max-width:100%; max-height:80vh; border:1px solid var(--border);">
+          </div>
+      </div>
+  </div>
+
+  <script>
+      let globalEpis = [];
+      let globalMovimentacoes = [];
+
+      function fecharEvidencia() {
+          document.getElementById('modalEvidencia').style.display = 'none';
+      }
+
+      function verAnexo(id, tipo) {
+          const mov = globalMovimentacoes.find(m => m.id === id);
+          if (!mov) return;
+          
+          const content = tipo === 'evidencia' ? mov.evidencia : mov.termo;
+          if (!content) return alert('Anexo não encontrado.');
+          
+          const modal = document.getElementById('modalEvidencia');
+          const container = modal.querySelector('div[style*="overflow:auto"]');
+          const title = modal.querySelector('h3');
+          
+          title.innerText = tipo === 'evidencia' ? 'Evidência' : 'Termo';
+          
+          if (content.startsWith('data:application/pdf')) {
+              container.innerHTML = `<iframe src="${content}" style="width:100%; height:80vh; border:none;"></iframe>`;
+          } else {
+              container.innerHTML = `<img src="${content}" style="max-width:100%; max-height:80vh; border:1px solid var(--border);">`;
+          }
+          
+          modal.style.display = 'flex';
+      }
+
+      async function carregarEpis() {
+          try {
+              const res = await fetch('/api/rh/epis');
+              globalEpis = await res.json();
+              
+              const lista = document.getElementById('listaEpis');
+              lista.innerHTML = '';
+
+              // Calculate Stats
+              const totalItems = globalEpis.reduce((acc, epi) => acc + (epi.estoque || 0), 0);
+              const lowStock = globalEpis.filter(epi => (epi.estoque || 0) <= 5).length;
+              const totalValue = globalEpis.reduce((acc, epi) => acc + ((epi.estoque || 0) * epi.valor), 0);
+
+              document.getElementById('stat-total-items').innerText = totalItems;
+              document.getElementById('stat-low-stock').innerText = lowStock;
+              document.getElementById('stat-total-value').innerText = totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+              if (globalEpis.length === 0) {
+                  lista.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">Nenhum EPI cadastrado.</div>';
+                  return;
+              }
+
+              globalEpis.forEach(epi => {
+                  const div = document.createElement('div');
+                  div.className = 'epi-item';
+                  
+                  const estoque = epi.estoque || 0;
+                  const estoqueClass = estoque <= 5 ? 'color: var(--danger); font-weight: bold;' : 'color: var(--text-secondary);';
+
+                  const possuiCa = epi.possui_ca == null ? 1 : (Number(epi.possui_ca) ? 1 : 0);
+                  const caStatus = !possuiCa
+                      ? '<span style="color:var(--text-secondary);">Não possui CA</span>'
+                      : (epi.ca_validade
+                          ? (new Date(epi.ca_validade) < new Date()
+                              ? '<span style="color:var(--danger); font-weight:600;">CA vencido</span>'
+                              : `<span style="color:var(--success); font-weight:600;">CA válido até ${new Date(epi.ca_validade).toLocaleDateString('pt-BR')}</span>`)
+                          : '<span style="color:var(--text-secondary);">CA não informado</span>');
+                  div.innerHTML = `
+                      <div class="epi-info">
+                          <h3>${epi.nome}</h3>
+                          <p>Valor Unit.: R$ ${epi.valor.toFixed(2)}</p>
+                          <p style="${estoqueClass}">Estoque: ${estoque} unidades</p>
+                          <p>${caStatus}</p>
+                      </div>
+                      <button class="btn-danger" onclick="removerEPI('${epi.id}')">Remover</button>
+                  `;
+                  lista.appendChild(div);
+              });
+          } catch (e) {
+              console.error(e);
+              alert('Erro ao carregar EPIs');
+          }
+      }
+
+      async function carregarDescontos() {
+          try {
+              const res = await fetch('/api/rh/descontos');
+              const descontos = await res.json();
+              
+              const lista = document.getElementById('listaDescontos');
+              lista.innerHTML = '';
+
+              if (descontos.length === 0) {
+                  lista.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">Nenhum termo de desconto encontrado.</div>';
+                  return;
+              }
+
+              descontos.forEach(d => {
+                  const div = document.createElement('div');
+                  div.className = 'epi-item'; // Reusing style
+                  
+                  // Se status for undefined, trata como pendente (legado)
+                  const isPendente = d.status === 'pendente' || d.status === 'pendente_rh' || !d.status;
+                  const isResolvido = d.status === 'resolvido';
+
+                  let statusColor = isPendente ? 'var(--warning)' : 'var(--success)';
+                  let statusText = isPendente ? 'Pendente Assinatura' : 'Resolvido';
+                  
+                  let actionBtn = '';
+                  if (isPendente) {
+                      actionBtn = `<button class="btn btn-primary" style="background: var(--success);" onclick="alterarStatusDesconto('${d.id}', 'resolvido')">✅ Resolvido</button>`;
+                  } else if (isResolvido) {
+                      actionBtn = `<button class="btn btn-primary" style="background: var(--warning);" onclick="alterarStatusDesconto('${d.id}', 'pendente')">⏳ Pendente</button>`;
+                  }
+
+                  div.innerHTML = `
+                      <div class="epi-info">
+                          <h3>${d.nome_funcionario}</h3>
+                          <p style="font-size: 0.9em; color: var(--text-secondary);">CPF: ${d.cpf_funcionario}</p>
+                          <p>Item: ${d.itens[0].nome} - R$ ${d.itens[0].valor.toFixed(2)}</p>
+                          <p style="color: ${statusColor}; font-weight: 600;">${statusText}</p>
+                      </div>
+                      <div style="display: flex; gap: 10px;">
+                          <a href="/api/rh/descontos/${d.id}/pdf" target="_blank" class="btn btn-primary" style="text-decoration: none; display: flex; align-items: center;">📄 Imprimir</a>
+                          ${actionBtn}
+                      </div>
+                  `;
+                  lista.appendChild(div);
+              });
+          } catch (e) {
+              console.error(e);
+              alert('Erro ao carregar descontos');
+          }
+      }
+
+      async function carregarMovimentacoes() {
+          const lista = document.getElementById('listaMovimentacoes');
+          try {
+              const res = await fetch('/api/rh/epis/movimentacoes');
+              if (!res.ok) throw new Error('Falha ao carregar movimentações');
+              const movs = await res.json();
+              globalMovimentacoes = movs;
+              
+              lista.innerHTML = '';
+
+              if (movs.length === 0) {
+                  lista.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">Nenhuma movimentação registrada.</div>';
+                  return;
+              }
+
+              // Ordenar por data (já ordenado no backend, mas mantendo garantia)
+              movs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+              movs.forEach(m => {
+                  const div = document.createElement('div');
+                  div.className = 'epi-item';
+                  div.style.borderLeft = m.itens_retirados?.length > 0 ? '4px solid var(--accent)' : '4px solid var(--success)';
+                  
+                  const dateObj = new Date(m.createdAt);
+                  const date = !isNaN(dateObj) ? dateObj.toLocaleString('pt-BR') : 'Data inválida';
+                  
+                  // Resolver nomes dos itens
+                  const retirados = (m.itens_retirados || []).map(id => {
+                      const epi = globalEpis.find(e => e.id === id);
+                      return epi ? epi.nome : 'Item desconhecido';
+                  });
+                  
+                  const devolvidos = (m.itens_devolvidos || []).map(id => {
+                      const epi = globalEpis.find(e => e.id === id);
+                      return epi ? epi.nome : 'Item desconhecido';
+                  });
+
+                  let html = `
+                      <div class="epi-info">
+                          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                              <h3 style="margin:0; font-size:1.1em; color:var(--text-primary);">${m.nome_funcionario}</h3>
+                              <span style="font-size:0.85em; color:var(--text-secondary); background:var(--accent-soft); padding:2px 8px; border-radius:12px;">${date}</span>
+                          </div>
+                          <p style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 8px;">ID: ${m.funcionario_id}</p>
+                  `;
+
+                  if (retirados.length > 0) {
+                      html += `
+                        <div style="margin-top: 8px; padding: 8px; background: var(--accent-soft); border-radius: 6px;">
+                            <p style="color: var(--accent); font-weight: 600; font-size: 0.9em; margin-bottom: 4px;">⬇️ Retirada</p>
+                            <ul style="margin: 0; padding-left: 20px; color: var(--accent); font-size: 0.9em;">
+                                ${retirados.map(i => `<li>${i}</li>`).join('')}
+                            </ul>
+                        </div>`;
+                  }
+                  
+                  if (devolvidos.length > 0) {
+                      html += `
+                        <div style="margin-top: 8px; padding: 8px; background: var(--success-bg); border-radius: 6px;">
+                            <p style="color: var(--success); font-weight: 600; font-size: 0.9em; margin-bottom: 4px;">⬆️ Devolução</p>
+                            <ul style="margin: 0; padding-left: 20px; color: var(--success); font-size: 0.9em;">
+                                ${devolvidos.map(i => `<li>${i}</li>`).join('')}
+                            </ul>
+                        </div>`;
+                  }
+                  
+                  if (m.evidencia) {
+                      html += `<div style="margin-top: 8px; font-size: 0.85em; color: var(--text-secondary); display: flex; align-items: center; gap: 4px;">
+                        <span style="font-size: 1.1em;">📎</span> 
+                        <a href="javascript:void(0)" onclick="verAnexo('${m.id}', 'evidencia')" style="color: var(--accent); text-decoration: underline; cursor: pointer;">
+                            Evidência anexada
+                        </a>
+                      </div>`;
+                  }
+                  
+                  if (m.termo) {
+                      html += `<div style="margin-top: 4px; font-size: 0.85em; color: var(--text-secondary); display: flex; align-items: center; gap: 4px;">
+                        <span style="font-size: 1.1em;">📄</span> 
+                        <a href="javascript:void(0)" onclick="verAnexo('${m.id}', 'termo')" style="color: var(--accent); text-decoration: underline; cursor: pointer;">
+                            Termo anexado
+                        </a>
+                      </div>`;
+                  }
+
+                  html += `</div>`;
+                  div.innerHTML = html;
+                  lista.appendChild(div);
+              });
+          } catch (e) {
+              console.error(e);
+              lista.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--danger);">Erro ao carregar movimentações</div>';
+          }
+      }
+
+      async function alterarStatusDesconto(id, novoStatus) {
+          const msg = novoStatus === 'resolvido' 
+              ? 'Confirmar que o termo está resolvido? Isso irá liberar o acesso na portaria.' 
+              : 'Deseja marcar como pendente novamente?';
+              
+          if (!confirm(msg)) return;
+          
+          try {
+              const res = await fetch(`/api/rh/descontos/${id}/status`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ status: novoStatus })
+              });
+              const data = await res.json();
+              if (data.ok) {
+                  carregarDescontos();
+              } else {
+                  alert('Erro: ' + data.erro);
+              }
+          } catch (e) {
+              console.error(e);
+              alert('Erro ao atualizar status');
+          }
+      }
+
+      async function adicionarEPI() {
+
+          const nome = document.getElementById('novoNome').value;
+          const valor = document.getElementById('novoValor').value;
+          const possui_ca = document.getElementById('novoPossuiCa').value;
+          const ca_validade = (String(possui_ca) === '1') ? (document.getElementById('novoCA').value || null) : null;
+
+          if (!nome || !valor) return alert('Preencha todos os campos');
+
+          try {
+              const res = await fetch('/api/rh/epis', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ nome, valor, estoque: document.getElementById('novoEstoque').value || 0, possui_ca, ca_validade })
+              });
+
+              const data = await res.json();
+              if (data.ok) {
+                  document.getElementById('novoNome').value = '';
+                  document.getElementById('novoValor').value = '';
+                  document.getElementById('novoEstoque').value = '';
+                  document.getElementById('novoCA').value = '';
+                  document.getElementById('novoPossuiCa').value = '1';
+                  atualizarCampoCA();
+                  carregarEpis();
+              } else {
+                  alert('Erro: ' + data.erro);
+              }
+          } catch (e) {
+              console.error(e);
+              alert('Erro ao adicionar EPI');
+          }
+      }
+
+      function atualizarCampoCA() {
+          const possui = document.getElementById('novoPossuiCa').value;
+          const ca = document.getElementById('novoCA');
+          const grupo = document.getElementById('grupoCA');
+          if (!ca) return;
+          const enabled = String(possui) === '1';
+          ca.disabled = !enabled;
+          ca.required = enabled;
+          if (!enabled) ca.value = '';
+          if (grupo) grupo.style.display = enabled ? '' : 'none';
+      }
+
+      async function uploadExcel(input) {
+          const file = input.files[0];
+          if (!file) return;
+
+          const formData = new FormData();
+          formData.append('file', file);
+
+          try {
+              const res = await fetch('/api/rh/epis/import', {
+                  method: 'POST',
+                  body: formData
+              });
+
+              const result = await res.json();
+              if (result.ok) {
+                  alert(`Importação concluída! ${result.count} itens importados.`);
+                  carregarEpis();
+              } else {
+                  alert('Erro na importação: ' + (result.erro || 'Erro desconhecido'));
+              }
+          } catch (e) {
+              console.error(e);
+              alert('Erro de conexão ao enviar arquivo.');
+          }
+          
+          // Clear input so same file can be selected again if needed
+          input.value = '';
+      }
+
+      async function removerEPI(id) {
+          if (!confirm('Tem certeza que deseja remover este item?')) return;
+
+          try {
+              const res = await fetch(`/api/rh/epis/${id}`, { method: 'DELETE' });
+              const data = await res.json();
+              
+              if (data.ok) {
+                  carregarEpis();
+              } else {
+                  alert('Erro: ' + data.erro);
+              }
+          } catch (e) {
+              console.error(e);
+              alert('Erro ao remover EPI');
+          }
+      }
+
+      // Carregar ao iniciar
+      (async () => {
+          atualizarCampoCA();
+          await carregarEpis();
+          carregarDescontos();
+          carregarMovimentacoes();
+      })();
+  </script>
+</body>
+</html>

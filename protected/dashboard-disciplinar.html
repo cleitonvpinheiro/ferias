@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Advertências e Suspensões</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="/rh-styles.css">
+  <script src="/lang-switcher.js" defer></script>
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <style>
+      .toolbar {
+          background: white;
+          padding: 16px;
+          border-radius: 8px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          margin-bottom: 16px;
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+          align-items: flex-end;
+      }
+      .field {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          min-width: 220px;
+      }
+      .field label {
+          font-size: 0.85rem;
+          color: var(--text-secondary);
+      }
+      .field input, .field select, .field textarea {
+          padding: 10px 12px;
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          background: var(--bg-surface);
+          color: var(--text-primary);
+      }
+      .data-table {
+          width: 100%;
+          border-collapse: collapse;
+          background: white;
+          border-radius: 8px;
+          overflow: hidden;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+      .data-table th, .data-table td {
+          padding: 12px 16px;
+          border-bottom: 1px solid #e2e8f0;
+          text-align: left;
+          vertical-align: top;
+      }
+      .data-table th {
+          background-color: #f8fafc;
+          font-weight: 600;
+          color: var(--text-primary);
+      }
+      .badge {
+          display: inline-block;
+          padding: 3px 10px;
+          border-radius: 999px;
+          font-size: 0.75rem;
+          font-weight: 600;
+      }
+      .badge-adv {
+          background: #fff7ed;
+          color: #9a3412;
+          border: 1px solid #fed7aa;
+      }
+      .badge-sus {
+          background: #eff6ff;
+          color: #1d4ed8;
+          border: 1px solid #bfdbfe;
+      }
+      .modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.5);
+          display: none;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          z-index: 50;
+      }
+      .modal {
+          background: white;
+          border-radius: 12px;
+          width: 100%;
+          max-width: 720px;
+          padding: 18px;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      }
+      .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 12px;
+      }
+      .modal-title {
+          margin: 0;
+          font-size: 1.1rem;
+      }
+      .close-modal {
+          border: none;
+          background: transparent;
+          font-size: 1.6rem;
+          cursor: pointer;
+          color: #64748b;
+      }
+      .modal-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+      }
+      @media (max-width: 720px) {
+          .modal-grid { grid-template-columns: 1fr; }
+          .field { min-width: 100%; }
+      }
+
+      .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+          margin-bottom: 16px;
+      }
+      @media (max-width: 980px) {
+          .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
+      @media (max-width: 560px) {
+          .stats-grid { grid-template-columns: 1fr; }
+      }
+      .stat-card {
+          background: white;
+          border-radius: 12px;
+          padding: 14px 16px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          border: 1px solid rgba(226, 232, 240, 0.9);
+      }
+      .stat-label {
+          color: var(--text-secondary);
+          font-size: 0.85rem;
+          margin-bottom: 8px;
+      }
+      .stat-value {
+          font-size: 1.6rem;
+          font-weight: 900;
+          color: var(--text-primary);
+          line-height: 1.1;
+      }
+      .stat-sub {
+          color: var(--text-secondary);
+          font-size: 0.8rem;
+          margin-top: 6px;
+      }
+
+      .rank-card {
+          background: white;
+          border-radius: 12px;
+          padding: 14px 16px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          border: 1px solid rgba(226, 232, 240, 0.9);
+          margin-bottom: 16px;
+      }
+      .rank-header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 10px;
+          margin-bottom: 10px;
+      }
+      .rank-title {
+          margin: 0;
+          font-size: 1.05rem;
+      }
+      .rank-subtitle {
+          margin: 4px 0 0;
+          color: var(--text-secondary);
+          font-size: 0.85rem;
+      }
+      .rank-table {
+          width: 100%;
+          border-collapse: collapse;
+          overflow: hidden;
+          border-radius: 10px;
+          border: 1px solid #e2e8f0;
+      }
+      .rank-table th,
+      .rank-table td {
+          padding: 10px 12px;
+          border-bottom: 1px solid #e2e8f0;
+          text-align: left;
+          vertical-align: top;
+      }
+      .rank-table th {
+          background: #f8fafc;
+          color: var(--text-primary);
+          font-weight: 700;
+          font-size: 0.85rem;
+      }
+      .rank-table td {
+          color: var(--text-primary);
+          font-size: 0.9rem;
+      }
+  </style>
+</head>
+<body data-page="rh-disciplinar">
+  <div id="navbar-container"></div>
+  <script src="/rh-navbar.js"></script>
+  <script>renderRHNavbar('disciplinar');</script>
+
+  <main class="dashboard-container">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Advertências e Suspensões</h1>
+            <p class="page-subtitle">Registre e consulte ocorrências disciplinares por colaborador.</p>
+        </div>
+        <div style="display:flex; gap: 10px;">
+            <button class="btn btn-primary" onclick="abrirModalNovo()">+ Novo registro</button>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <div class="field">
+            <label>Colaborador</label>
+            <select id="filtroFuncionario" onchange="carregarRegistros()">
+                <option value="">Todos</option>
+            </select>
+        </div>
+        <div class="field" style="min-width: 180px;">
+            <label>Tipo</label>
+            <select id="filtroTipo" onchange="carregarRegistros()">
+                <option value="">Todos</option>
+                <option value="advertencia">Advertência</option>
+                <option value="suspensao">Suspensão</option>
+            </select>
+        </div>
+        <div class="field" style="min-width: 200px;">
+            <label>Buscar</label>
+            <input id="filtroTexto" placeholder="Nome / motivo / descrição" oninput="renderTabela()">
+        </div>
+        <div style="display:flex; gap:10px; margin-left:auto; flex-wrap:wrap;">
+            <button class="btn btn-outline" type="button" onclick="carregarRegistros()">Atualizar</button>
+            <button class="btn btn-outline" type="button" onclick="downloadModeloDisciplinar()">📄 Baixar Modelo</button>
+            <button class="btn btn-outline" type="button" onclick="baixarModeloDocumento()">Modelo Documento</button>
+            <button class="btn btn-primary" type="button" onclick="abrirImportacao()">📥 Importar Excel</button>
+            <button class="btn btn-primary" type="button" onclick="abrirImportacaoModeloDocumento()">Importar Modelo</button>
+            <input type="file" id="fileImport" accept=".xlsx,.xls,.csv" style="display:none">
+            <input type="file" id="fileModeloDoc" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" style="display:none">
+        </div>
+    </div>
+
+    <section class="stats-grid" aria-label="Resumo de advertências e suspensões">
+        <div class="stat-card">
+            <div class="stat-label">Registros (Total)</div>
+            <div class="stat-value" id="statTotal">0</div>
+            <div class="stat-sub" id="statPeriodo">—</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Advertências</div>
+            <div class="stat-value" id="statAdv">0</div>
+            <div class="stat-sub" id="statAdvPct">—</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Suspensões</div>
+            <div class="stat-value" id="statSus">0</div>
+            <div class="stat-sub" id="statSusPct">—</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Colaboradores com registro</div>
+            <div class="stat-value" id="statColab">0</div>
+            <div class="stat-sub" id="statSetores">—</div>
+        </div>
+    </section>
+
+    <section class="rank-card" aria-label="Ranking por setor">
+        <div class="rank-header">
+            <div>
+                <h3 class="rank-title">Ranking por Setor</h3>
+                <p class="rank-subtitle">Setores com mais ocorrências disciplinares (advertências + suspensões).</p>
+            </div>
+        </div>
+        <table class="rank-table">
+            <thead>
+                <tr>
+                    <th>Setor</th>
+                    <th style="width: 130px;">Advertências</th>
+                    <th style="width: 120px;">Suspensões</th>
+                    <th style="width: 90px;">Total</th>
+                </tr>
+            </thead>
+            <tbody id="tbodyRanking">
+                <tr><td colspan="4" style="color: var(--text-secondary); text-align:center;">Carregando...</td></tr>
+            </tbody>
+        </table>
+    </section>
+
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 150px;">Data</th>
+                    <th style="width: 140px;">Tipo</th>
+                    <th>Colaborador</th>
+                    <th>Motivo</th>
+                    <th style="width: 160px;">Ações</th>
+                </tr>
+            </thead>
+            <tbody id="tbodyRegistros">
+                <tr><td colspan="5" style="text-align:center; color: var(--text-secondary);">Carregando...</td></tr>
+            </tbody>
+        </table>
+    </div>
+  </main>
+
+  <div class="modal-overlay" id="modalRegistro">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modalTitle">Novo registro</h3>
+            <button class="close-modal" onclick="fecharModal()">&times;</button>
+        </div>
+        <div class="modal-grid">
+            <div class="field" style="grid-column: 1 / -1;">
+                <label>Colaborador</label>
+                <select id="inputFuncionario"></select>
+            </div>
+            <div class="field">
+                <label>Tipo</label>
+                <select id="inputTipo" onchange="toggleDias()">
+                    <option value="advertencia">Advertência</option>
+                    <option value="suspensao">Suspensão</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Data</label>
+                <input type="date" id="inputData">
+            </div>
+            <div class="field" id="fieldDias" style="display:none;">
+                <label>Dias de suspensão</label>
+                <input type="number" min="1" step="1" id="inputDias" placeholder="Ex.: 1">
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+                <label>Motivo</label>
+                <input id="inputMotivo" placeholder="Ex.: Atraso / Conduta / Faltas">
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+                <label>Descrição</label>
+                <textarea id="inputDescricao" rows="4" placeholder="Detalhes da ocorrência..."></textarea>
+            </div>
+        </div>
+        <div style="display:flex; gap: 10px; justify-content:flex-end; margin-top: 14px;">
+            <button class="btn btn-outline" onclick="fecharModal()">Cancelar</button>
+            <button class="btn btn-primary" id="btnSalvar" onclick="salvarRegistro()">Salvar</button>
+        </div>
+    </div>
+  </div>
+
+  <script>
+      let funcionarios = [];
+      let registros = [];
+      let editingId = null;
+      let funcionariosById = new Map();
+
+      function formatDatePtBR(value) {
+          if (!value) return '-';
+          if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+              const [y, m, d] = value.split('-');
+              return `${d}/${m}/${y}`;
+          }
+          const d = new Date(value);
+          if (Number.isNaN(d.getTime())) return '-';
+          return d.toLocaleDateString('pt-BR');
+      }
+
+      function getFuncionarioName(id) {
+          const f = funcionarios.find(x => String(x.id) === String(id));
+          return f ? f.nome : '-';
+      }
+
+      function getBadge(tipo) {
+          if (tipo === 'suspensao') return '<span class="badge badge-sus">Suspensão</span>';
+          return '<span class="badge badge-adv">Advertência</span>';
+      }
+
+      function escapeHtml(input) {
+          return String(input ?? '')
+              .replaceAll('&', '&amp;')
+              .replaceAll('<', '&lt;')
+              .replaceAll('>', '&gt;')
+              .replaceAll('"', '&quot;')
+              .replaceAll("'", '&#039;');
+      }
+
+      function normalizeHeader(v) {
+          return String(v ?? '')
+              .trim()
+              .toLowerCase()
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .replace(/[^a-z0-9]+/g, ' ')
+              .trim()
+              .replace(/\s+/g, ' ');
+      }
+
+      function normalizeCpf(v) {
+          const digits = String(v ?? '').replace(/\D/g, '');
+          return digits || '';
+      }
+
+      function parseDateToISODate(value) {
+          if (!value) return '';
+          if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString().slice(0, 10);
+          if (typeof value === 'number' && Number.isFinite(value)) {
+              const d = new Date(Date.UTC(1899, 11, 30) + value * 86400000);
+              if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+          }
+          const s = String(value || '').trim();
+          if (!s) return '';
+          const br = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+          if (br) {
+              const dd = br[1].padStart(2, '0');
+              const mm = br[2].padStart(2, '0');
+              const yyyy = br[3];
+              return `${yyyy}-${mm}-${dd}`;
+          }
+          const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+          if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+          const d = new Date(s);
+          if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+          return '';
+      }
+
+      function downloadModeloDisciplinar() {
+          const exemplo = [
+              {
+                  'CPF': '123.456.789-00',
+                  'Colaborador': 'João da Silva',
+                  'Tipo': 'advertencia',
+                  'Data Ocorrência': '2026-01-15',
+                  'Motivo': 'Atraso',
+                  'Descrição': 'Chegou 25 minutos após o horário.',
+                  'Dias Suspensão': ''
+              },
+              {
+                  'CPF': '999.888.777-66',
+                  'Colaborador': 'Maria Oliveira',
+                  'Tipo': 'suspensao',
+                  'Data Ocorrência': '2026-01-20',
+                  'Motivo': 'Falta injustificada',
+                  'Descrição': 'Ausência sem justificativa.',
+                  'Dias Suspensão': 1
+              }
+          ];
+          const ws = XLSX.utils.json_to_sheet(exemplo);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, 'Disciplinar');
+          XLSX.writeFile(wb, 'Modelo_Advertencias_Suspensoes.xlsx');
+      }
+
+      let __modeloDocumentoUrl = null;
+
+      async function carregarModeloDocumento() {
+          try {
+              const res = await fetch('/api/rh/disciplinar/modelo', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+              const data = await res.json().catch(() => ({}));
+              if (!res.ok || !data.ok) {
+                  __modeloDocumentoUrl = null;
+                  return;
+              }
+              __modeloDocumentoUrl = data.modelo && data.modelo.url ? String(data.modelo.url) : null;
+          } catch (_) {
+              __modeloDocumentoUrl = null;
+          }
+      }
+
+      function baixarModeloDocumento() {
+          if (!__modeloDocumentoUrl) {
+              alert('Nenhum modelo de documento foi importado ainda. Use "Importar Modelo".');
+              return;
+          }
+          window.open(__modeloDocumentoUrl, '_blank');
+      }
+
+      function abrirImportacao() {
+          const input = document.getElementById('fileImport');
+          if (!input) return;
+          input.value = '';
+          input.click();
+      }
+
+      function abrirImportacaoModeloDocumento() {
+          const input = document.getElementById('fileModeloDoc');
+          if (!input) return;
+          input.value = '';
+          input.click();
+      }
+
+      async function importarModeloDocumento(file) {
+          if (!file) return;
+          const fd = new FormData();
+          fd.append('file', file);
+          const res = await fetch('/api/rh/disciplinar/modelo', { method: 'POST', body: fd });
+          const out = await res.json().catch(() => ({}));
+          if (!res.ok || !out.ok) {
+              alert((out && out.erro) ? out.erro : 'Erro ao importar modelo');
+              return;
+          }
+          __modeloDocumentoUrl = out.modelo && out.modelo.url ? String(out.modelo.url) : null;
+          alert('Modelo importado com sucesso!');
+      }
+
+      async function importarArquivo(file) {
+          if (!file) return;
+          const data = await file.arrayBuffer();
+          const wb = XLSX.read(data, { type: 'array' });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(ws, { defval: '', raw: true });
+          if (!rows.length) {
+              alert('Arquivo vazio ou formato inválido.');
+              return;
+          }
+
+          const aliases = {
+              cpf: ['cpf', 'documento'],
+              nome: ['colaborador', 'funcionario', 'nome'],
+              tipo: ['tipo'],
+              data: ['data ocorrencia', 'data ocorrencia', 'data', 'dt ocorrencia'],
+              motivo: ['motivo'],
+              descricao: ['descricao', 'descrição', 'detalhe', 'observacao', 'observação'],
+              dias: ['dias suspensao', 'dias suspensão', 'dias']
+          };
+
+          const getVal = (row, field) => {
+              const keys = Object.keys(row || {});
+              const map = new Map(keys.map(k => [normalizeHeader(k), k]));
+              const list = aliases[field] || [];
+              for (const a of list) {
+                  const found = map.get(normalizeHeader(a));
+                  if (found) return row[found];
+              }
+              return '';
+          };
+
+          const items = rows.map(r => {
+              const cpf = normalizeCpf(getVal(r, 'cpf'));
+              const nome = String(getVal(r, 'nome') || '').trim();
+              const tipoRaw = String(getVal(r, 'tipo') || '').trim().toLowerCase();
+              const tipo = (tipoRaw === 'advertencia' || tipoRaw === 'advertência') ? 'advertencia'
+                  : (tipoRaw === 'suspensao' || tipoRaw === 'suspensão') ? 'suspensao'
+                  : '';
+              const dataOcorrencia = parseDateToISODate(getVal(r, 'data'));
+              const motivo = String(getVal(r, 'motivo') || '').trim();
+              const descricao = String(getVal(r, 'descricao') || '').trim();
+              const diasSuspensaoRaw = getVal(r, 'dias');
+              const diasSuspensao = diasSuspensaoRaw === '' ? null : Number(diasSuspensaoRaw);
+              return {
+                  cpf: cpf || null,
+                  nome: nome || null,
+                  tipo,
+                  dataOcorrencia,
+                  motivo,
+                  descricao,
+                  diasSuspensao: Number.isFinite(diasSuspensao) ? diasSuspensao : null
+              };
+          }).filter(x => x && x.tipo && x.dataOcorrencia && (x.cpf || x.nome));
+
+          if (!items.length) {
+              alert('Nenhum registro válido encontrado. Verifique as colunas do arquivo.');
+              return;
+          }
+
+          if (!confirm(`Foram encontrados ${items.length} registro(s) válido(s). Deseja importar?`)) return;
+
+          const res = await fetch('/api/rh/disciplinar/importar', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ items })
+          });
+          const out = await res.json().catch(() => ({}));
+          if (!res.ok || !out.ok) {
+              alert((out && out.erro) ? out.erro : 'Erro ao importar registros');
+              return;
+          }
+          alert(`Importação concluída!\nImportados: ${out.importados}\nNão encontrados: ${out.naoEncontrados}\nInválidos: ${out.invalidos}`);
+          await carregarRegistros();
+      }
+
+      function safeNumber(n) {
+          const x = Number(n);
+          return Number.isFinite(x) ? x : 0;
+      }
+
+      function formatPercent(part, total) {
+          const t = safeNumber(total);
+          const p = safeNumber(part);
+          if (t <= 0) return '0%';
+          return `${Math.round((p / t) * 100)}%`;
+      }
+
+      function getFuncionarioSetor(id) {
+          const f = funcionariosById.get(String(id));
+          const setor = f && typeof f.setor === 'string' ? f.setor.trim() : '';
+          return setor || 'Sem setor';
+      }
+
+      function computeDashboard(items) {
+          const arr = Array.isArray(items) ? items : [];
+          let adv = 0;
+          let sus = 0;
+          const pessoas = new Set();
+          const setores = new Map();
+          const dates = [];
+
+          for (const r of arr) {
+              const tipo = String(r && r.tipo || '').trim();
+              if (tipo === 'advertencia') adv++;
+              if (tipo === 'suspensao') sus++;
+              if (r && r.funcionarioId) pessoas.add(String(r.funcionarioId));
+
+              const setor = getFuncionarioSetor(r && r.funcionarioId);
+              if (!setores.has(setor)) setores.set(setor, { setor, adv: 0, sus: 0, total: 0 });
+              const bucket = setores.get(setor);
+              bucket.total++;
+              if (tipo === 'advertencia') bucket.adv++;
+              if (tipo === 'suspensao') bucket.sus++;
+
+              const d = r && (r.dataOcorrencia || r.createdAt);
+              if (d) dates.push(d);
+          }
+
+          const total = arr.length;
+          const setoresArr = Array.from(setores.values()).sort((a, b) => {
+              if (b.total !== a.total) return b.total - a.total;
+              if (b.adv !== a.adv) return b.adv - a.adv;
+              return String(a.setor).localeCompare(String(b.setor));
+          });
+
+          let periodo = '—';
+          if (dates.length > 0) {
+              const parsed = dates
+                  .map(v => {
+                      if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) return new Date(v + 'T00:00:00');
+                      return new Date(v);
+                  })
+                  .filter(d => !Number.isNaN(d.getTime()))
+                  .sort((a, b) => a.getTime() - b.getTime());
+              if (parsed.length > 0) {
+                  const min = parsed[0];
+                  const max = parsed[parsed.length - 1];
+                  periodo = `${min.toLocaleDateString('pt-BR')} → ${max.toLocaleDateString('pt-BR')}`;
+              }
+          }
+
+          return {
+              total,
+              adv,
+              sus,
+              colabs: pessoas.size,
+              setores: setoresArr,
+              periodo
+          };
+      }
+
+      function renderDashboard() {
+          const data = computeDashboard(registros);
+          const total = data.total;
+
+          const elTotal = document.getElementById('statTotal');
+          const elAdv = document.getElementById('statAdv');
+          const elSus = document.getElementById('statSus');
+          const elColab = document.getElementById('statColab');
+          const elPeriodo = document.getElementById('statPeriodo');
+          const elAdvPct = document.getElementById('statAdvPct');
+          const elSusPct = document.getElementById('statSusPct');
+          const elSetores = document.getElementById('statSetores');
+
+          if (elTotal) elTotal.textContent = String(total);
+          if (elAdv) elAdv.textContent = String(data.adv);
+          if (elSus) elSus.textContent = String(data.sus);
+          if (elColab) elColab.textContent = String(data.colabs);
+          if (elPeriodo) elPeriodo.textContent = data.periodo;
+          if (elAdvPct) elAdvPct.textContent = `${formatPercent(data.adv, total)} do total`;
+          if (elSusPct) elSusPct.textContent = `${formatPercent(data.sus, total)} do total`;
+          if (elSetores) elSetores.textContent = `${data.setores.length} setor(es)`;
+
+          const tbody = document.getElementById('tbodyRanking');
+          if (!tbody) return;
+          if (!data.setores.length) {
+              tbody.innerHTML = '<tr><td colspan="4" style="color: var(--text-secondary); text-align:center;">Nenhum registro para ranquear.</td></tr>';
+              return;
+          }
+
+          const top = data.setores.slice(0, 10);
+          tbody.innerHTML = top.map(s => `
+              <tr>
+                  <td>${escapeHtml(s.setor)}</td>
+                  <td>${s.adv}</td>
+                  <td>${s.sus}</td>
+                  <td><strong>${s.total}</strong></td>
+              </tr>
+          `).join('');
+      }
+
+      function toggleDias() {
+          const tipo = document.getElementById('inputTipo').value;
+          const field = document.getElementById('fieldDias');
+          field.style.display = tipo === 'suspensao' ? '' : 'none';
+      }
+
+      function abrirModalNovo() {
+          editingId = null;
+          document.getElementById('modalTitle').textContent = 'Novo registro';
+          document.getElementById('inputTipo').value = 'advertencia';
+          document.getElementById('inputData').value = '';
+          document.getElementById('inputDias').value = '';
+          document.getElementById('inputMotivo').value = '';
+          document.getElementById('inputDescricao').value = '';
+          toggleDias();
+          document.getElementById('modalRegistro').style.display = 'flex';
+      }
+
+      function abrirModalEditar(id) {
+          const item = registros.find(r => String(r.id) === String(id));
+          if (!item) return;
+          editingId = id;
+          document.getElementById('modalTitle').textContent = 'Editar registro';
+          document.getElementById('inputFuncionario').value = item.funcionarioId || '';
+          document.getElementById('inputTipo').value = item.tipo || 'advertencia';
+          document.getElementById('inputData').value = (item.dataOcorrencia || '').slice(0, 10);
+          document.getElementById('inputDias').value = item.diasSuspensao || '';
+          document.getElementById('inputMotivo').value = item.motivo || '';
+          document.getElementById('inputDescricao').value = item.descricao || '';
+          toggleDias();
+          document.getElementById('modalRegistro').style.display = 'flex';
+      }
+
+      function fecharModal() {
+          document.getElementById('modalRegistro').style.display = 'none';
+      }
+
+      async function confirmarExcluir(id) {
+          if (!confirm('Deseja excluir este registro?')) return;
+          const res = await fetch(`/api/rh/disciplinar/${id}`, { method: 'DELETE' });
+          if (!res.ok) {
+              alert('Erro ao excluir registro');
+              return;
+          }
+          await carregarRegistros();
+      }
+
+      async function salvarRegistro() {
+          const funcionarioId = document.getElementById('inputFuncionario').value;
+          const tipo = document.getElementById('inputTipo').value;
+          const dataOcorrencia = document.getElementById('inputData').value;
+          const diasSuspensao = document.getElementById('inputDias').value;
+          const motivo = document.getElementById('inputMotivo').value.trim();
+          const descricao = document.getElementById('inputDescricao').value.trim();
+
+          if (!funcionarioId) return alert('Selecione um colaborador');
+          if (!dataOcorrencia) return alert('Informe a data');
+          if (tipo === 'suspensao' && !diasSuspensao) return alert('Informe os dias de suspensão');
+
+          const payload = {
+              funcionarioId,
+              tipo,
+              dataOcorrencia,
+              motivo,
+              descricao,
+              diasSuspensao: tipo === 'suspensao' ? Number(diasSuspensao) : null
+          };
+
+          const btn = document.getElementById('btnSalvar');
+          btn.disabled = true;
+          btn.textContent = 'Salvando...';
+          try {
+              const url = editingId ? `/api/rh/disciplinar/${editingId}` : '/api/rh/disciplinar';
+              const method = editingId ? 'PUT' : 'POST';
+              const res = await fetch(url, {
+                  method,
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload)
+              });
+              if (!res.ok) {
+                  const data = await res.json().catch(() => null);
+                  alert((data && data.erro) ? data.erro : 'Erro ao salvar registro');
+                  return;
+              }
+              fecharModal();
+              await carregarRegistros();
+          } finally {
+              btn.disabled = false;
+              btn.textContent = 'Salvar';
+          }
+      }
+
+      function renderTabela() {
+          const tbody = document.getElementById('tbodyRegistros');
+          const term = document.getElementById('filtroTexto').value.trim().toLowerCase();
+          const filtered = registros.filter(r => {
+              const nome = getFuncionarioName(r.funcionarioId).toLowerCase();
+              const motivo = String(r.motivo || '').toLowerCase();
+              const descricao = String(r.descricao || '').toLowerCase();
+              return !term || nome.includes(term) || motivo.includes(term) || descricao.includes(term);
+          });
+
+          if (filtered.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-secondary);">Nenhum registro encontrado.</td></tr>';
+              return;
+          }
+
+          tbody.innerHTML = filtered.map(r => {
+              const tipo = String(r.tipo || '');
+              const detalhe = tipo === 'suspensao' && r.diasSuspensao ? ` (${r.diasSuspensao} dia(s))` : '';
+              const motivo = `${r.motivo || '-'}${detalhe}`;
+              const origem = String(r.origem || '').trim();
+              return `
+                  <tr>
+                      <td>${formatDatePtBR(r.dataOcorrencia || r.createdAt)}</td>
+                      <td>${getBadge(tipo)}</td>
+                      <td>${escapeHtml(getFuncionarioName(r.funcionarioId))}</td>
+                      <td>
+                          <div style="font-weight:600; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                              <span>${escapeHtml(motivo)}</span>
+                              ${origem ? `<span class="badge" style="background:#f1f5f9; color:#334155; border:1px solid #e2e8f0;">${escapeHtml(origem)}</span>` : ''}
+                          </div>
+                          ${r.descricao ? `<div style="margin-top:4px; color: var(--text-secondary); font-size: 0.85rem; white-space: pre-wrap;">${escapeHtml(r.descricao)}</div>` : ''}
+                      </td>
+                      <td>
+                          <div style="display:flex; gap: 8px; flex-wrap: wrap;">
+                              <button class="btn btn-outline" onclick="abrirModalEditar('${r.id}')">Editar</button>
+                              <button class="btn btn-danger" onclick="confirmarExcluir('${r.id}')">Excluir</button>
+                          </div>
+                      </td>
+                  </tr>
+              `;
+          }).join('');
+      }
+
+      async function carregarFuncionarios() {
+          const res = await fetch('/api/funcionarios');
+          if (!res.ok) throw new Error('Erro ao carregar funcionários');
+          funcionarios = await res.json();
+          funcionariosById = new Map((funcionarios || []).map(f => [String(f.id), f]));
+
+          const filtro = document.getElementById('filtroFuncionario');
+          const input = document.getElementById('inputFuncionario');
+
+          const options = funcionarios
+              .slice()
+              .sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || '')))
+              .map(f => `<option value="${f.id}">${f.nome}</option>`)
+              .join('');
+
+          filtro.innerHTML = `<option value="">Todos</option>${options}`;
+          input.innerHTML = `<option value="">Selecione...</option>${options}`;
+          renderDashboard();
+      }
+
+      async function carregarRegistros() {
+          const funcionarioId = document.getElementById('filtroFuncionario').value;
+          const tipo = document.getElementById('filtroTipo').value;
+
+          const params = new URLSearchParams();
+          if (funcionarioId) params.set('funcionarioId', funcionarioId);
+          if (tipo) params.set('tipo', tipo);
+
+          const url = params.toString() ? `/api/rh/disciplinar?${params.toString()}` : '/api/rh/disciplinar';
+          const res = await fetch(url);
+          if (!res.ok) {
+              const data = await res.json().catch(() => null);
+              alert((data && data.erro) ? data.erro : 'Erro ao carregar registros');
+              return;
+          }
+          registros = await res.json();
+          renderTabela();
+          renderDashboard();
+      }
+
+      (async function init() {
+          try {
+              const fi = document.getElementById('fileImport');
+              if (fi) {
+                  fi.addEventListener('change', async () => {
+                      const file = fi.files && fi.files[0];
+                      await importarArquivo(file);
+                      fi.value = '';
+                  });
+              }
+              const fm = document.getElementById('fileModeloDoc');
+              if (fm) {
+                  fm.addEventListener('change', async () => {
+                      const file = fm.files && fm.files[0];
+                      await importarModeloDocumento(file);
+                      fm.value = '';
+                  });
+              }
+              await carregarModeloDocumento();
+              await carregarFuncionarios();
+              await carregarRegistros();
+          } catch (e) {
+              alert('Erro ao carregar dados');
+          }
+      })();
+  </script>
+</body>
+</html>

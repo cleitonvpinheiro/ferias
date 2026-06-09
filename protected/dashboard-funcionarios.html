@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dashboard RH - Colaboradores</title>
+    <link rel="icon" href="/assets/logo.png" type="image/png">
+    <link rel="stylesheet" href="/rh-styles.css">
+    <script src="/lang-switcher.js" defer></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <style>
+        .actions-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .upload-box {
+            border: 2px dashed #cbd5e1;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            flex: 1;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .upload-box:hover {
+            border-color: var(--accent);
+        }
+
+        .func-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .func-table th,
+        .func-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .func-table th {
+            background-color: #f8fafc;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 0.75rem;
+        }
+
+        .colab-photo {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            object-fit: cover;
+            display: block;
+            background: var(--bg-body);
+        }
+
+        .colab-photo-fallback {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            color: var(--primary);
+            background: var(--accent-soft);
+        }
+
+        /* ── Modal de Edição ── */
+        #modalEdicao {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #modalEdicao.open {
+            display: flex;
+        }
+
+        .modal-box {
+            background: white;
+            border-radius: 12px;
+            padding: 28px;
+            width: 100%;
+            max-width: 560px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+            position: relative;
+        }
+
+        .modal-box h2 {
+            margin: 0 0 20px;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+        }
+
+        .modal-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .modal-grid .full {
+            grid-column: 1 / -1;
+        }
+
+        .modal-field label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .modal-field input,
+        .modal-field select {
+            width: 100%;
+            padding: 7px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 0.88rem;
+            color: var(--text-primary);
+            box-sizing: border-box;
+            background: #f8fafc;
+            transition: border-color 0.15s;
+        }
+
+        .modal-field input:focus,
+        .modal-field select:focus {
+            outline: none;
+            border-color: var(--accent, #6366f1);
+            background: white;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 22px;
+        }
+
+        .modal-close-x {
+            position: absolute;
+            top: 14px;
+            right: 16px;
+            border: none;
+            background: transparent;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: #94a3b8;
+            line-height: 1;
+        }
+
+        .modal-close-x:hover {
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+
+<body data-page="rh-funcionarios">
+    <div id="navbar-container"></div>
+    <script src="/rh-navbar.js"></script>
+    <script>renderRHNavbar('funcionarios');</script>
+
+    <main class="dashboard-container">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title" data-translate="rh_dash_funcionarios_title">Gestão de Colaboradores</h1>
+                <p class="page-subtitle" data-translate="rh_dash_funcionarios_subtitle">Importe a base de dados para
+                    validação de biometria e cadastro</p>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-primary" onclick="syncQuestor()"
+                    style="background-color: #6366f1; border-color: #6366f1;">
+                    🔄 <span data-translate="rh_dash_funcionarios_sync_questor">Sincronizar Questor</span>
+                </button>
+                <button class="btn btn-outline" onclick="downloadTemplate()">
+                    📥 <span data-translate="rh_dash_funcionarios_download_template">Baixar Modelo Excel</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="actions-panel">
+            <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+                <div style="font-size: 2rem; margin-bottom: 10px;">📂</div>
+                <p style="margin: 0; color: var(--text-secondary);" data-translate="rh_dash_funcionarios_upload_hint">
+                    Clique para importar Excel/CSV</p>
+                <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" style="display: none"
+                    onchange="handleFile(this)">
+            </div>
+
+            <div style="flex: 2;">
+                <h3 style="margin-top: 0;" data-translate="rh_dash_instructions">Instruções</h3>
+                <ul style="color: var(--text-secondary); font-size: 0.9rem; padding-left: 20px;">
+                    <li data-translate="rh_dash_funcionarios_inst_cols">O arquivo deve conter as colunas: <strong>Nome,
+                            CPF, Cargo, Setor, Data Admissão</strong>.</li>
+                    <li data-translate="rh_dash_funcionarios_inst_cpf">O CPF deve conter apenas números ou pontuação
+                        padrão.</li>
+                    <li data-translate="rh_dash_funcionarios_inst_replace">Esta importação
+                        <strong>substitui/atualiza</strong> a base existente.
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div
+            style="display: flex; gap: 10px; align-items: center; background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; margin-bottom: 16px;">
+            <span style="font-size: 18px; color: #94a3b8;">🔍</span>
+            <input id="searchInput" type="text" placeholder="Buscar por nome, CPF, cargo ou setor..."
+                style="border: none; outline: none; flex: 1; font-size: 14px; color: var(--text-primary);">
+            <button id="clearSearchBtn" onclick="limparBusca()"
+                style="display: none; border: none; background: none; cursor: pointer; font-size: 16px; color: #94a3b8;">✖</button>
+            <span id="countResultados"
+                style="font-size: 12px; color: var(--text-secondary); white-space: nowrap;"></span>
+        </div>
+
+        <div class="table-container">
+            <table class="func-table" id="tabelaFuncionarios">
+                <thead>
+                    <tr>
+                        <th data-translate="rh_dash_th_foto">Foto</th>
+                        <th data-translate="rh_dash_th_nome">Nome</th>
+                        <th data-translate="rh_dash_th_cpf">CPF</th>
+                        <th data-translate="rh_dash_th_cargo">Cargo</th>
+                        <th>Vínculo</th>
+                        <th data-translate="rh_dash_th_setor">Setor</th>
+                        <th data-translate="rh_dash_th_admissao">Admissão</th>
+                        <th>Status</th>
+                        <th data-translate="rh_dash_th_acao">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="listaFuncionarios">
+                    <tr>
+                        <td colspan="9" style="text-align: center;" data-translate="rh_dash_loading">Carregando...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- ── Modal de Edição ── -->
+    <div id="modalEdicao" role="dialog" aria-modal="true" aria-labelledby="modalEdicaoTitulo">
+        <div class="modal-box">
+            <button class="modal-close-x" onclick="fecharModalEdicao()" aria-label="Fechar">✖</button>
+            <h2 id="modalEdicaoTitulo">✏️ Editar Colaborador</h2>
+            <input type="hidden" id="editId">
+            <div class="modal-grid">
+                <div class="modal-field full">
+                    <label>Nome *</label>
+                    <input type="text" id="editNome" placeholder="Nome completo">
+                </div>
+                <div class="modal-field">
+                    <label>CPF</label>
+                    <input type="text" id="editCpf" placeholder="000.000.000-00" maxlength="14">
+                </div>
+                <div class="modal-field">
+                    <label>Matrícula</label>
+                    <input type="text" id="editMatricula" placeholder="Ex: 0001">
+                </div>
+                <div class="modal-field">
+                    <label>Cargo</label>
+                    <input type="text" id="editCargo" placeholder="Ex: Garçom">
+                </div>
+                <div class="modal-field">
+                    <label>Setor</label>
+                    <input type="text" id="editSetor" placeholder="Ex: Salão">
+                </div>
+                <div class="modal-field">
+                    <label>Vínculo</label>
+                    <select id="editVinculo">
+                        <option value="">— Selecione —</option>
+                        <option value="Mensalista">Mensalista</option>
+                        <option value="Horista">Horista</option>
+                    </select>
+                </div>
+                <div class="modal-field">
+                    <label>Status</label>
+                    <select id="editStatus">
+                        <option value="Ativo">Ativo</option>
+                        <option value="Inativo">Inativo</option>
+                        <option value="Afastado">Afastado</option>
+                        <option value="Férias">Férias</option>
+                    </select>
+                </div>
+                <div class="modal-field">
+                    <label>Data Admissão (dd/mm/aaaa)</label>
+                    <input type="text" id="editAdmissao" placeholder="dd/mm/aaaa" maxlength="10">
+                </div>
+                <div class="modal-field">
+                    <label>Nascimento (dd/mm/aaaa)</label>
+                    <input type="text" id="editNascimento" placeholder="dd/mm/aaaa" maxlength="10">
+                </div>
+                <div class="modal-field">
+                    <label>Sexo</label>
+                    <select id="editSexo">
+                        <option value="">— Selecione —</option>
+                        <option value="M">Masculino</option>
+                        <option value="F">Feminino</option>
+                        <option value="Outro">Outro</option>
+                    </select>
+                </div>
+                <div class="modal-field">
+                    <label>Raça/Cor</label>
+                    <input type="text" id="editRacaCor" placeholder="Ex: Branca">
+                </div>
+                <div class="modal-field">
+                    <label>Nacionalidade</label>
+                    <input type="text" id="editNacionalidade" placeholder="Ex: Brasileira">
+                </div>
+                <div class="modal-field full">
+                    <label>Anotações</label>
+                    <input type="text" id="editAnotacoes" placeholder="Observações livres">
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="fecharModalEdicao()">Cancelar</button>
+                <button class="btn btn-primary" onclick="salvarEdicao()">💾 Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="fotoInput" accept="image/png,image/jpeg" style="display:none">
+
+    <script>
+        // ── Utilitários gerais ──────────────────────────────────────────────
+
+        function escapeHtml(input) {
+            return String(input ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
+        let __funcionariosCache = [];
+
+        function encodeData(obj) {
+            try {
+                const json = JSON.stringify(obj ?? {});
+                const bytes = new TextEncoder().encode(json);
+                let binary = '';
+                for (const b of bytes) binary += String.fromCharCode(b);
+                return btoa(binary);
+            } catch (_) { return ''; }
+        }
+
+        function decodeData(encoded) {
+            try {
+                const binary = atob(String(encoded || ''));
+                const bytes = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                const json = new TextDecoder().decode(bytes);
+                return JSON.parse(json);
+            } catch (_) { return null; }
+        }
+
+        function normalizeNumericIdValue(val) {
+            const s = String(val ?? '').trim();
+            if (!s) return '';
+            const compact = s.replace(/\s+/g, '');
+            if (/^\d+$/.test(compact)) return compact;
+            if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(compact)) return compact.replace(/\./g, '').split(',')[0];
+            if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(compact)) return compact.replace(/,/g, '').split('.')[0];
+            if (/^\d+[.,]\d+$/.test(compact)) return compact.split(compact.includes(',') ? ',' : '.')[0];
+            return s;
+        }
+
+        function fmtVinculo(v) {
+            const raw = String(v ?? '').trim();
+            if (!raw) return '-';
+            const low = raw.toLowerCase();
+            if (low === 'm' || low.startsWith('mens')) return 'Mensalista';
+            if (low === 'h' || low.startsWith('hor')) return 'Horista';
+            return normalizeNumericIdValue(raw) || raw;
+        }
+
+        function formatCpfRBM(v) {
+            const d = String(v ?? '').replace(/\D/g, '').slice(0, 11);
+            if (d.length !== 11) return d ? d : '-';
+            return d.replace(/^\s*(\d{3})(\d{3})(\d{3})(\d{2})\s*$/, '$1.$2.$3-$4');
+        }
+
+        // ── Formatação de datas → dd/mm/aaaa ───────────────────────────────
+        /**
+         * Recebe qualquer string de data (ISO, dd/mm/aaaa, mm/dd/aaaa,
+         * número serial do Excel, etc.) e devolve sempre "dd/mm/aaaa".
+         * Se não conseguir interpretar, devolve o valor original.
+         */
+        function formatDateBR(value) {
+            if (value === null || value === undefined) return '-';
+            const s = String(value).trim();
+            if (!s) return '-';
+
+            // Já está no formato dd/mm/aaaa
+            if (/^\s*\d{2}\/\d{2}\/\d{4}\s*$/.test(s)) return s;
+
+            // Formato ISO yyyy-mm-dd (com ou sem hora/T)
+            const isoMatch = s.match(/^\s*(\d{4})-(\d{2})-(\d{2})/);
+            if (isoMatch) return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
+
+            // Número serial do Excel (dias desde 1899-12-30)
+            // Apenas se for um número puro e estiver num range razoável de datas (1900 a 2100)
+            if (/^\s*\d{5}(\.\d+)?\s*$/.test(s)) {
+                const serial = Math.floor(Number(s));
+                if (serial > 1 && serial < 73050) { // 01/01/1900 até 01/01/2100
+                    const base = new Date(1899, 11, 30);
+                    base.setDate(base.getDate() + serial);
+                    const d = String(base.getDate()).padStart(2, '0');
+                    const m = String(base.getMonth() + 1).padStart(2, '0');
+                    const y = base.getFullYear();
+                    return `${d}/${m}/${y}`;
+                }
+            }
+
+            // Tenta parse genérico pelo Date nativo (fallback)
+            const parsed = new Date(s);
+            if (!isNaN(parsed.getTime())) {
+                // Se a string original contém '/', assume que é formato BR ou similar e tenta não deslocar
+                if (s.includes('/')) {
+                    const parts = s.split(/[\/\s-]/);
+                    if (parts.length >= 3) {
+                        // Se parece dd/mm/yyyy
+                        if (parts[0].length <= 2 && parts[2].length === 4) {
+                            return `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
+                        }
+                    }
+                }
+                
+                // Fallback seguro usando UTC para evitar problemas de fuso em strings ISO
+                const d = String(parsed.getUTCDate()).padStart(2, '0');
+                const m = String(parsed.getUTCMonth() + 1).padStart(2, '0');
+                const y = parsed.getUTCFullYear();
+                return `${d}/${m}/${y}`;
+            }
+
+            return s; // devolve original se não reconhecer
+        }
+
+        // ── Máscara automática de data nos inputs do modal ─────────────────
+        function applyDateMask(input) {
+            input.addEventListener('input', () => {
+                let v = input.value.replace(/\D/g, '').slice(0, 8);
+                if (v.length > 4) v = v.slice(0, 2) + '/' + v.slice(2, 4) + '/' + v.slice(4);
+                else if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2);
+                input.value = v;
+            });
+        }
+
+        // Máscara de CPF
+        function applyCpfMask(input) {
+            input.addEventListener('input', () => {
+                let v = input.value.replace(/\D/g, '').slice(0, 11);
+                if (v.length > 9) v = v.slice(0, 3) + '.' + v.slice(3, 6) + '.' + v.slice(6, 9) + '-' + v.slice(9);
+                else if (v.length > 6) v = v.slice(0, 3) + '.' + v.slice(3, 6) + '.' + v.slice(6);
+                else if (v.length > 3) v = v.slice(0, 3) + '.' + v.slice(3);
+                input.value = v;
+            });
+        }
+
+        // ── Modal de Edição ────────────────────────────────────────────────
+
+        function abrirModalEdicao(funcionario) {
+            const f = funcionario || {};
+            document.getElementById('editId').value = f.id ?? '';
+            document.getElementById('editNome').value = f.nome ?? '';
+            document.getElementById('editCpf').value = formatCpfRBM(f.cpf);
+            document.getElementById('editMatricula').value = f.matricula ?? '';
+            document.getElementById('editCargo').value = f.cargo ?? '';
+            document.getElementById('editSetor').value = f.setor ?? '';
+            document.getElementById('editVinculo').value = f.tipo_vinculo ?? '';
+            document.getElementById('editStatus').value = f.status ?? 'Ativo';
+            document.getElementById('editAdmissao').value = formatDateBR(f.data_admissao);
+            document.getElementById('editNascimento').value = formatDateBR(f.nascimento);
+            document.getElementById('editSexo').value = f.sexo ?? '';
+            document.getElementById('editRacaCor').value = f.raca_cor ?? '';
+            document.getElementById('editNacionalidade').value = f.nacionalidade ?? '';
+            document.getElementById('editAnotacoes').value = f.anotacoes ?? '';
+
+            document.getElementById('modalEdicao').classList.add('open');
+            document.getElementById('editNome').focus();
+        }
+
+        function fecharModalEdicao() {
+            document.getElementById('modalEdicao').classList.remove('open');
+        }
+
+        // Fecha ao clicar fora do box
+        document.getElementById('modalEdicao').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('modalEdicao')) fecharModalEdicao();
+        });
+
+        // Fecha com Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') fecharModalEdicao();
+        });
+
+        async function salvarEdicao() {
+            const id = String(document.getElementById('editId').value || '').trim();
+            const nome = document.getElementById('editNome').value.trim();
+            if (!id) {
+                alert('Colaborador não identificado. Feche o modal, recarregue a página e tente novamente.');
+                return;
+            }
+            if (!nome) { alert('O campo Nome é obrigatório.'); return; }
+
+            // Converte data dd/mm/aaaa → yyyy-mm-dd para o backend (ajuste se preferir manter BR)
+            const parseDateBRtoISO = (v) => {
+                const m = String(v).match(/^\s*(\d{2})\/(\d{2})\/(\d{4})\s*$/);
+                return m ? `${m[3]}-${m[2]}-${m[1]}` : (v || null);
+            };
+
+            const payload = {
+                nome,
+                cpf: document.getElementById('editCpf').value.replace(/\D/g, '') || null,
+                matricula: document.getElementById('editMatricula').value.trim() || null,
+                cargo: document.getElementById('editCargo').value.trim() || null,
+                setor: document.getElementById('editSetor').value.trim() || null,
+                tipo_vinculo: document.getElementById('editVinculo').value || null,
+                status: document.getElementById('editStatus').value || 'Ativo',
+                data_admissao: parseDateBRtoISO(document.getElementById('editAdmissao').value),
+                nascimento: parseDateBRtoISO(document.getElementById('editNascimento').value),
+                sexo: document.getElementById('editSexo').value || null,
+                raca_cor: document.getElementById('editRacaCor').value.trim() || null,
+                nacionalidade: document.getElementById('editNacionalidade').value.trim() || null,
+                anotacoes: document.getElementById('editAnotacoes').value.trim() || null,
+            };
+
+            try {
+                const res = await fetch(`/api/rh/funcionarios/${encodeURIComponent(id)}`, {
+                    method: 'PUT',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+                let data = {};
+                const raw = await res.text();
+                try { data = raw ? JSON.parse(raw) : {}; } catch (_) {}
+                if (!res.ok) {
+                    const hint = data.erro || (raw && raw.length < 200 ? raw : null);
+                    throw new Error(hint || `Erro ao salvar (HTTP ${res.status})`);
+                }
+                fecharModalEdicao();
+                await carregarFuncionarios();
+            } catch (e) {
+                console.error(e);
+                alert('Erro ao salvar alterações: ' + e.message);
+            }
+        }
+
+        // Aplica máscaras nos campos do modal
+        applyDateMask(document.getElementById('editAdmissao'));
+        applyDateMask(document.getElementById('editNascimento'));
+        applyCpfMask(document.getElementById('editCpf'));
+
+        // ── Sync Questor ───────────────────────────────────────────────────
+
+        async function syncQuestor() {
+            if (!confirm('Deseja iniciar a sincronização com o sistema Questor? Isso pode levar alguns segundos.')) return;
+            const btn = document.querySelector('button[onclick="syncQuestor()"]');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Sincronizando...';
+            try {
+                const res = await fetch('/api/rh/funcionarios/sync-questor', { method: 'POST' });
+                const data = await res.json();
+                if (res.ok) {
+                    alert(`Sincronização concluída!\nNovos: ${data.novos}\nAtualizados: ${data.atualizados}`);
+                    carregarFuncionarios();
+                } else {
+                    throw new Error(data.erro || 'Erro desconhecido');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Erro ao sincronizar: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        }
+
+        // ── Busca ──────────────────────────────────────────────────────────
+
+        function filtrarTabela(query) {
+            const btn = document.getElementById('clearSearchBtn');
+            const counter = document.getElementById('countResultados');
+            btn.style.display = query ? 'inline' : 'none';
+            const q = query.toLowerCase().trim();
+            const rows = document.querySelectorAll('#listaFuncionarios tr');
+            let visiveis = 0;
+            rows.forEach(tr => {
+                const texto = tr.innerText.toLowerCase();
+                const cpfSemMask = texto.replace(/\D/g, '');
+                const qSemMask = q.replace(/\D/g, '');
+                const match = !q || texto.includes(q) || (qSemMask && cpfSemMask.includes(qSemMask));
+                tr.style.display = match ? '' : 'none';
+                if (match) visiveis++;
+            });
+            counter.textContent = q ? `${visiveis} resultado${visiveis !== 1 ? 's' : ''}` : '';
+        }
+
+        function limparBusca() {
+            const input = document.getElementById('searchInput');
+            input.value = '';
+            filtrarTabela('');
+            input.focus();
+        }
+
+        // ── Carrega tabela ─────────────────────────────────────────────────
+
+        async function carregarFuncionarios() {
+            try {
+                const res = await fetch('/api/rh/funcionarios');
+                const funcionarios = (await res.json()).sort((a, b) =>
+                    String(a.nome ?? '').localeCompare(String(b.nome ?? ''), 'pt-BR', { sensitivity: 'base' })
+                );
+                __funcionariosCache = funcionarios;
+
+                const tbody = document.getElementById('listaFuncionarios');
+                tbody.innerHTML = '';
+
+                const si = document.getElementById('searchInput');
+                if (si) { si.value = ''; filtrarTabela(''); }
+
+                if (funcionarios.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 30px;">Nenhum colaborador cadastrado. Importe uma planilha.</td></tr>';
+                    return;
+                }
+
+                funcionarios.forEach(f => {
+                    const photoUrl = f.foto ? `/uploads/${encodeURIComponent(String(f.foto))}` : '';
+                    const fallback = String(f.nome || '').trim().slice(0, 1).toUpperCase() || '•';
+                    const payload = encodeData(f);
+                    const tr = document.createElement('tr');
+
+                    const statusColor = f.status === 'Inativo' ? 'var(--danger)'
+                        : f.status === 'Afastado' ? 'var(--warning)'
+                            : f.status === 'Férias' ? 'var(--info)'
+                                : 'var(--success)';
+
+                    tr.innerHTML = `
+                      <td>
+                          ${photoUrl
+                            ? `<img class="colab-photo" src="${photoUrl}" alt="Foto">`
+                            : `<div class="colab-photo-fallback" aria-hidden="true">${escapeHtml(fallback)}</div>`
+                        }
+                      </td>
+                      <td>${escapeHtml(f.nome)}</td>
+                      <td>${escapeHtml(formatCpfRBM(f.cpf))}</td>
+                      <td>${escapeHtml(f.cargo || '-')}</td>
+                      <td>${escapeHtml(fmtVinculo(f.tipo_vinculo))}</td>
+                      <td>${escapeHtml(f.setor || '-')}</td>
+                      <td>${escapeHtml(formatDateBR(f.data_admissao))}</td>
+                      <td>
+                          <span class="status-badge" style="background: ${statusColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">
+                              ${escapeHtml(f.status || 'Ativo')}
+                          </span>
+                      </td>
+                      <td style="white-space: nowrap;">
+                          <button class="btn btn-outline btn-sm" data-action="editar" data-id="${escapeHtml(f.id)}" data-func="${escapeHtml(payload)}">✏️ Editar</button>
+                          <button class="btn btn-outline btn-sm" data-action="detalhes" data-func="${escapeHtml(payload)}">Detalhes</button>
+                          <button class="btn btn-outline btn-sm" data-action="beneficios" data-cpf="${escapeHtml(f.cpf)}" data-nome="${escapeHtml(f.nome)}">Benefícios</button>
+                          <button class="btn btn-outline btn-sm" data-action="foto"    data-id="${escapeHtml(f.id)}">Foto</button>
+                          <button class="btn btn-danger  btn-sm" data-action="excluir" data-id="${escapeHtml(f.id)}">Excluir</button>
+                      </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (e) {
+                console.error(e);
+                alert('Erro ao carregar lista de colaboradores');
+            }
+        }
+
+        // ── Download template ──────────────────────────────────────────────
+
+        function downloadTemplate() {
+            const ws = XLSX.utils.json_to_sheet([
+                { "Matrícula": "0001", "Nome": "João da Silva", "CPF": "123.456.789-00", "Cargo": "Garçom", "Setor": "Salão", "Vínculo": "Mensalista", "Data Admissão": "01/01/2023", "Nascimento": "20/05/1990", "Sexo": "M", "Raça/Cor": "Branca", "Nacionalidade": "Brasileira", "Status": "Ativo" },
+                { "Matrícula": "0002", "Nome": "Maria Oliveira", "CPF": "999.888.777-66", "Cargo": "Garçom", "Setor": "Salão", "Vínculo": "Horista", "Data Admissão": "15/05/2023", "Nascimento": "10/09/1995", "Sexo": "F", "Raça/Cor": "Parda", "Nacionalidade": "Brasileira", "Status": "Férias" }
+            ]);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Colaboradores");
+            XLSX.writeFile(wb, "Modelo_Importacao_Colaboradores.xlsx");
+        }
+
+        // ── Benefícios ─────────────────────────────────────────────────────
+
+        async function verBeneficios(cpf, nome) {
+            try {
+                const res = await fetch(`/api/rh/beneficios/ultimas-compras?cpf=${encodeURIComponent(cpf)}`);
+                const info = await res.json();
+                const fmt = (iso) => iso ? formatDateBR(iso) : '-';
+                const linhas = [
+                    `<strong>Colaborador:</strong> ${escapeHtml(nome)}`,
+                    `<strong>CPF:</strong> ${formatCpfRBM(cpf)}`,
+                    `<strong>Última compra de VT:</strong> ${fmt(info?.ultimoVT)}${info?.ultimoVTValor ? ` (R$ ${info.ultimoVTValor})` : ''}`,
+                    `<strong>Outros benefícios:</strong> ${info?.ultimoOutro ? fmt(info.ultimoOutro) + (info?.ultimoOutroDescricao ? ' - ' + escapeHtml(info.ultimoOutroDescricao) : '') : '-'}`,
+                ];
+                const container = document.createElement('div');
+                Object.assign(container.style, {
+                    background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px',
+                    padding: '12px', boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+                    position: 'fixed', top: '20px', right: '20px', zIndex: '1200',
+                    maxWidth: '360px', fontSize: '0.9rem'
+                });
+                container.innerHTML = `
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                      <div style="font-weight:600;color:var(--text-primary);">Benefícios</div>
+                      <button style="border:none;background:transparent;cursor:pointer;font-size:1rem;">✖</button>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:6px;color:var(--text-secondary);">
+                      ${linhas.map(l => `<div>${l}</div>`).join('')}
+                  </div>`;
+                container.querySelector('button').addEventListener('click', () => container.remove());
+                document.body.appendChild(container);
+            } catch (e) {
+                console.error(e);
+                alert('Erro ao carregar benefícios do colaborador.');
+            }
+        }
+
+        // ── Detalhes ───────────────────────────────────────────────────────
+
+        function verDetalhes(funcionario) {
+            const f = funcionario || {};
+            const fmt = (v) => { const s = String(v ?? '').trim(); return s ? s : '-'; };
+            const linhas = [
+                ['Status', fmt(f.status || 'Ativo')],
+                ['Contrato', normalizeNumericIdValue(f.contrato) || fmt(f.contrato)],
+                ['Matrícula / Código Pessoa', normalizeNumericIdValue(f.matricula) || fmt(f.matricula)],
+                ['Nascimento', formatDateBR(f.nascimento)],
+                ['Sexo', fmt(f.sexo)],
+                ['Raça/Cor', fmt(f.raca_cor)],
+                ['Nacionalidade', fmt(f.nacionalidade)],
+                ['País Origem', fmt(f.pais_origem)],
+                ['Estado Origem', fmt(f.estado_origem)],
+                ['Naturalidade', fmt(f.naturalidade)],
+                ['Anotações', fmt(f.anotacoes)]
+            ];
+            const container = document.createElement('div');
+            Object.assign(container.style, {
+                background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px',
+                padding: '12px', boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+                position: 'fixed', top: '20px', right: '20px', zIndex: '1200',
+                maxWidth: '420px', fontSize: '0.9rem'
+            });
+            container.innerHTML = `
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                  <div style="font-weight:600;color:var(--text-primary);">Detalhes</div>
+                  <button style="border:none;background:transparent;cursor:pointer;font-size:1rem;">✖</button>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;color:var(--text-secondary);">
+                  ${linhas.map(([k, v]) => `<div><strong style="color:var(--text-primary);">${escapeHtml(k)}:</strong> ${escapeHtml(v)}</div>`).join('')}
+              </div>`;
+            container.querySelector('button').addEventListener('click', () => container.remove());
+            document.body.appendChild(container);
+        }
+
+        // ── Importação de arquivo ──────────────────────────────────────────
+
+        async function handleFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { raw: false, dateNF: 'dd/mm/yyyy' });
+
+                if (jsonData.length === 0) {
+                    alert('Arquivo vazio ou formato inválido.');
+                    return;
+                }
+
+                const normalizeHeader = (v) =>
+                    String(v ?? '').trim().toLowerCase()
+                        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                        .replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
+
+                const headerAliases = {
+                    nome: ['nome', 'colaborador', 'funcionario', 'empregado', 'employee', 'nome completo', 'nome_completo'],
+                    cpf: ['cpf', 'documento', 'nr cpf', 'num cpf'],
+                    cargo: ['cargo', 'funcao', 'ocupacao', 'job', 'função'],
+                    setor: ['setor', 'descricao setor', 'descricaosetor', 'departamento', 'depto', 'area', 'centro de custo', 'centro custo'],
+                    data_admissao: ['data admissao', 'data_admissao', 'admissao', 'dt admissao', 'entrada', 'data de admissão'],
+                    matricula: ['matricula', 'codigo pessoa', 'codigo_pessoa', 'codigo', 'registro', 'id', 'matrícula'],
+                    nascimento: ['data nascimento', 'data_nascimento', 'nascimento', 'dt nascimento', 'birth', 'data de nascimento'],
+                    sexo: ['sexo', 'genero', 'gênero'],
+                    raca_cor: ['raca cor', 'raca_cor', 'raca/cor', 'cor', 'raca', 'raça'],
+                    nacionalidade: ['nacionalidade'],
+                    pais_origem: ['pais origem', 'pais_origem', 'pais de origem', 'country of origin', 'country origin'],
+                    estado_origem: ['estado origem', 'estado_origem', 'uf origem', 'uf_origem'],
+                    naturalidade: ['naturalidade'],
+                    tipo_vinculo: ['tipo vinculo', 'tipo_vinculo', 'vinculo', 'regime', 'vínculo'],
+                    contrato: ['contrato', 'número contrato'],
+                    anotacoes: ['anotacoes', 'observacoes', 'obs', 'anotações'],
+                    status: ['status', 'situacao', 'estado', 'situação']
+                };
+
+                const fuzzyAllowed = new Set(['nome', 'cargo', 'setor', 'anotacoes']);
+
+                const getVal = (row, targetField) => {
+                    const possibleKeys = headerAliases[targetField] || [];
+                    const rowKeys = Object.keys(row || {});
+                    const normalizedMap = new Map(rowKeys.map(k => [normalizeHeader(k), k]));
+                    for (const alias of possibleKeys) {
+                        const key = normalizedMap.get(normalizeHeader(alias));
+                        if (key) return row[key];
+                    }
+                    if (fuzzyAllowed.has(targetField)) {
+                        for (const alias of possibleKeys) {
+                            const aliasNorm = normalizeHeader(alias);
+                            for (const k of rowKeys) {
+                                const kNorm = normalizeHeader(k);
+                                if (kNorm === aliasNorm || kNorm.includes(aliasNorm)) return row[k];
+                            }
+                        }
+                    }
+                    return '';
+                };
+
+                const normalizeVinculo = (val) => {
+                    const rawStr = String(val ?? '').trim();
+                    const raw = rawStr.toLowerCase();
+                    if (!raw) return '';
+                    if (raw === 'm' || raw.startsWith('mens')) return 'Mensalista';
+                    if (raw === 'h' || raw.startsWith('hor')) return 'Horista';
+                    const compact = rawStr.replace(/\s+/g, '');
+                    if (/^\d+$/.test(compact)) return compact;
+                if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(compact)) return compact.replace(/\./g, '').split(',')[0];
+                if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(compact)) return compact.replace(/,/g, '').split('.')[0];
+                if (/^\d+[.,]\d+$/.test(compact)) return compact.split(compact.includes(',') ? ',' : '.')[0];
+                return rawStr;
+            };
+
+            const parseSetorVinculo = (text) => {
+                const raw = String(text || '').trim();
+                if (!raw) return null;
+                const onlyVinc = raw.match(/^\s*(mensalista|horista|m|h)\s*$/i);
+                if (onlyVinc) return { setor: '', tipo_vinculo: normalizeVinculo(onlyVinc[1]) };
+                const combined = raw.match(/^\s*(.*?)[\s\-\/|]+(mensalista|horista|m|h)\s*$/i);
+                if (combined) return { setor: String(combined[1] || '').trim(), tipo_vinculo: normalizeVinculo(combined[2]) };
+                return null;
+            };
+
+            const normalizeCpf = (v) => v === null || v === undefined ? '' : String(v).replace(/\D/g, '');
+
+            const isValidCpf = (cpf) => {
+                const digits = normalizeCpf(cpf);
+                if (!digits || digits.length !== 11) return false;
+                if (/^(\d)\1{10}$/.test(digits)) return false;
+                const nums = digits.split('').map(Number);
+                if (nums.some(n => Number.isNaN(n))) return false;
+                let sum = 0;
+                for (let i = 0; i < 9; i++) sum += nums[i] * (10 - i);
+                let dv1 = (sum * 10) % 11; if (dv1 === 10) dv1 = 0;
+                if (dv1 !== nums[9]) return false;
+                sum = 0;
+                for (let i = 0; i < 10; i++) sum += nums[i] * (11 - i);
+                let dv2 = (sum * 10) % 11; if (dv2 === 10) dv2 = 0;
+                return dv2 === nums[10];
+            };
+
+            let cpfsInvalidos = 0;
+            const funcionarios = jsonData.map(row => {
+                const rawCpf = getVal(row, 'cpf');
+                let setorVal = String(getVal(row, 'setor') || '').trim();
+                let vinculoVal = String((getVal(row, 'tipo_vinculo') || getVal(row, 'contrato')) || '').trim();
+
+                const parsedFromVinculo = parseSetorVinculo(vinculoVal);
+                if (parsedFromVinculo) {
+                    if (!setorVal && parsedFromVinculo.setor) setorVal = parsedFromVinculo.setor;
+                    if (parsedFromVinculo.tipo_vinculo) vinculoVal = parsedFromVinculo.tipo_vinculo;
+                } else {
+                    vinculoVal = normalizeVinculo(vinculoVal);
+                }
+
+                if (!vinculoVal) {
+                    const parsedFromSetor = parseSetorVinculo(setorVal);
+                    if (parsedFromSetor && parsedFromSetor.tipo_vinculo) {
+                        setorVal = parsedFromSetor.setor || setorVal;
+                        vinculoVal = parsedFromSetor.tipo_vinculo;
+                    }
+                }
+
+                const cpfDigits = rawCpf ? normalizeCpf(rawCpf) : '';
+                const cpfVal = (cpfDigits && cpfDigits.length === 11 && isValidCpf(cpfDigits)) ? cpfDigits : null;
+                if (cpfDigits && !cpfVal) cpfsInvalidos++;
+
+                return {
+                    matricula: getVal(row, 'matricula'),
+                    nome: getVal(row, 'nome'),
+                    cpf: cpfVal,
+                    cargo: getVal(row, 'cargo'),
+                    setor: setorVal,
+                    // Datas já normalizadas para dd/mm/aaaa
+                    data_admissao: formatDateBR(getVal(row, 'data_admissao')),
+                    nascimento: formatDateBR(getVal(row, 'nascimento')),
+                    sexo: getVal(row, 'sexo'),
+                    raca_cor: getVal(row, 'raca_cor'),
+                    nacionalidade: getVal(row, 'nacionalidade'),
+                    pais_origem: getVal(row, 'pais_origem'),
+                    estado_origem: getVal(row, 'estado_origem'),
+                    naturalidade: getVal(row, 'naturalidade'),
+                    contrato: getVal(row, 'contrato'),
+                    anotacoes: getVal(row, 'anotacoes'),
+                    tipo_vinculo: vinculoVal,
+                    status: getVal(row, 'status')
+                };
+            }).filter(f => f.nome);
+
+            funcionarios.sort((a, b) =>
+                String(a.nome ?? '').localeCompare(String(b.nome ?? ''), 'pt-BR', { sensitivity: 'base' })
+            );
+
+            if (funcionarios.length === 0) {
+                alert('Nenhum registro válido encontrado. Verifique se a planilha possui uma coluna de "Nome".');
+                input.value = '';
+                return;
+            }
+
+            const avisoCpf = cpfsInvalidos ? `\n\nAtenção: ${cpfsInvalidos} CPF(s) inválido(s) serão importados sem CPF.` : '';
+            if (confirm(`Foram encontrados ${funcionarios.length} registros válidos. Deseja importar?${avisoCpf}`)) {
+                const substituirBase = confirm('Deseja SUBSTITUIR a base atual?\n\nOK = substituir (remove do banco quem NÃO estiver na planilha)\nCancelar = apenas adicionar/atualizar (não remove ninguém)');
+                await enviarImportacao(funcionarios, substituirBase ? 'sync' : 'append');
+            }
+
+            input.value = '';
+        };
+        reader.readAsArrayBuffer(file);
+        }
+
+        async function enviarImportacao(dados, modo) {
+            try {
+                const res = await fetch('/api/rh/funcionarios/importar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ funcionarios: dados, modo })
+                });
+                const resultado = await res.json();
+                if (resultado.ok) {
+                    const removidosInfo = Number.isFinite(Number(resultado.removidos)) ? `\nRemovidos: ${resultado.removidos}` : '';
+                    const cpfsInvalidosInfo = Number.isFinite(Number(resultado.cpfsInvalidos)) && Number(resultado.cpfsInvalidos) > 0
+                        ? `\nCPF(s) inválido(s) ignorados: ${resultado.cpfsInvalidos}` : '';
+                    alert(`Importação concluída!\nNovos: ${resultado.novos}\nAtualizados: ${resultado.atualizados}${removidosInfo}${cpfsInvalidosInfo}`);
+                    carregarFuncionarios();
+                } else {
+                    alert('Erro na importação: ' + resultado.erro);
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Erro ao enviar dados para o servidor.');
+            }
+        }
+
+        async function removerFuncionario(id) {
+            if (!confirm('Tem certeza que deseja remover este colaborador?')) return;
+            try {
+                const res = await fetch(`/api/rh/funcionarios/${id}`, { method: 'DELETE' });
+                if (res.ok) carregarFuncionarios();
+                else alert('Erro ao excluir');
+            } catch (e) { console.error(e); }
+        }
+
+        // ── Foto ───────────────────────────────────────────────────────────
+
+        let pendingFotoId = null;
+        const fotoInput = document.getElementById('fotoInput');
+        if (fotoInput) {
+            fotoInput.addEventListener('change', async () => {
+                const file = fotoInput.files && fotoInput.files[0];
+                if (!file || !pendingFotoId) return;
+                const form = new FormData();
+                form.append('foto', file);
+                try {
+                    const res = await fetch(`/api/rh/funcionarios/${encodeURIComponent(pendingFotoId)}/foto`, { method: 'POST', body: form });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok || !data?.ok) { alert(data?.erro ?? 'Erro ao enviar foto'); return; }
+                    await carregarFuncionarios();
+                } catch (e) {
+                    console.error(e);
+                    alert('Erro ao enviar foto');
+                } finally {
+                    pendingFotoId = null;
+                    fotoInput.value = '';
+                }
+            });
+        }
+
+        // ── Delegação de eventos da tabela ─────────────────────────────────
+
+        document.getElementById('listaFuncionarios')?.addEventListener('click', (e) => {
+            const btn = e.target?.closest('button[data-action]');
+            if (!btn) return;
+            const action = btn.getAttribute('data-action');
+
+            if (action === 'editar') {
+                const fid = String(btn.getAttribute('data-id') || '').trim();
+                let parsed = fid
+                    ? __funcionariosCache.find(x => String(x && x.id || '') === fid)
+                    : null;
+                if (!parsed) parsed = decodeData(btn.getAttribute('data-func') || '');
+                if (!parsed || !parsed.id) {
+                    alert('Não foi possível carregar os dados do colaborador. Recarregue a página.');
+                    return;
+                }
+                abrirModalEdicao(parsed);
+                return;
+            }
+            if (action === 'detalhes') {
+                const parsed = decodeData(btn.getAttribute('data-func') || '');
+                verDetalhes(parsed);
+                return;
+            }
+            if (action === 'beneficios') {
+                verBeneficios(btn.getAttribute('data-cpf') || '', btn.getAttribute('data-nome') || '');
+                return;
+            }
+            if (action === 'foto') {
+                pendingFotoId = btn.getAttribute('data-id');
+                if (fotoInput) fotoInput.click();
+                return;
+            }
+            if (action === 'excluir') {
+                removerFuncionario(btn.getAttribute('data-id'));
+            }
+        });
+
+        document.getElementById('searchInput')?.addEventListener('input', (e) => {
+            filtrarTabela(e.target.value);
+        });
+
+        // ── Inicializar ────────────────────────────────────────────────────
+        carregarFuncionarios();
+    </script>
+</body>
+
+</html>
